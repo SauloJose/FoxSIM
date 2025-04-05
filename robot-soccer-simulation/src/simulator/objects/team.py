@@ -3,10 +3,10 @@ from simulator.objects.robot import Robot
 from ui.interface_config import *
 
 class Team:
-    def __init__(self, color, positions, team_name,ball):
+    def __init__(self, color, positions, team_name,ball, first_direction=np.array([1.0,0.0])):
         self.color = color
         self.robots = [
-            Robot(x, y, speed=50,team=team_name, role="attacker" if i == 0 else "defender", color=color, ball=ball, initial_direction=np.array([1.0,0.0]))
+            Robot(x, y, speed=50,team=team_name, role="attacker" if i == 0 else "defender", color=color, ball=ball, initial_direction=first_direction)
             for i, (x, y) in enumerate(positions)
         ]
 

@@ -20,7 +20,7 @@ class Ball:
         self.color = color  
 
         #Objeto de colisão para tratar das colisões 
-        self.collision_object = CollisionCircle(self.x, self.y, self.radius, BALL_OBJECT)
+        self.collision_object = CollisionCircle(self.x, self.y, self.radius, type_object=BALL_OBJECT)
 
     def update_position(self, dt):
         """

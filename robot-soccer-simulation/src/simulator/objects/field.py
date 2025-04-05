@@ -12,9 +12,9 @@ class Field:
         self.width = width
         self.height = height
         self.color = color
-
+        
         # Objetos de colisão (linhas e áreas do campo)
-        self.collision_object = CollisionPolyLine([])
+        self.collision_object = CollisionPolyLine([], type_object=FIELD_OBJECT)
 
     def draw(self, screen):
         """

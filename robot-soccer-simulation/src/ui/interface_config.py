@@ -75,20 +75,10 @@ BALL_COLOR = (255, 165, 0)  # Cor da bola (laranja)
 # ============================
 # Configurações de exibição
 # ============================
+# Quadros por segundo
 FPS = 60
 #tempo da partida
 TIMER_PARTY = 60  # Tempo da partida em segundos (5 minutos)
-
-
-#Posições importante dos robôs na imagem:# Coordenadas relativas dos pontos "+" (em cm, baseadas no campo original)
-RELATIVE_POSITIONS = [
-    (100, 100),  # Exemplo: canto superior esquerdo
-    (200, 100),  # Exemplo: ponto superior central
-    (300, 100),  # Exemplo: canto superior direito
-    (100, 300),  # Exemplo: canto inferior esquerdo
-    (200, 300),  # Exemplo: ponto inferior central
-    (300, 300),  # Exemplo: canto inferior direito
-]
 
 
 # Margens internas do campo (ajuste conforme necessário)
@@ -103,47 +93,69 @@ FIELD_INTERNAL_HEIGHT = FIELD_HEIGHT - FIELD_MARGIN_TOP - FIELD_MARGIN_BOTTOM
 
 
 
-#Pontos importantes do campo para o simulador:
-#extremos do campo virtual
-fieldP1v  =   np.array([97,12])
-fieldP2v  =   np.array([547,12])
-fieldP3v  =   np.array([547,402])
-fieldP4v  =   np.array([97,402])
+# Pivots virtuais
+PA1v   =   np.array([210,137])  # Atualizado
+PA2v   =   np.array([210,257])  # Atualizado
+PA3v   =   np.array([210,377])  # Atualizado
+PE1v   =   np.array([435,137])  # Atualizado
+PE2v   =   np.array([435,257])  # Atualizado
+PE3v   =   np.array([435,377])  # Atualizado
 
-#centro do campo virtual
-fieldCenterv  =   np.array([322,207])
-#pivots virtual
-PA1v   =   np.array([210,87])
-PA2v   =   np.array([210,207])
-PA3v   =   np.array([210,327])
-PE1v   =   np.array([435,87])
-PE2v   =   np.array([435,207])
-PE3v   =   np.array([435,327])
-#area goleiro aliado virtual
-GA1v   =   np.array([97,102])
-GA2v   =   np.array([142,102])    
-GA3v   =   np.array([142,312])  
-GA4v   =   np.array([97,312])
-#area interna do goleiro aliado virtual
-GAI1v  =   np.array([67,147])
-GAI2v  =   np.array([97,147])
-GAI3v  =   np.array([97,267])
-GAI4v  =   np.array([67,267])
+# Área goleiro aliado virtual
+GA1v   =   np.array([97,152])  # Atualizado
+GA2v   =   np.array([142,152])  # Atualizado
+GA3v   =   np.array([142,362])  # Atualizado
+GA4v   =   np.array([97,362])  # Atualizado
 
-#area goleiro aliado virtual
-GE1v   =   np.array([502,102])
-GE2v   =   np.array([547,102])    
-GE3v   =   np.array([547,312])  
-GE4v   =   np.array([502,312])
-#area interna do goleiro aliado virtual
-GEI1v  =   np.array([547,147])
-GEI2v  =   np.array([577,147])
-GEI3v  =   np.array([577,267])
-GEI4v  =   np.array([547,267])
-#area a aliada
-#meios dos lados virtual
-fieldP12v  =   np.array([322,12])
-fieldP34v  =   np.array([322,402])
+# Área interna do goleiro aliado virtual
+GAI1v  =   np.array([67,197])  # Atualizado
+GAI2v  =   np.array([97,197])  # Atualizado
+GAI3v  =   np.array([97,317])  # Atualizado
+GAI4v  =   np.array([67,317])  # Atualizado
+
+# Área goleiro inimigo virtual
+GE1v   =   np.array([502,152])  # Atualizado
+GE2v   =   np.array([547,152])  # Atualizado
+GE3v   =   np.array([547,362])  # Atualizado
+GE4v   =   np.array([502,362])  # Atualizado
+
+# Área interna do goleiro inimigo virtual
+GEI1v  =   np.array([547,197])  # Atualizado
+GEI2v  =   np.array([577,197])  # Atualizado
+GEI3v  =   np.array([577,317])  # Atualizado
+GEI4v  =   np.array([547,317])  # Atualizado
+
+# Meios dos lados virtuais
+fieldP12v  =   np.array([322,62])  # Atualizado
+fieldP34v  =   np.array([322,452])  # Atualizado
+
+# Posições dos jogadores para tomar como base
+MID_GOALAREA_A = np.array([119.5,157.0])  # Atualizado
+ATK1_POSITION_SITUATION1_ALLY = PA1v
+ATK2_POSITION_SITUATION2_ALLY = PA3v
+
+MID_GOALAREA_E = np.array([524.5,157.0])  # Atualizado
+ATK1_POSITION_SITUATION1_ENEMY = PE1v
+
+#Posições dos jogadores para tomar como base 
+MID_GOALAREA_A = np.array([119.5,257.0])
+ATK1_POSITION_SITUATION1_ALLY = PA1v
+ATK2_POSITION_SITUATION2_ALLY = PA3v
+
+MID_GOALAREA_E = np.array([524.5,257.0])
+ATK1_POSITION_SITUATION1_ENEMY = PE1v
+ATK2_POSITION_SITUATION2_ENEMY = PE3v
+
+
+#Posições importante dos robôs na imagem:# Coordenadas relativas dos pontos "+" (em cm, baseadas no campo original)
+RELATIVE_POSITIONS = [
+    MID_GOALAREA_A,  # Exemplo: Goleiro aliado 1
+    ATK1_POSITION_SITUATION1_ALLY,  # Exemplo: Atacante aliado 1
+    ATK2_POSITION_SITUATION2_ALLY,  # Exemplo: Atacante Aliado 2
+    MID_GOALAREA_E,  # Exemplo: Goleiro inimigo 1
+    ATK1_POSITION_SITUATION1_ENEMY,  # Exemplo: atacante inimigo 1
+    ATK2_POSITION_SITUATION2_ENEMY,  # Exemplo: Atacante inimigo 2
+]
 
 # ============================
 # Parâmetros da física do simulador
@@ -156,7 +168,9 @@ FIELD_OBJECT = "FIELD"
 LINE_OBJECT  = "LINE"
 POINT_OBJECT = "POINT"
 
-# 
+#Tipos de jogadores 
+GOALKEEPER = "GOALKEEPER" #goleiro
+ATACKER = "ATTACKER"    #atacante
 
 #Coeficientes de restituição das colisões (e)
 COEFFICIENT_RESTITUTION_BALL_ROBOT = 0.6  # Colisão bola-robô
