@@ -92,7 +92,7 @@ FIELD_INTERNAL_WIDTH = FIELD_WIDTH - FIELD_MARGIN_LEFT - FIELD_MARGIN_RIGHT
 FIELD_INTERNAL_HEIGHT = FIELD_HEIGHT - FIELD_MARGIN_TOP - FIELD_MARGIN_BOTTOM
 
 
-
+## ========== Coordenadas dos pontos de referência na imagem para gerar os objetos
 # Pivots virtuais
 PA1v   =   np.array([210,137])  # Atualizado
 PA2v   =   np.array([210,257])  # Atualizado

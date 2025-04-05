@@ -13,8 +13,42 @@ class Field:
         self.height = height
         self.color = color
         
+        # Lista de pontos virtuais que limitam o campo
+        self.virtual_points = {
+            "PA1v": np.array([210, 137]),
+            "PA2v": np.array([210, 257]),
+            "PA3v": np.array([210, 377]),
+            "PE1v": np.array([435, 137]),
+            "PE2v": np.array([435, 257]),
+            "PE3v": np.array([435, 377]),
+            "GA1v": np.array([97, 152]),
+            "GA2v": np.array([142, 152]),
+            "GA3v": np.array([142, 362]),
+            "GA4v": np.array([97, 362]),
+            "GAI1v": np.array([67, 197]),
+            "GAI2v": np.array([97, 197]),
+            "GAI3v": np.array([97, 317]),
+            "GAI4v": np.array([67, 317]),
+            "GE1v": np.array([502, 152]),
+            "GE2v": np.array([547, 152]),
+            "GE3v": np.array([547, 362]),
+            "GE4v": np.array([502, 362]),
+            "GEI1v": np.array([547, 197]),
+            "GEI2v": np.array([577, 197]),
+            "GEI3v": np.array([577, 317]),
+            "GEI4v": np.array([547, 317]),
+            "fieldP12v": np.array([322, 62]),
+            "fieldP34v": np.array([322, 452]),
+        }
+        
+
         # Objetos de colisão (linhas e áreas do campo)
-        self.collision_object = CollisionPolyLine([], type_object=FIELD_OBJECT)
+        self.collision_object = CollisionPolyLine([
+
+
+
+
+        ], type_object=FIELD_OBJECT)
 
     def draw(self, screen):
         """

@@ -1,13 +1,20 @@
 import pygame
 from ui.interface_config import *
 
+#Dicionário de fontes da interface 
 class Interface:
     def __init__(self, screen):
         self.screen = screen
         self.start_button = pygame.Rect(50, FIELD_HEIGHT + SCOREBOARD_HEIGHT + 20, BUTTON_WIDTH, BUTTON_HEIGHT)
         self.reset_button = pygame.Rect(50, FIELD_HEIGHT + SCOREBOARD_HEIGHT + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
         
-        self.font = pygame.font.SysFont("Arial", 30)
+        self.fonts = {
+            "Arial": pygame.font.SysFont("Arial", 30),
+            "Arial_small": pygame.font.SysFont("Arial", 12),
+            "Menu": pygame.font.SysFont("Arial", 20),
+            "Timer": pygame.font.SysFont("Arial", 12),
+            "Buttons": pygame.font.SysFont("Arial", 20),
+        }
 
         # Placar
         self.score = [0, 0]  # [Team A, Team B]
@@ -22,7 +29,7 @@ class Interface:
         elif team == 2:
             self.score[1] += 1
 
-    def draw(self, time_left, screen, field_image, ball, robots, draw_collision_objects):
+    def draw(self, time_left, screen, field_image, ball, robots, field, draw_collision_objects):
         """
         Desenha a interface na tela.
         :param time_left: Tempo restante da partida (em segundos).
@@ -43,19 +50,19 @@ class Interface:
 
         # Desenha o placar do time azul (extremo esquerdo)
         blue_score_text = f"{self.score[0]}"
-        blue_score_surface = self.font.render(blue_score_text, True, (0, 0, 255))  # Texto azul
+        blue_score_surface = self.fonts["Arial"].render(blue_score_text, True, (0, 0, 255))  # Texto azul
         screen.blit(blue_score_surface, (20, 10))  # Posiciona no extremo esquerdo
 
         # Desenha o placar do time vermelho (extremo direito)
         red_score_text = f"{self.score[1]}"
-        red_score_surface = self.font.render(red_score_text, True, (255, 0, 0))  # Texto vermelho
+        red_score_surface = self.fonts["Arial"].render(red_score_text, True, (255, 0, 0))  # Texto vermelho
         screen.blit(red_score_surface, (FIELD_WIDTH - red_score_surface.get_width() - 20, SCOREBOARD_HEIGHT - red_score_surface.get_height() - 10)) 
        
         # Desenha o temporizador (centro do scoreboard)
         minutes = int(time_left // 60)
         seconds = int(time_left % 60)
         time_text = f"{minutes:02}:{seconds:02}"  # Formato MM:SS
-        time_surface = self.font.render(time_text, True, (0, 0, 0))  # Texto preto
+        time_surface = self.fonts["Arial"].render(time_text, True, (0, 0, 0))  # Texto preto
         screen.blit(time_surface, (FIELD_WIDTH // 2 - time_surface.get_width() // 2, 10))  # Centraliza no topo
 
         # Desenha os botões
@@ -63,8 +70,8 @@ class Interface:
         pygame.draw.rect(screen, (255, 0, 0), self.reset_button)  # Botão "Resetar"
 
         # Desenha os textos dos botões
-        start_text = self.font.render("Iniciar", True, (0, 0, 0))
-        reset_text = self.font.render("Resetar", True, (0, 0, 0))
+        start_text = self.fonts["Arial"].render("Iniciar", True, (0, 0, 0))
+        reset_text = self.fonts["Arial"].render("Resetar", True, (0, 0, 0))
         screen.blit(start_text, start_text.get_rect(center=self.start_button.center))
         screen.blit(reset_text, reset_text.get_rect(center=self.reset_button.center))
 
@@ -76,6 +83,19 @@ class Interface:
             robot.draw(screen)
         ball.draw(screen)
 
+        small_font = pygame.font.SysFont("Arial", 12)
+
+         # Lista de pontos virtuais com seus nomes
+        virtual_points = field.virtual_points
+
+        # Desenha os pontos e seus nomes
+        for label, point in virtual_points.items():
+            pygame.draw.circle(screen, (255, 0, 0), point, 1)  # Desenha um círculo vermelho
+            text_surface = small_font.render(label, True, (255, 255, 255))  # Texto preto
+            screen.blit(text_surface, (point[0] - text_surface.get_width() // 2, point[1] - 20))  # Centraliza o texto acima do ponto
+
+
+
         # Desenha os objetos de colisão, vetores e linhas se ativado
         if draw_collision_objects:
             for robot in robots:
@@ -85,7 +105,7 @@ class Interface:
                 # Desenha o retângulo rotacionado usando os cantos
                 pygame.draw.polygon(
                     screen,
-                    (255, 255, 0),  # Cor amarela para o retângulo
+                    (0, 255, 0),  # Cor amarela para o retângulo
                     [(int(corner[0]), int(corner[1])) for corner in corners],  # Converte os pontos para inteiros
                     3  # Espessura da borda
                 )
@@ -106,7 +126,7 @@ class Interface:
                 # Desenha uma linha do robô até a bola
                 pygame.draw.line(
                     screen,
-                    (255, 255, 255),  # Cor vermelha para a linha até a bola
+                    (0, 255, 0),  # Cor vermelha para a linha até a bola
                     (robot.x, robot.y),  # Ponto inicial (centro do robô)
                     (ball.x, ball.y),  # Ponto final (centro da bola)
                     1  # Espessura da linha

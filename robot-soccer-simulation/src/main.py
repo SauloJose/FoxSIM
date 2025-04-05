@@ -108,6 +108,7 @@ while running:
         screen=screen,
         field_image=field_image,
         ball=ball,
+        field=field,
         robots=blue_team.robots + red_team.robots,
         draw_collision_objects=draw_collision_objects
     )

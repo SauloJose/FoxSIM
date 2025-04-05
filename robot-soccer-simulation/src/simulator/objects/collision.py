@@ -10,9 +10,11 @@ if TYPE_CHECKING:
     from simulator.objects.field import Field
 
 # Constantes de coeficientes de restituição
-COEFFICIENT_RESTITUTION_BALL_ROBOT = 0.8
-COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.5
+COEFFICIENT_RESTITUTION_BALL_ROBOT = 1.0
+COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.2
 COEFFICIENT_RESTITUTION_BALL_FIELD = 0.6
+COEFFICIENT_FRICTION_ROBOT_ROBOT = 0.9  # Coeficiente de atrito
+
 
 ### Classes dos objetos de colisão
 class CollisionObject:
@@ -382,16 +384,49 @@ class Collision:
     def handle_collisions(self):
         """
         Gerencia as colisões entre objetos móveis e estruturas.
+        Prioriza colisões com maior sobreposição.
         """
+        collisions = []
+
+        # Detecta colisões entre objetos móveis
         for i, obj1 in enumerate(self.moving_objects):
             for obj2 in self.moving_objects[i + 1:]:
                 if obj1.collision_object.check_collision(obj2.collision_object):
-                    print(f"Colisão detectada entre {obj1.collision_object.type_object} e {obj2.collision_object.type_object}")
-                    self.resolve_moving_collision(obj1, obj2)
-        for moving in self.moving_objects:
-            for structure in self.structures:
-                if moving.collision_object.check_collision(structure):
-                    self.resolve_structure_collision(moving, structure)
+                    overlap = self.calculate_overlap(obj1, obj2)
+                    collisions.append((overlap, obj1, obj2))
+
+        # Ordena as colisões por sobreposição (maior primeiro)
+        collisions.sort(reverse=True, key=lambda x: x[0])
+
+        # Resolve as colisões na ordem de prioridade
+        for _, obj1, obj2 in collisions:
+            self.resolve_moving_collision(obj1, obj2)
+
+    def calculate_overlap(self, obj1, obj2):
+        """
+        Calcula a sobreposição entre dois objetos de colisão.
+        """
+        collision_vector = np.array([obj2.x - obj1.x, obj2.y - obj1.y])
+        distance = np.linalg.norm(collision_vector)
+
+        if distance == 0:
+            return float('inf')  # Máxima sobreposição
+
+        # Verifica os tipos de objetos de colisão
+        if isinstance(obj1.collision_object, CollisionCircle) and isinstance(obj2.collision_object, CollisionCircle):
+            # Ambos são círculos
+            return obj1.collision_object.radius + obj2.collision_object.radius - distance
+        elif isinstance(obj1.collision_object, CollisionRectangle) and isinstance(obj2.collision_object, CollisionRectangle):
+            # Ambos são retângulos (simplificação para tratar como círculos de mesmo diâmetro)
+            return obj1.collision_object.width / 2 + obj2.collision_object.width / 2 - distance
+        elif isinstance(obj1.collision_object, CollisionCircle) and isinstance(obj2.collision_object, CollisionRectangle):
+            # Um é círculo e o outro é retângulo
+            return obj1.collision_object.radius + obj2.collision_object.width / 2 - distance
+        elif isinstance(obj1.collision_object, CollisionRectangle) and isinstance(obj2.collision_object, CollisionCircle):
+            # Um é retângulo e o outro é círculo
+            return obj1.collision_object.width / 2 + obj2.collision_object.radius - distance
+
+        return 0  # Caso não seja possível calcular a sobreposição
 
     def resolve_moving_collision(self, obj1, obj2):
         """
@@ -410,7 +445,6 @@ class Collision:
         """
         Resolve a colisão entre a bola e o robô.
         """
-        print("Colisão entre bola e robô detectada!")
         collision_vector = np.array([ball.x - robot.x, ball.y - robot.y])
         distance = np.linalg.norm(collision_vector)
 
@@ -430,22 +464,51 @@ class Collision:
 
     def resolve_robot_robot_collision(self, robot1, robot2):
         """
-        Resolve colisões entre dois robôs.
+        Resolve colisões entre dois robôs, reposicionando-os apenas o suficiente para evitar sobreposição.
         """
         collision_vector = np.array([robot2.x - robot1.x, robot2.y - robot1.y])
-        if np.linalg.norm(collision_vector) > 0:
-            collision_vector = collision_vector / np.linalg.norm(collision_vector)
-        overlap = robot1.collision_object.width / 2 + robot2.collision_object.width / 2 - np.linalg.norm(collision_vector)
-        if overlap > 0:
-            robot1.x -= collision_vector[0] * overlap / 2
-            robot1.y -= collision_vector[1] * overlap / 2
-            robot2.x += collision_vector[0] * overlap / 2
-            robot2.y += collision_vector[1] * overlap / 2
-            relative_velocity = robot2.velocity - robot1.velocity
-            velocity_projection = np.dot(relative_velocity, collision_vector) * collision_vector
-            robot1.velocity += COEFFICIENT_RESTITUTION_ROBOT_ROBOT * velocity_projection
-            robot2.velocity -= COEFFICIENT_RESTITUTION_ROBOT_ROBOT * velocity_projection
+        distance = np.linalg.norm(collision_vector)
 
+        if distance == 0:
+            # Evita divisão por zero
+            collision_vector = np.array([1.0, 0.0])
+            distance = 1.0
+        else:
+            collision_vector /= distance
+
+        # Calcula a sobreposição entre os robôs
+        overlap = robot1.collision_object.width / 2 + robot2.collision_object.width / 2 - distance
+        if overlap > 0:
+            # Reposiciona os robôs apenas o suficiente para evitar sobreposição
+            correction = overlap / 2
+            robot1.x -= collision_vector[0] * correction
+            robot1.y -= collision_vector[1] * correction
+            robot2.x += collision_vector[0] * correction
+            robot2.y += collision_vector[1] * correction
+
+            # Atualiza os objetos de colisão dos robôs
+            robot1.collision_object.x = robot1.x
+            robot1.collision_object.y = robot1.y
+            robot2.collision_object.x = robot2.x
+            robot2.collision_object.y = robot2.y
+
+        # Calcula a velocidade relativa entre os robôs
+        relative_velocity = robot2.velocity - robot1.velocity
+        velocity_projection = np.dot(relative_velocity, collision_vector) * collision_vector
+
+        # Troca a quantidade de movimento vetorial (momentum) entre os robôs
+        robot1.velocity += COEFFICIENT_RESTITUTION_ROBOT_ROBOT * velocity_projection
+        robot2.velocity -= COEFFICIENT_RESTITUTION_ROBOT_ROBOT * velocity_projection
+
+        # Aplica atrito para estabilizar os robôs
+        robot1.velocity *= COEFFICIENT_FRICTION_ROBOT_ROBOT
+        robot2.velocity *= COEFFICIENT_FRICTION_ROBOT_ROBOT
+
+        # Limita a velocidade dos robôs
+        max_speed = 100  # Velocidade máxima permitida
+        robot1.velocity = np.clip(robot1.velocity, -max_speed, max_speed)
+        robot2.velocity = np.clip(robot2.velocity, -max_speed, max_speed)
+            
     def resolve_structure_collision(self, moving, structure):
         """
         Resolve colisões entre objetos MOVING (ex: bola, robô) e STRUCTURES (ex: campo, paredes).
