@@ -1,15 +1,25 @@
-from simulator.collision import resolve_robot_ball_collision, resolve_robot_robot_collision
+from simulator.objects.collision import *
+from simulator.objects.field import Field
+import numpy as np
 
-def update_game_state(robots, ball, dt):
-    for robot in robots:
-        # Garante que o robô não saia dos limites do campo
-        robot.x = max(0, min(robot.x, 500 - robot.width))
-        robot.y = max(50, min(robot.y, 400 - robot.height))
+def update_game_state(robots, ball, dt, field_width, field_height, field_objects):
+    """
+    Atualiza o estado do jogo.
+    """
+    if isinstance(field_objects, CollisionPolyLine):
+        field_objects = field_objects.objects
+
+    # Cria o objeto Collision
+    moving_objects = [ball] + robots
+    collision = Collision(moving_objects, field_objects)
 
     # Atualiza a posição da bola
-    ball.x += ball.velocity[0] * dt  # Substituído ball.vx por ball.velocity[0]
-    ball.y += ball.velocity[1] * dt  # Substituído ball.vy por ball.velocity[1]
+    ball.update_position(dt)
 
-    # Garante que a bola não saia dos limites do campo
-    ball.x = max(0, min(ball.x, 500))
-    ball.y = max(50, min(ball.y, 400))
+    # Lida com colisões
+    collision.handle_collisions()
+
+    # Move os robôs em direção à bola
+    for robot in robots:
+        robot.turn_towards_ball(dt)
+        robot.move(dt)

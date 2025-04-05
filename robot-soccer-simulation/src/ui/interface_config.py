@@ -1,3 +1,5 @@
+import numpy as np
+
 # ============================
 # Configurações da Janela
 # ============================
@@ -29,7 +31,7 @@ GOAL_HEIGHT = int(40 * SCALE)  # Altura do gol em pixels (40cm escalados)
 # ============================
 # Configurações dos Robôs
 # ============================
-ROBOT_SIZE = int(10 * SCALE)  # Tamanho dos robôs em pixels (7cm escalados)
+ROBOT_SIZE = int(20 * SCALE)  # Tamanho dos robôs em pixels (7cm escalados)
 
 # ============================
 # Cores
@@ -74,7 +76,8 @@ BALL_COLOR = (255, 165, 0)  # Cor da bola (laranja)
 # Configurações de exibição
 # ============================
 FPS = 60
-
+#tempo da partida
+TIMER_PARTY = 60  # Tempo da partida em segundos (5 minutos)
 
 
 #Posições importante dos robôs na imagem:# Coordenadas relativas dos pontos "+" (em cm, baseadas no campo original)
@@ -86,3 +89,80 @@ RELATIVE_POSITIONS = [
     (200, 300),  # Exemplo: ponto inferior central
     (300, 300),  # Exemplo: canto inferior direito
 ]
+
+
+# Margens internas do campo (ajuste conforme necessário)
+FIELD_MARGIN_TOP = 20
+FIELD_MARGIN_BOTTOM = 20
+FIELD_MARGIN_LEFT = 20
+FIELD_MARGIN_RIGHT = 20
+
+# Ajustar os limites do campo
+FIELD_INTERNAL_WIDTH = FIELD_WIDTH - FIELD_MARGIN_LEFT - FIELD_MARGIN_RIGHT
+FIELD_INTERNAL_HEIGHT = FIELD_HEIGHT - FIELD_MARGIN_TOP - FIELD_MARGIN_BOTTOM
+
+
+
+#Pontos importantes do campo para o simulador:
+#extremos do campo virtual
+fieldP1v  =   np.array([97,12])
+fieldP2v  =   np.array([547,12])
+fieldP3v  =   np.array([547,402])
+fieldP4v  =   np.array([97,402])
+
+#centro do campo virtual
+fieldCenterv  =   np.array([322,207])
+#pivots virtual
+PA1v   =   np.array([210,87])
+PA2v   =   np.array([210,207])
+PA3v   =   np.array([210,327])
+PE1v   =   np.array([435,87])
+PE2v   =   np.array([435,207])
+PE3v   =   np.array([435,327])
+#area goleiro aliado virtual
+GA1v   =   np.array([97,102])
+GA2v   =   np.array([142,102])    
+GA3v   =   np.array([142,312])  
+GA4v   =   np.array([97,312])
+#area interna do goleiro aliado virtual
+GAI1v  =   np.array([67,147])
+GAI2v  =   np.array([97,147])
+GAI3v  =   np.array([97,267])
+GAI4v  =   np.array([67,267])
+
+#area goleiro aliado virtual
+GE1v   =   np.array([502,102])
+GE2v   =   np.array([547,102])    
+GE3v   =   np.array([547,312])  
+GE4v   =   np.array([502,312])
+#area interna do goleiro aliado virtual
+GEI1v  =   np.array([547,147])
+GEI2v  =   np.array([577,147])
+GEI3v  =   np.array([577,267])
+GEI4v  =   np.array([547,267])
+#area a aliada
+#meios dos lados virtual
+fieldP12v  =   np.array([322,12])
+fieldP34v  =   np.array([322,402])
+
+# ============================
+# Parâmetros da física do simulador
+# ============================
+
+#Tipos de objetos do sistema
+ROBOT_OBJECT = "ROBOT"
+BALL_OBJECT = "BALL"
+FIELD_OBJECT = "FIELD"
+LINE_OBJECT  = "LINE"
+POINT_OBJECT = "POINT"
+
+# 
+
+#Coeficientes de restituição das colisões (e)
+COEFFICIENT_RESTITUTION_BALL_ROBOT = 0.6  # Colisão bola-robô
+COEFFICIENT_RESTITUTION_BALL_FIELD = 0.8  # Colisão bola-campo
+COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.4  # Colisão robô-robô 
+COEFFICIENT_RESTITUTION_ROBOT_FIELD = 0.0 # Colisão robô-campo (sem restituição)
+
+
+#Coeficiente de Arrasto para a bola
