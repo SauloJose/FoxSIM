@@ -20,5 +20,5 @@ class Team:
 
 # Configurações dos times
 # Converte as coordenadas relativas para pixels
-blue_team_positions = [(x * SCALE, y * SCALE) for x, y in RELATIVE_POSITIONS[:3]]
-red_team_positions = [(x * SCALE, y * SCALE) for x, y in RELATIVE_POSITIONS[3:]]
+blue_team_positions = [(x * SCALE_CM2PX, y * SCALE_CM2PX) for x, y in RELATIVE_POSITIONS[:3]]
+red_team_positions = [(x * SCALE_CM2PX, y * SCALE_CM2PX) for x, y in RELATIVE_POSITIONS[3:]]

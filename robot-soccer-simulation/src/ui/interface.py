@@ -5,8 +5,8 @@ from ui.interface_config import *
 class Interface:
     def __init__(self, screen):
         self.screen = screen
-        self.start_button = pygame.Rect(50, FIELD_HEIGHT + SCOREBOARD_HEIGHT + 20, BUTTON_WIDTH, BUTTON_HEIGHT)
-        self.reset_button = pygame.Rect(50, FIELD_HEIGHT + SCOREBOARD_HEIGHT + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
+        self.start_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20, BUTTON_WIDTH, BUTTON_HEIGHT)
+        self.reset_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
 
         # Ajusta a posição e altura da exibition_label com base nos botões
         top = self.start_button.top
@@ -54,10 +54,10 @@ class Interface:
         seconds = int(time_left % 60)
 
         # Área de configuração
-        pygame.draw.rect(screen, (200, 200, 200), (0, FIELD_HEIGHT + SCOREBOARD_HEIGHT, FIELD_WIDTH + SIDEBAR_WIDTH, CONFIG_HEIGHT))
+        pygame.draw.rect(screen, (200, 200, 200), (0, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX, WINDOWS_FIELD_WIDTH_PX + SIDEBAR_WIDTH_PX, CONFIG_HEIGHT_PX))
 
         # Campo de jogo e robôs/bola primeiro
-        screen.blit(field_image, (0, SCOREBOARD_HEIGHT))
+        screen.blit(field_image, (0, SCOREBOARD_HEIGHT_PX))
         for robot in robots:
             robot.draw(screen)
         ball.draw(screen)
@@ -96,7 +96,7 @@ class Interface:
         red_score_surface = self.fonts["Timer"].render(str(self.score[1]), True, (255, 0, 0))
 
         blue_score_x = 60
-        red_score_x = FIELD_WIDTH - 60
+        red_score_x = WINDOWS_FIELD_WIDTH_PX - 60
 
 
         screen.blit(blue_label, (blue_score_x - blue_label.get_width() // 2, 0))
@@ -113,7 +113,7 @@ class Interface:
         time_bg_width = time_rect.width + time_padding_x * 2
         time_bg_height = time_rect.height + time_padding_y * 2
         time_bg_rect = pygame.Rect(
-            FIELD_WIDTH // 2 - time_bg_width // 2,
+            WINDOWS_FIELD_WIDTH_PX // 2 - time_bg_width // 2,
             5,
             time_bg_width,
             time_bg_height
@@ -130,9 +130,10 @@ class Interface:
 
         # Informações de status (label lateral)
         text = [
-            f"PAUSED: {'YES' if self.is_game_paused else 'NO'}",
-            f"COLLISION OBJECTS: {'ON' if self.draw_collision_objects else 'OFF'}",
-            f"RUNNING: {'YES' if self.running else 'NO'}"
+            " CONFIG. DA EXIBIÇÃO ",
+            f"PAUSADO: {'SIM' if self.is_game_paused else 'NÃO'}",
+            f"OBJ. COLISÃO: {'EXIBINDO' if self.draw_collision_objects else 'OCULTO'}",
+            f"RODANDO: {'SIM' if self.running else 'NÃO'}"
         ]
 
         pygame.draw.rect(screen, (0, 0, 0), self.exibition_label, width=1)
@@ -144,17 +145,23 @@ class Interface:
         no_color = (200, 0, 0)  # Vermelho
         default_color = (0, 0, 0)
         keywords = {
-            "ON": ok_color,
-            "YES": ok_color,
-            "OFF": no_color,
-            "NO": no_color
+            "EXIBINDO": ok_color,
+            "SIM": ok_color,
+            "OCULTO": no_color,
+            "NÃO": no_color
         }
 
         for i, line in enumerate(text):
             parts = line.split(": ")
+            if len(parts) < 2:
+                # Linha sem status (ex: título ou decorativa), renderiza como texto normal
+                line_surf = self.fonts["Arial_small"].render(line, True, default_color)
+                line_y = self.exibition_label.top + 10 + i * 20
+                screen.blit(line_surf, (self.exibition_label.left + 10, line_y))
+                continue
+
             label_text = parts[0] + ":"
             status_text = parts[1]
-
             label_surf = self.fonts["Arial_small"].render(label_text, True, default_color)
             status_color = keywords.get(status_text.upper(), default_color)
             status_surf = self.fonts["Arial_small"].render(status_text, True, status_color)

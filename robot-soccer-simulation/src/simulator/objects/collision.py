@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 COEFFICIENT_RESTITUTION_BALL_ROBOT = 1.0
 COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.2
 COEFFICIENT_RESTITUTION_BALL_FIELD = 0.6
+COEFFICIENT_FRICTION_ROBOT_FIELD = 0.5 
 COEFFICIENT_FRICTION_ROBOT_ROBOT = 0.9  # Coeficiente de atrito
 
 
@@ -760,20 +761,35 @@ class CollisionGroup(CollisionObject):
 
     def _generate_aabb(self):
         '''
-         Gera os 4 cantos da AABB que envolve todos os objetos internos
+        Gera os 4 cantos da AABB que envolve todos os objetos internos.
+        Retorna os cantos no sentido horário.
         '''
-        xs = [p[0] for p in self.points]
-        ys = [p[1] for p in self.points]
+        xs = []
+        ys = []
+
+        for obj in self.objects:
+            if hasattr(obj, 'get_corners'):
+                corners = obj.get_corners()
+                for corner in corners:
+                    xs.append(corner[0])
+                    ys.append(corner[1])
+            elif isinstance(obj, CollisionLine):
+                xs.extend([obj.start[0], obj.end[0]])
+                ys.extend([obj.start[1], obj.end[1]])
+
+        if not xs or not ys:
+            return [np.array([0, 0])] * 4
+
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
 
-        #define os campos no sentido horário
         return [
-            np.array[[min_x, min_y]],
-            np.array([max_x, min_y]),
-            np.array([max_x,max_y]),
-            np.array([min_x,max_y])
+            np.array([min_x, min_y]),  # canto inferior esquerdo
+            np.array([max_x, min_y]),  # canto inferior direito
+            np.array([max_x, max_y]),  # canto superior direito
+            np.array([min_x, max_y])   # canto superior esquerdo
         ]
+
     
     def _aabb_overlap(self, other_group):
         """
@@ -879,7 +895,7 @@ class CollisionGroup(CollisionObject):
         return min(xs), min(ys), max(xs), max(ys)
 
     #Para exibir
-    def get_aabb(self, surface, color=(255, 0, 0), width=1):
+    def get_aabb(self):
         """
             Retorna os pontos do AABB para que possa ser desenhado na interface
             caso seja preciso.
@@ -894,7 +910,7 @@ class CollisionGroup(CollisionObject):
 
 ## Classe principal para controle das colisões
 class CollisionManagerSAT:
-    def __init__(self, cell_size=100):
+    def __init__(self, cell_size=CELL_SIZE):
         """
         Gerenciador de colisões usando SAT com otimização por Spatial Hashing.
         :param cell_size: Tamanho de cada célula da grade para particionamento espacial.
@@ -918,15 +934,57 @@ class CollisionManagerSAT:
         Adiciona um objeto ao grid com base na sua posição.
         :param obj: Objeto com propriedades .x e .y
         """
-        if hasattr(collision_obj, 'x') and hasattr(collision_obj, 'y'):
-            cx, cy = self._hash_position(collision_obj.x, collision_obj.y)
-            self.grid[(cx, cy)].append(collision_obj)
-            #print(f"Collision object: {type(collision_obj.reference).__name__}")
-        elif hasattr(collision_obj, 'start') and hasattr(collision_obj, 'end'):
-            mid = (collision_obj.start + collision_obj.end) / 2
-            cx, cy = self._hash_position(mid[0], mid[1])
-            self.grid[(cx, cy)].append(collision_obj)
-            #print(f"Collision object: {type(collision_obj.reference).__name__}")
+        if isinstance(collision_obj, CollisionGroup):
+            for member in collision_obj.objects:
+                self.add_object(member)
+            return 
+        
+        #Se for uma linha, calcula bouding box 
+        if isinstance(collision_obj, CollisionLine):
+            min_x = min(collision_obj.start[0], collision_obj.end[0])
+            max_x = max(collision_obj.start[0], collision_obj.end[0])
+            min_y = min(collision_obj.start[1], collision_obj.end[1])
+            max_y = max(collision_obj.start[1], collision_obj.end[1])
+
+            start_cell = self._hash_position(min_x, min_y)
+            end_cell = self._hash_position(max_x, max_y)
+
+            for x in range(start_cell[0], end_cell[0] + 1):
+                for y in range(start_cell[1], end_cell[1] + 1):
+                    self.grid[(x, y)].append(collision_obj)
+            return
+
+        #Se for um retângulo, calcula bounding box com base nos vértices
+        elif isinstance(collision_obj, CollisionRectangle):
+            # Obtém os vértices do retângulo
+            vertices = collision_obj.get_corners()
+            xs = [v[0] for v in vertices]
+            ys = [v[1] for v in vertices]
+            min_x = min(xs)
+            max_x = max(xs)
+            min_y = min(ys)
+            max_y = max(ys)
+
+        # Se for um círculo, usa raio para criar a bounding box
+        elif isinstance(collision_obj, CollisionCircle):
+            min_x = collision_obj.x - collision_obj.radius
+            max_x = collision_obj.x + collision_obj.radius
+            min_y = collision_obj.y - collision_obj.radius
+            max_y = collision_obj.y + collision_obj.radius
+
+        # Caso contrário, assume que o objeto tem posição .x e .y (como ponto)
+        else:
+            min_x = max_x = collision_obj.x
+            min_y = max_y = collision_obj.y
+     
+        # Calcula as céclulas que a bouding box cobre
+        start_cell  = self._hash_position(min_x, min_y)
+        end_cell    = self._hash_position(max_x, max_y)
+
+        for x in range(start_cell[0], end_cell[0]+1):
+            for y in range(start_cell[1],end_cell[1]+1):
+                self.grid[(x,y)].append(collision_obj)
+        
 
     def _get_nearby_objects(self, obj):
         """
@@ -948,47 +1006,47 @@ class CollisionManagerSAT:
         :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
         """
         self.clear()
+        print("[Motor Físico]: acionando o sistema de colisões")
 
-        print("[MOTOR FÍSICO]: Acionando o sistema de Colisões")
-        # Adiciona objetos ao grid
+        #1. Verifica se são objetos de colisão apenas e passa todos para o grid
         for obj in objects:
-            print(f" = Objeto filho: {type(obj).__name__} / -Objeto pai: {type(obj.reference).__name__}")
+            if not hasattr(obj, "reference"):
+                continue
             self.add_object(obj)
-
-        # Checa colisões entre objetos próximos
-        # Os objetos são os objetos de colisão dos objetos iteráveis
+        
+        #2. Verifica colisões no grid
         for obj in objects:
-            nearby = self._get_nearby_objects(obj)
-            
-            for other in nearby:
-                #Verificando as colisões do objeto estudado com seus visinhos
-                if obj is other or not hasattr(other,"reference"):
-                    #Se o objeto não tem uma referência, então ele não é um
-                    # objeto que eu queira analisar.
-                    continue
+            if not hasattr(obj, "reference"):
+                continue
 
-                # Previne verificações duplicadas (verificar outro que é eles msm)
-                if id(obj) > id(other):
+            if obj.type_object != MOVING_OBJECTS:
+                continue 
+
+            nearby = self._get_nearby_objects(obj)
+
+            #Verifica colisões com os vizinhos.
+            for other in nearby:
+                if obj is other or not hasattr(other,"reference"):
                     continue 
-                
-                #Verifico o tipo de objeto de colisão "MOVING" ou "STRUCTURE"
+
+                #Evita tratar colisões de "eu com eu"
+                if id(obj) >id(other):
+                    continue 
+
                 other_type = other.type_object 
 
-                #Se for do tipo estrutura (Apenas o campo.)
-                # O objeto que pertence ao CollisionPolyLine é uma lista de linhas
-                # Elas são as linhas que compõem o objeto campo.
-                if other_type == STRUCTURE_OBJECTS:
-                    if isinstance(other.reference, Field) and other.reference.type_object == FIELD_OBJECT :
-                        print("O pai do objeto é o campo")
-                        hasCollision, mtv = obj.check_collision(other)
-                        if hasCollision:
-                            self.resolve_collision_with_field(obj, mtv)
+                # MOVING x STRUCTURE:
+                if other_type == STRUCTURE_OBJECTS and hasattr(other.reference, "virtual_points"):
+                    print("O pai do objeto é o campo")
+                    hasCollision, mtv = obj.check_collision(other)
+                    if hasCollision and np.linalg.norm(mtv) != 0:
+                        self.resolve_collision_with_field(obj, mtv)
                     continue
 
-                # Ambos móveis
+                # MOVING x MOVING
                 if other_type == MOVING_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
-                    if hasCollision:
+                    if hasCollision and np.linalg.norm(mtv)!=0:
                         self.resolve_moving_collision(obj, other, mtv)
 
     def resolve_moving_collision(self, obj1, obj2, mtv):
@@ -998,6 +1056,22 @@ class CollisionManagerSAT:
         :param mtv: vetor mínimo de translação do SAT (resolve a sobreposição).
         """
         print("Resolvendo colisão de objetos em movimento")
+        
+        #Pegando os pais que estão controlando os objetos de colisão
+        obj1 = obj1.reference
+        obj2 = obj2.reference
+
+        # Proteção: MTV nulo ou objetos sem massa válida
+        if np.linalg.norm(mtv) == 0:
+            print("MTV nulo — colisão ignorada.")
+            return
+        if not hasattr(obj1, 'mass') or not hasattr(obj2, 'mass'):
+            print("Um dos objetos não possui massa — colisão ignorada.")
+            return
+        if obj1.mass <= 0 or obj2.mass <= 0:
+            print("Massa inválida em um dos objetos — colisão ignorada.")
+            return
+    
         normal = mtv / np.linalg.norm(mtv)
 
         # Separação mínima (posicional)
@@ -1015,6 +1089,7 @@ class CollisionManagerSAT:
         # Velocidades relativas
         v_rel = obj1.velocity - obj2.velocity
         vel_along_normal = np.dot(v_rel, normal)
+        
         if vel_along_normal > 0:
             return  # já estão se separando
 
@@ -1030,6 +1105,7 @@ class CollisionManagerSAT:
         obj1.velocity += impulse / obj1.mass
         obj2.velocity -= impulse / obj2.mass
 
+        # Impulso de atrito (tangencial)
         tangent = np.array([-normal[1], normal[0]])
         v_rel_tangent = np.dot(v_rel, tangent)
         friction_impulse = -v_rel_tangent * friction
@@ -1042,21 +1118,41 @@ class CollisionManagerSAT:
 
     def resolve_collision_with_field(self, obj, mtv):
         """
-        Resolve colisão entre objeto móvel e o campo (parede).
+        Resolve colisão entre objeto móvel e o campo (estrutura estática de massa infinita).
         :param obj: objeto que colidiu
         :param mtv: vetor mínimo de translação
         """
         print("Resolvendo colisões com o campo")
-        normal = mtv / np.linalg.norm(mtv)
+        obj = obj.reference 
+        
+        norm_mtv = np.linalg.norm(mtv)
+        if norm_mtv == 0:
+            print("MTV nulo — colisão ignorada.")
+            return
 
-        # Corrige a posição
+        normal = mtv / norm_mtv
+
+        # Corrige posição (empurra o objeto para fora do campo)
         obj.x += mtv[0]
         obj.y += mtv[1]
         obj.collision_object.x = obj.x
         obj.collision_object.y = obj.y
 
-        # Reflete a velocidade (como se batesse numa parede)
+        # Verifica componente da velocidade na direção da normal
         vel_along_normal = np.dot(obj.velocity, normal)
-        if vel_along_normal < 0:
-            obj.velocity -= (1 + COEFFICIENT_RESTITUTION_BALL_FIELD) * vel_along_normal * normal
+        if vel_along_normal >= 0:
+            return  # já está se afastando da parede
 
+        # Escolhe restituição com base no tipo
+        is_ball = 'Ball' in str(type(obj))
+        restitution = COEFFICIENT_RESTITUTION_BALL_FIELD if is_ball else COEFFICIENT_RESTITUTION_ROBOT_FIELD
+        friction = COEFFICIENT_FRICTION_ROBOT_FIELD if not is_ball else 0
+
+        # Reflete a velocidade com restituição (rebote)
+        obj.velocity -= (1 + restitution) * vel_along_normal * normal
+
+        # Aplica atrito (na direção tangencial ao plano de colisão)
+        tangent = np.array([-normal[1], normal[0]])
+        v_tangent = np.dot(obj.velocity, tangent)
+        friction_impulse = -v_tangent * friction
+        obj.velocity += friction_impulse * tangent

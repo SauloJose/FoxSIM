@@ -3,7 +3,7 @@ from simulator.objects.collision import *
 from ui.interface_config import *
 
 class Field:
-    def __init__(self, width=FIELD_WIDTH, height=FIELD_HEIGHT, color=(0, 0, 0)):
+    def __init__(self, width=REAL_FIELD_INTERNAL_WIDTH_CM, height=REAL_FIELD_INTERNAL_HEIGHT_CM, color=(0, 0, 0)):
         """
         Inicializa o campo de jogo.
         :param width: Largura do campo em pixels.

@@ -1,6 +1,6 @@
 import pygame
 import numpy as np
-from ui.interface_config import ROBOT_SIZE
+from ui.interface_config import ROBOT_SIZE_CM
 from simulator.objects.collision import *
 
 class Robot:
@@ -43,12 +43,12 @@ class Robot:
         self.ball = ball #referência à bola
 
         #Dados físicos do robô
-        self.width = ROBOT_SIZE  # Largura do robô em pixels
-        self.height = ROBOT_SIZE  # Altura do robô em pixels
+        self.width = ROBOT_SIZE_CM  # Largura do robô em pixels
+        self.height = ROBOT_SIZE_CM  # Altura do robô em pixels
         self.mass = ROBOT_MASS  # Massa do robô em kg
-        self.wheels_radius = ROBOT_WHEELS_RADIUS  # Raio das rodas do robô em cm
-        self.distance_wheels = ROBOT_DISTANCE_WHEELS  # Distância entre as rodas em cm
-        self.distance_wheels_to_center = ROBOT_DISTANCE_WHEELS_TO_CENTER  # Distância do centro do robô até o meio das rodas em cm
+        self.wheels_radius = ROBOT_WHEELS_RADIUS_CM  # Raio das rodas do robô em cm
+        self.distance_wheels = ROBOT_DISTANCE_WHEELS_CM  # Distância entre as rodas em cm
+        self.distance_wheels_to_center = ROBOT_DISTANCE_WHEELS_TO_CENTER_CM  # Distância do centro do robô até o meio das rodas em cm
 
         
         #Adicionando objeto de colisão
@@ -233,7 +233,7 @@ class Robot:
         angle = np.degrees(np.arctan2(self.direction[1], self.direction[0]))
         rotated_image = pygame.transform.rotate(self.image, -angle)
         rect = rotated_image.get_rect(center=(self.x, self.y))
-
+        
         #Atualiza o ângulo do objeot de colisão
         self.collision_object.angle = angle
 

@@ -4,6 +4,7 @@ import numpy as np
 from simulator.objects.team import *
 from simulator.objects.ball import Ball
 from simulator.objects.field import Field
+from simulator.objects.robot import Robot
 
 from simulator.game_logic import update_game_state
 from simulator.objects.timer import HighPrecisionTimer
@@ -13,17 +14,17 @@ from ui.interface_config import *
 
 # === Inicialização ===
 pygame.init()
-screen = pygame.display.set_mode((FIELD_WIDTH, FIELD_HEIGHT + SCOREBOARD_HEIGHT + CONFIG_HEIGHT))
+screen = pygame.display.set_mode((WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))
 pygame.display.set_caption("Robot Soccer Simulation")
 
 # === Carregamento de Recursos ===
 field_image = pygame.image.load("robot-soccer-simulation/src/assets/field.png")
-field_image = pygame.transform.scale(field_image, (FIELD_WIDTH, FIELD_HEIGHT))
+field_image = pygame.transform.scale(field_image, (WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX))
 
 # === Instanciação de Objetos ===
 interface = Interface(screen)
-field = Field(FIELD_WIDTH, FIELD_HEIGHT, FIELD_COLOR)
-ball = Ball(FIELD_WIDTH // 2, SCOREBOARD_HEIGHT + FIELD_HEIGHT // 2, field=field, radius=BALL_RADIUS, color=BALL_COLOR)
+field = Field(WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX, FIELD_COLOR)
+ball = Ball(WINDOWS_FIELD_WIDTH_PX // 2, SCOREBOARD_HEIGHT_PX + WINDOWS_FIELD_HEIGHT_PX // 2, field=field, radius=BALL_RADIUS_CM, color=BALL_COLOR)
 
 blue_team = Team(TEAM_BLUE_COLOR, blue_team_positions, "blue", ball=ball, first_direction=np.array([1.0, 0.0]))
 red_team = Team(TEAM_RED_COLOR, red_team_positions, "red", ball=ball, first_direction=np.array([-1.0, 0.0]))
@@ -41,7 +42,7 @@ is_game_paused = False
 def reset_simulation(timer):
     timer.stop()
     timer = HighPrecisionTimer(TIMER_PARTY)
-    ball.reset_position(FIELD_WIDTH // 2, SCOREBOARD_HEIGHT + FIELD_HEIGHT // 2)
+    ball.reset_position(WINDOWS_FIELD_WIDTH_PX // 2, SCOREBOARD_HEIGHT_PX + WINDOWS_FIELD_HEIGHT_PX // 2)
     blue_team.reset_positions(blue_team_positions)
     blue_team.set_speed(50)
     red_team.reset_positions(red_team_positions)
@@ -73,7 +74,7 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             x, y = pygame.mouse.get_pos()
             # Move a bola se o jogo estiver pausado e clique estiver dentro do campo
-            if (fieldEx1[0]+PADDING_BALL_OK) <= x <= (fieldEx2[0]-PADDING_BALL_OK) and (fieldEx1[1]+PADDING_BALL_OK) <= y <= (fieldEx3[1]-PADDING_BALL_OK):
+            if (fieldEx1[0]+PADDING_BALL_OK_PX) <= x <= (fieldEx2[0]-PADDING_BALL_OK_PX) and (fieldEx1[1]+PADDING_BALL_OK_PX) <= y <= (fieldEx3[1]-PADDING_BALL_OK_PX):
                 ball.x, ball.y = x, y
                 ball.collision_object.x = ball.x
                 ball.collision_object.y = ball.y

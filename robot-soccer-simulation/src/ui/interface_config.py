@@ -6,31 +6,45 @@ import numpy as np
 WINDOW_WIDTH            = 645  # Largura da janela em pixels
 WINDOW_HEIGHT           = 600  # Altura da janela em pixels
 
+
 # ============================
 # Configurações da área útil da janela do campo. Considerando espaços que não tem campo.
 # ============================
-ORIGINAL_FIELD_WIDTH    = 645  # Largura original do campo em cm
-ORIGINAL_FIELD_HEIGHT   = 413  # Altura original do campo em cm
-FIELD_WIDTH             = 645  # Largura do campo em pixels
-SCALE                   = FIELD_WIDTH / ORIGINAL_FIELD_WIDTH  # Escala para ajustar o campo (1px = 1cm)
-FIELD_HEIGHT            = int(ORIGINAL_FIELD_HEIGHT * SCALE)  # Altura do campo em pixels (escalada)
+ORIGINAL_WINDOWS_FIELD_WIDTH_PX     = 645  # Largura original do campo em cm
+ORIGINAL_WINDOWS_FIELD_HEIGHT_PX    = 413  # Altura original do campo em cm
+WINDOWS_FIELD_WIDTH_PX              = 645  # Largura do campo em pixels
+SCALE_CM2PX                         = WINDOWS_FIELD_WIDTH_PX / ORIGINAL_WINDOWS_FIELD_WIDTH_PX 
+WINDOWS_FIELD_HEIGHT_PX             = int(ORIGINAL_WINDOWS_FIELD_HEIGHT_PX * SCALE_CM2PX)  # Altura do campo em pixels (escalada)
 
-FIELD_INTERNAL_HEIGHT   = int(452-62)
-FIELD_INTERNAL_WIDTH    = int(547-97)
+FIELD_INTERNAL_HEIGHT_IN_PX   = 390 # 3 px = 1 cm
+FIELD_INTERNAL_WIDTH_IN_PX    = 450
 
-PADDING_BALL_OK         = 10
+REAL_FIELD_INTERNAL_WIDTH_CM  = int(150)
+REAL_FIELD_INTERNAL_HEIGHT_CM = int(130)
+
+# ====================  Escala para transformar de pixéls para centímetros
+SCALE_PX_TO_CM              = REAL_FIELD_INTERNAL_WIDTH_CM/ORIGINAL_WINDOWS_FIELD_WIDTH_PX #= 0,333 cm/px
+
+###############
+# 3 px = 1 cm #
+###############
+
+# ==================== Distâncias para desenhos.
+PADDING_BALL_OK_CM            = 2
+PADDING_BALL_OK_PX            = PADDING_BALL_OK_CM/SCALE_PX_TO_CM
+
 # ============================
 # Configurações das Áreas
 # ============================
-SCOREBOARD_HEIGHT       = 50  # Altura do placar em pixels
-SIDEBAR_WIDTH           = 400  # Largura das janelas laterais em pixels
-CONFIG_HEIGHT           = 160  # Altura da área de configurações em pixels
+SCOREBOARD_HEIGHT_PX       = 50  # Altura do placar em pixels
+SIDEBAR_WIDTH_PX           = 400  # Largura das janelas laterais em pixels
+CONFIG_HEIGHT_PX           = 160  # Altura da área de configurações em pixels
 
 # ============================
 # Configurações dos Gols
 # ============================
-GOAL_WIDTH              = int(10 * SCALE)  # Largura do gol em pixels (10cm escalados)
-GOAL_HEIGHT             = int(40 * SCALE)  # Altura do gol em pixels (40cm escalados)
+GOAL_WIDTH              = int(10 * SCALE_CM2PX)  # Largura do gol em pixels (10cm escalados)
+GOAL_HEIGHT             = int(40 * SCALE_CM2PX)  # Altura do gol em pixels (40cm escalados)
 
 
 # ============================
@@ -54,7 +68,7 @@ SIDEBAR_COLOR_2         = (150, 150, 150)  # Cor da Janela 2 (cinza claro)
 CONFIG_COLOR            = (30, 30, 30)  # Cor do fundo da área de configurações (cinza muito escuro)
 
 # ============================
-# Configurações dos Botões
+# Configurações dos Botões (px)
 # ============================
 BUTTON_WIDTH            = 120  # Largura dos botões em pixels
 BUTTON_HEIGHT           = 50  # Altura dos botões em pixels
@@ -68,17 +82,18 @@ BACKGROUND_COLOR        = (0, 0, 0)  # Cor do fundo (preto)
 # ============================
 # Dados físicos do simulador 
 # ============================
+# massa (kg), distancias (cm)
 # Dos robôs
-ROBOT_MASS                              = 1.0                                # Massa do robô em kg
-ROBOT_SIZE                              = int(20*SCALE)                      # Largura das laterais 
-ROBOT_WHEELS_RADIUS                     = int(3 * SCALE)                   # Raio da roda em pixels (3cm escalados)
-ROBOT_DISTANCE_WHEELS                   = int(20 * SCALE)               # Distância entre as rodas em pixels (10cm escalados)
-ROBOT_DISTANCE_WHEELS_TO_CENTER         = ROBOT_DISTANCE_WHEELS/2   # Distância do centro do robô até o meio das rodas em pixels (5cm escalados)
+ROBOT_MASS                                 = 1.0                                # Massa do robô em kg
+ROBOT_SIZE_CM                              = int(20*SCALE_CM2PX)                      # Largura das laterais 
+ROBOT_WHEELS_RADIUS_CM                     = int(3 * SCALE_CM2PX)                   # Raio da roda em pixels (3cm escalados)
+ROBOT_DISTANCE_WHEELS_CM                   = int(20 * SCALE_CM2PX)               # Distância entre as rodas em pixels (10cm escalados)
+ROBOT_DISTANCE_WHEELS_TO_CENTER_CM         = ROBOT_DISTANCE_WHEELS_CM/2   # Distância do centro do robô até o meio das rodas em pixels (5cm escalados)
 
 
 # Da bola
 BALL_MASS               = 0.1  # Massa da bola em kg (100g)
-BALL_RADIUS             = int(5 * SCALE)  # Raio da bola em pixels (2cm escalados)
+BALL_RADIUS_CM          = int(5 * SCALE_CM2PX)  # Raio da bola em cm (5cm escalados)
 BALL_COLOR              = (255, 165, 0)  # Cor da bola (laranja)
 
 
@@ -93,12 +108,12 @@ COEFICIENT_FRICTION_ROBOT_ROBOT         = 0.1 # Coeficiente de atrito robô-rob�
 
 
 #Quantidades de Células do GRID.
-ROBOT_AREA                              = ROBOT_SIZE*ROBOT_SIZE 
+ROBOT_AREA                              = ROBOT_SIZE_CM*ROBOT_SIZE_CM 
 CELL_AREA                               = 4 *ROBOT_AREA           # Suportar até 4 robôs num mesmo grid.
 CELL_SIZE                               = int(np.sqrt(CELL_AREA)) 
 
-GRID_ROWS                               = FIELD_INTERNAL_HEIGHT // CELL_SIZE
-GRID_COLS                               = FIELD_INTERNAL_WIDTH // CELL_SIZE
+GRID_ROWS                               = FIELD_INTERNAL_HEIGHT_IN_PX // CELL_SIZE
+GRID_COLS                               = FIELD_INTERNAL_WIDTH_IN_PX // CELL_SIZE
 QUANT_CELLS_GRID                        = (GRID_COLS, GRID_ROWS)
 
 
@@ -119,11 +134,14 @@ FIELD_MARGIN_LEFT = 20
 FIELD_MARGIN_RIGHT = 20
 
 # Ajustar os limites do campo
-FIELD_INTERNAL_WIDTH = FIELD_WIDTH - FIELD_MARGIN_LEFT - FIELD_MARGIN_RIGHT
-FIELD_INTERNAL_HEIGHT = FIELD_HEIGHT - FIELD_MARGIN_TOP - FIELD_MARGIN_BOTTOM
+FIELD_INTERNAL_WIDTH_IN_PX = WINDOWS_FIELD_WIDTH_PX - FIELD_MARGIN_LEFT - FIELD_MARGIN_RIGHT
+FIELD_INTERNAL_HEIGHT_IN_PX = WINDOWS_FIELD_HEIGHT_PX - FIELD_MARGIN_TOP - FIELD_MARGIN_BOTTOM
 
 
 ## ========== Coordenadas dos pontos de referência na imagem para gerar os objetos
+## Todas essas posições são dadas em pixels
+ORIGIN_SYSTEM = np.array([67,452])       # Coordenada do ponto de origem do novo sistema de coordenadas
+
 # Pivots virtuais
 PA1v   =   np.array([210,137])  # Atualizado
 PA2v   =   np.array([210,257])  # Atualizado
@@ -228,3 +246,26 @@ ATACKER = "ATTACKER"    #atacante
 NO_POINT_YET = 0 
 POINT_ALLY = 1
 POINT_ENEMY = 2
+
+
+# Definição de funções para passar de coordenadas na interface (desenho) para coordenadas virtuais (cálculos)
+def virtual_to_screen(pos_cm):
+    """
+    Converte posição do campo (em cm) para posição na tela (em pixels).
+    `pos_cm` deve ser um np.array([x, y]) em centímetros.
+    """
+    x_px = int(pos_cm[0] / SCALE_PX_TO_CM + ORIGIN_SYSTEM[0])
+    y_px = int(-pos_cm[1] / SCALE_PX_TO_CM + ORIGIN_SYSTEM[1])
+    return np.array([x_px, y_px])
+
+
+def screen_to_virtual(pos_px):
+    """
+    Converte posição da tela (em pixels) para posição no campo virtual (em cm).
+    `pos_px` deve ser um np.array([x, y]) em pixels.
+    """
+    x_cm = (pos_px[0] - ORIGIN_SYSTEM[0]) / SCALE_PX_TO_CM
+    y_cm = (pos_px[1] - ORIGIN_SYSTEM[1]) / SCALE_PX_TO_CM
+
+    return np.array([x_cm, y_cm])
+

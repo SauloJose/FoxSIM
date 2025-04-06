@@ -1,9 +1,10 @@
 import pygame
 import numpy as np  # Substitui math por numpy
 from simulator.objects.collision import * 
+from ui.interface_config import *
 
 class Ball:
-    def __init__(self, x, y, field, radius=BALL_RADIUS, color=BALL_COLOR):
+    def __init__(self, x, y, field, radius=BALL_RADIUS_CM, color=BALL_COLOR):
         """
         Inicializa a bola.
         :param x: Posição X da bola.

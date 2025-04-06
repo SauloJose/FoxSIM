@@ -44,12 +44,12 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
     )
 
     # === 7. Verifica se houve gol
-    if ball.is_inside_goal(field.goal_area_ally):
+    '''if ball.is_inside_goal(field.goal_area_ally):
         print("Gol do time aliado!")
         return POINT_ALLY
 
     elif ball.is_inside_goal(field.goal_area_enemy):
         print("Gol do time inimigo!")
-        return POINT_ENEMY
+        return POINT_ENEMY'''
 
     return NO_POINT_YET
