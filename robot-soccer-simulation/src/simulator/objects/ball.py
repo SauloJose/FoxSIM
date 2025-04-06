@@ -3,7 +3,7 @@ import numpy as np  # Substitui math por numpy
 from simulator.objects.collision import * 
 
 class Ball:
-    def __init__(self, x, y, radius=5, color=(255, 165, 0)):
+    def __init__(self, x, y, field, radius=BALL_RADIUS, color=BALL_COLOR):
         """
         Inicializa a bola.
         :param x: Posição X da bola.
@@ -11,16 +11,27 @@ class Ball:
         :param radius: Raio da bola em cm.
         :param color: Cor da bola (RGB).
         """
+        #Variáveis espaciais
         self.x = x
         self.y = y
+        self.type_object = BALL_OBJECT
+
+        # Variáveis vetoriais 
         self.direction = np.array([1.0, 0.0])
         self.speed = 0  # Velocidade em pixels por segundo
         self.velocity = self.direction*self.speed  # Velocidade da bola (vx, vy)
+        
+        #Dados físicos para o simulador tratar das colisões
         self.radius = radius
         self.color = color  
+        self.mass = BALL_MASS # Massa da bola em kg
+
+
+        #ponteiro para o campo para verificar se ela está no gol ou não
+        self.field = field 
 
         #Objeto de colisão para tratar das colisões 
-        self.collision_object = CollisionCircle(self.x, self.y, self.radius, type_object=BALL_OBJECT)
+        self.collision_object = CollisionCircle(self.x, self.y, self.radius, type_object=MOVING_OBJECTS, reference=self)
 
     def update_position(self, dt):
         """
@@ -32,6 +43,17 @@ class Ball:
 
         self.collision_object.x = self.x
         self.collision_object.y = self.y 
+
+
+    def is_inside_goal(self, goal_area:CollisionRectangle):
+        """
+        Verifica se a bola está dentro da área do gol.
+        :param goal_area: Área do gol (CollisionRectangle).
+        :return: True se a bola está dentro do gol, False caso contrário.
+        """
+        # Verifica se a bola está dentro da área do gol
+        return goal_area.check_point_inside(self.collision_object)
+    
 
     def set_velocity(self, vx, vy):
         """

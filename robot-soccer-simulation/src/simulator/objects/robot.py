@@ -15,10 +15,15 @@ class Robot:
         :param color: Cor do robô (RGB).
         :param initial_direction: Ângulo inicial do robô (em graus).
         """
+        #Posição do robô
         self.x = x
         self.y = y
-        self.speed = speed
 
+        #O objeto PAI pode ser de dois tipos: MOVING e STRUCTURE
+        self.type_object = ROBOT_OBJECT 
+
+        #Dados cinéticos
+        self.speed = speed
         self.first_direction = initial_direction
         self.direction = np.array(initial_direction)  # Ângulo em graus
         if np.linalg.norm(self.direction) == 0:
@@ -28,17 +33,26 @@ class Robot:
         self.velocity = np.array([0.0,0.0]) # Velocidade do robô (vx, vy)
         
         self.rotation_speed= rotation_speed
+        
+        # Identificador dos robôs 
         self.team = team
         self.role = role
         self.color = color
 
+        #Ponteiros à objetos do jogo 
         self.ball = ball #referência à bola
 
+        #Dados físicos do robô
         self.width = ROBOT_SIZE  # Largura do robô em pixels
         self.height = ROBOT_SIZE  # Altura do robô em pixels
+        self.mass = ROBOT_MASS  # Massa do robô em kg
+        self.wheels_radius = ROBOT_WHEELS_RADIUS  # Raio das rodas do robô em cm
+        self.distance_wheels = ROBOT_DISTANCE_WHEELS  # Distância entre as rodas em cm
+        self.distance_wheels_to_center = ROBOT_DISTANCE_WHEELS_TO_CENTER  # Distância do centro do robô até o meio das rodas em cm
 
+        
         #Adicionando objeto de colisão
-        self.collision_object = CollisionRectangle(self.x,self.y,self.width,self.height,type_object=ROBOT_OBJECT)
+        self.collision_object = CollisionRectangle(self.x,self.y,self.width,self.height,type_object=MOVING_OBJECTS,reference=self)
         
         # Superfície para desenhar o robô com rotação
         self.image = pygame.Surface((self.width, self.height), pygame.SRCALPHA)

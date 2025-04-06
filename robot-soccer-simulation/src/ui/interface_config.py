@@ -3,75 +3,106 @@ import numpy as np
 # ============================
 # Configurações da Janela
 # ============================
-WINDOW_WIDTH = 1200  # Largura da janela em pixels
-WINDOW_HEIGHT = 600  # Altura da janela em pixels
+WINDOW_WIDTH            = 645  # Largura da janela em pixels
+WINDOW_HEIGHT           = 600  # Altura da janela em pixels
 
 # ============================
-# Configurações do Campo
+# Configurações da área útil da janela do campo. Considerando espaços que não tem campo.
 # ============================
-ORIGINAL_FIELD_WIDTH = 645  # Largura original do campo em cm
-ORIGINAL_FIELD_HEIGHT = 413  # Altura original do campo em cm
-FIELD_WIDTH = 645  # Largura do campo em pixels
-SCALE = FIELD_WIDTH / ORIGINAL_FIELD_WIDTH  # Escala para ajustar o campo (1px = 1cm)
-FIELD_HEIGHT = int(ORIGINAL_FIELD_HEIGHT * SCALE)  # Altura do campo em pixels (escalada)
+ORIGINAL_FIELD_WIDTH    = 645  # Largura original do campo em cm
+ORIGINAL_FIELD_HEIGHT   = 413  # Altura original do campo em cm
+FIELD_WIDTH             = 645  # Largura do campo em pixels
+SCALE                   = FIELD_WIDTH / ORIGINAL_FIELD_WIDTH  # Escala para ajustar o campo (1px = 1cm)
+FIELD_HEIGHT            = int(ORIGINAL_FIELD_HEIGHT * SCALE)  # Altura do campo em pixels (escalada)
 
+FIELD_INTERNAL_HEIGHT   = int(452-62)
+FIELD_INTERNAL_WIDTH    = int(547-97)
+
+PADDING_BALL_OK         = 10
 # ============================
 # Configurações das Áreas
 # ============================
-SCOREBOARD_HEIGHT = 50  # Altura do placar em pixels
-SIDEBAR_WIDTH = 400  # Largura das janelas laterais em pixels
-CONFIG_HEIGHT = 160  # Altura da área de configurações em pixels
+SCOREBOARD_HEIGHT       = 50  # Altura do placar em pixels
+SIDEBAR_WIDTH           = 400  # Largura das janelas laterais em pixels
+CONFIG_HEIGHT           = 160  # Altura da área de configurações em pixels
 
 # ============================
 # Configurações dos Gols
 # ============================
-GOAL_WIDTH = int(10 * SCALE)  # Largura do gol em pixels (10cm escalados)
-GOAL_HEIGHT = int(40 * SCALE)  # Altura do gol em pixels (40cm escalados)
+GOAL_WIDTH              = int(10 * SCALE)  # Largura do gol em pixels (10cm escalados)
+GOAL_HEIGHT             = int(40 * SCALE)  # Altura do gol em pixels (40cm escalados)
 
-# ============================
-# Configurações dos Robôs
-# ============================
-ROBOT_SIZE = int(20 * SCALE)  # Tamanho dos robôs em pixels (7cm escalados)
 
 # ============================
 # Cores
 # ============================
-FIELD_COLOR = (144, 238, 144)  # Cor do campo (verde claro)
-LINE_COLOR = (255, 255, 255)  # Cor das linhas do campo (branco)
+FIELD_COLOR             = (144, 238, 144)  # Cor do campo (verde claro)
+LINE_COLOR              = (255, 255, 255)  # Cor das linhas do campo (branco)
 
 # Cores dos times
-TEAM_BLUE_COLOR = (0, 0, 255)  # Cor do time azul
-TEAM_RED_COLOR = (255, 0, 0)  # Cor do time vermelho
+TEAM_BLUE_COLOR         = (0, 0, 255)  # Cor do time azul
+TEAM_RED_COLOR          = (255, 0, 0)  # Cor do time vermelho
 
 # Cores do placar
-SCOREBOARD_COLOR = (50, 50, 50)  # Cor do fundo do placar (cinza escuro)
+SCOREBOARD_COLOR        = (50, 50, 50)  # Cor do fundo do placar (cinza escuro)
 
 # Cores das janelas laterais
-SIDEBAR_COLOR_1 = (100, 100, 100)  # Cor da Janela 1 (cinza médio)
-SIDEBAR_COLOR_2 = (150, 150, 150)  # Cor da Janela 2 (cinza claro)
+SIDEBAR_COLOR_1         = (100, 100, 100)  # Cor da Janela 1 (cinza médio)
+SIDEBAR_COLOR_2         = (150, 150, 150)  # Cor da Janela 2 (cinza claro)
 
 # Cor da área de configurações
-CONFIG_COLOR = (30, 30, 30)  # Cor do fundo da área de configurações (cinza muito escuro)
+CONFIG_COLOR            = (30, 30, 30)  # Cor do fundo da área de configurações (cinza muito escuro)
 
 # ============================
 # Configurações dos Botões
 # ============================
-BUTTON_WIDTH = 120  # Largura dos botões em pixels
-BUTTON_HEIGHT = 50  # Altura dos botões em pixels
-BUTTON_SPACING = 10  # Espaçamento entre os botões em pixels
+BUTTON_WIDTH            = 120  # Largura dos botões em pixels
+BUTTON_HEIGHT           = 50  # Altura dos botões em pixels
+BUTTON_SPACING          = 10  # Espaçamento entre os botões em pixels
 
 # ============================
 # Configurações do Fundo
 # ============================
-BACKGROUND_COLOR = (0, 0, 0)  # Cor do fundo (preto)
+BACKGROUND_COLOR        = (0, 0, 0)  # Cor do fundo (preto)
 
 # ============================
-# Configurações da Bola
+# Dados físicos do simulador 
 # ============================
-BALL_RADIUS = int(2 * SCALE)  # Raio da bola em pixels (2cm escalados)
-BALL_COLOR = (255, 165, 0)  # Cor da bola (laranja)
+# Dos robôs
+ROBOT_MASS                              = 1.0                                # Massa do robô em kg
+ROBOT_SIZE                              = int(20*SCALE)                      # Largura das laterais 
+ROBOT_WHEELS_RADIUS                     = int(3 * SCALE)                   # Raio da roda em pixels (3cm escalados)
+ROBOT_DISTANCE_WHEELS                   = int(20 * SCALE)               # Distância entre as rodas em pixels (10cm escalados)
+ROBOT_DISTANCE_WHEELS_TO_CENTER         = ROBOT_DISTANCE_WHEELS/2   # Distância do centro do robô até o meio das rodas em pixels (5cm escalados)
 
 
+# Da bola
+BALL_MASS               = 0.1  # Massa da bola em kg (100g)
+BALL_RADIUS             = int(5 * SCALE)  # Raio da bola em pixels (2cm escalados)
+BALL_COLOR              = (255, 165, 0)  # Cor da bola (laranja)
+
+
+#Coeficientes de restituição das colisões (e)
+COEFFICIENT_RESTITUTION_BALL_ROBOT      = 0.6  # Colisão bola-robô
+COEFFICIENT_RESTITUTION_BALL_FIELD      = 0.8  # Colisão bola-campo
+COEFFICIENT_RESTITUTION_ROBOT_ROBOT     = 0.4  # Colisão robô-robô 
+COEFFICIENT_RESTITUTION_ROBOT_FIELD     = 0.0 # Colisão robô-campo (sem restituição
+
+COEFICIENT_FRICTION_ROBOT_FIELD         = 0.1 # Coeficiente de atrito robô-campo (sem atrito)
+COEFICIENT_FRICTION_ROBOT_ROBOT         = 0.1 # Coeficiente de atrito robô-robô (sem atrito)
+
+
+#Quantidades de Células do GRID.
+ROBOT_AREA                              = ROBOT_SIZE*ROBOT_SIZE 
+CELL_AREA                               = 4 *ROBOT_AREA           # Suportar até 4 robôs num mesmo grid.
+CELL_SIZE                               = int(np.sqrt(CELL_AREA)) 
+
+GRID_ROWS                               = FIELD_INTERNAL_HEIGHT // CELL_SIZE
+GRID_COLS                               = FIELD_INTERNAL_WIDTH // CELL_SIZE
+QUANT_CELLS_GRID                        = (GRID_COLS, GRID_ROWS)
+
+
+GRID_COLOR                              = (255,0,0)
 # ============================
 # Configurações de exibição
 # ============================
@@ -129,6 +160,15 @@ GEI4v  =   np.array([547,317])  # Atualizado
 fieldP12v  =   np.array([322,62])  # Atualizado
 fieldP34v  =   np.array([322,452])  # Atualizado
 
+#Extremos do Campo maior
+fieldEx1= np.array([97,62])
+fieldEx2= np.array([547,62])
+fieldEx3= np.array([547,452])
+fieldEx4= np.array([97,452])
+
+#Centro do campo
+fieldC = np.array([322, 257])  # Atualizado
+
 # Posições dos jogadores para tomar como base
 MID_GOALAREA_A = np.array([119.5,157.0])  # Atualizado
 ATK1_POSITION_SITUATION1_ALLY = PA1v
@@ -160,6 +200,9 @@ RELATIVE_POSITIONS = [
 # ============================
 # Parâmetros da física do simulador
 # ============================
+#TIPOS PRIMORDIAIS DE OBJETOS PARA A COLISÃO
+MOVING_OBJECTS = "MOVING"
+STRUCTURE_OBJECTS = "STRUCTURE"
 
 #Tipos de objetos do sistema
 ROBOT_OBJECT = "ROBOT"
@@ -168,15 +211,20 @@ FIELD_OBJECT = "FIELD"
 LINE_OBJECT  = "LINE"
 POINT_OBJECT = "POINT"
 
+#Áreas para contagens de ponto (Tipos de objetos)
+POSSIBLE_BOAL_PUT_OBJECT = "PUT_BALL"
+ALLY_GOAL_OBJECT = "ALLY_GOAL"
+ENEMY_GOAL_OBJECT = "ENEMY_GOAL"
+
+#Áreas para garantir a posição dos goleiros
+GOALKEEPER_AREA_OBJECT_ALLY = "GOALKEEPER_AREA"
+GOALKEEPER_AREA_OBJECT_ENEMY = "GOALKEEPER_AREA_ENEMY"
+
 #Tipos de jogadores 
 GOALKEEPER = "GOALKEEPER" #goleiro
 ATACKER = "ATTACKER"    #atacante
 
-#Coeficientes de restituição das colisões (e)
-COEFFICIENT_RESTITUTION_BALL_ROBOT = 0.6  # Colisão bola-robô
-COEFFICIENT_RESTITUTION_BALL_FIELD = 0.8  # Colisão bola-campo
-COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.4  # Colisão robô-robô 
-COEFFICIENT_RESTITUTION_ROBOT_FIELD = 0.0 # Colisão robô-campo (sem restituição)
-
-
-#Coeficiente de Arrasto para a bola
+# Contabilizadores de pontos para indicar funcionamento do jogo
+NO_POINT_YET = 0 
+POINT_ALLY = 1
+POINT_ENEMY = 2
