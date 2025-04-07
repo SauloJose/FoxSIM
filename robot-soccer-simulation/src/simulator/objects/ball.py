@@ -7,12 +7,13 @@ class Ball:
     def __init__(self, x, y, field, radius=BALL_RADIUS_CM, color=BALL_COLOR):
         """
         Inicializa a bola.
-        :param x: Posição X da bola.
-        :param y: Posição Y da bola.
+        :param x: Posição X da bola na imagem principal
+        :param y: Posição Y da bola na imagem principal
         :param radius: Raio da bola em cm.
         :param color: Cor da bola (RGB).
         """
         #Variáveis espaciais
+        #Transforma as variáveis para o espaço virtual
         self.x = x
         self.y = y
         self.type_object = BALL_OBJECT
@@ -89,7 +90,9 @@ class Ball:
         Desenha a bola na tela.
         :param screen: Superfície do pygame onde a bola será desenhada.
         """
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+        #retorna posições na imagem antes de desenhar
+        pos_img = virtual_to_screen([self.x,self.y])
+        pygame.draw.circle(screen, self.color, (pos_img[0], pos_img[1]), int(self.radius/SCALE_PX_TO_CM))
 
     def distance_to(self, x, y):
         """

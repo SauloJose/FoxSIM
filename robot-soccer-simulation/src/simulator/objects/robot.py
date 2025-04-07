@@ -55,8 +55,13 @@ class Robot:
         self.collision_object = CollisionRectangle(self.x,self.y,self.width,self.height,type_object=MOVING_OBJECTS,reference=self)
         
         # Superfície para desenhar o robô com rotação
-        self.image = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        pygame.draw.rect(self.image, self.color, (0, 0, self.width, self.height))
+        width_px = int(self.width / SCALE_PX_TO_CM)
+        height_px = int(self.height / SCALE_PX_TO_CM)
+
+        self.image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
+        
+        
+        pygame.draw.rect(self.image, self.color, (0, 0, width_px, height_px))
 
     def move(self, dt):
         """
@@ -232,8 +237,9 @@ class Robot:
         # Rotaciona a imagem do robô
         angle = np.degrees(np.arctan2(self.direction[1], self.direction[0]))
         rotated_image = pygame.transform.rotate(self.image, -angle)
-        rect = rotated_image.get_rect(center=(self.x, self.y))
-        
+        center = virtual_to_screen([self.x,self.y])
+        rect = rotated_image.get_rect(center=center)
+
         #Atualiza o ângulo do objeot de colisão
         self.collision_object.angle = angle
 

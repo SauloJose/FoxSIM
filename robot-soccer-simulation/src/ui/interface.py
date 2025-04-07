@@ -1,5 +1,8 @@
 import pygame
 from ui.interface_config import *
+from simulator.objects.ball import Ball 
+from simulator.objects.robot import Robot 
+from simulator.objects.field import Field 
 
 # Dicionário de fontes da interface 
 class Interface:
@@ -47,7 +50,7 @@ class Interface:
         self.running = running
         self.is_game_paused = is_game_paused
 
-    def draw(self, time_left, screen, field_image, ball, robots, field):
+    def draw(self, time_left, screen, field_image, ball:Ball, robots:Robot, field:Field):
         screen.fill((200, 200, 200))
 
         minutes = int(time_left // 60)
@@ -65,24 +68,48 @@ class Interface:
         # Desenho extra se ativado
         if self.draw_collision_objects:
             for robot in robots:
-                corners = robot.collision_object.get_corners()
+                corners = np.array([virtual_to_screen(corner) for corner in robot.collision_object.get_corners()])
                 pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in corners], 3)
 
-                dir_end = (robot.x + robot.direction[0] * 30, robot.y + robot.direction[1] * 30)
-                pygame.draw.line(screen, (255, 100, 0), (robot.x, robot.y), dir_end, 2)
-                pygame.draw.line(screen, (250, 20, 255), (robot.x, robot.y), (ball.x, ball.y), 1)
+                #Convertendo valores virtuais para indices desenháveis na tela
+                xbot, ybot = virtual_to_screen([robot.x,robot.y])
+                bot_dir    = virtual_direction_to_screen(robot.direction)
 
-            pygame.draw.polygon(screen, (255, 255, 0), [(int(c[0]), int(c[1])) for c in field.RectUtil.get_corners()], 3)
-            pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in field.goal_area_ally.get_corners()], 3)
-            pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in field.goal_area_enemy.get_corners()], 3)
+                xball, yball = virtual_to_screen([ball.x, ball.y])
 
-            pygame.draw.circle(screen, (0, 255, 0), (int(ball.collision_object.x), int(ball.collision_object.y)), ball.collision_object.radius, 1)
 
-            x_start, x_end = fieldEx1[0], fieldEx2[0]
-            y_start, y_end = fieldEx1[1], fieldEx4[1]
-            for x in range(x_start, x_end + 1, CELL_SIZE):
+                dir_end = (xbot+ bot_dir[0] * 30, ybot + bot_dir[1] * 30)
+                pygame.draw.line(screen, (255, 100, 0), (xbot, ybot), dir_end, 2)
+                pygame.draw.line(screen, (250, 20, 255), (xbot, ybot), (xball, yball), 1)
+
+            # Desenhando os objetos de colisão para o campo
+            # Rect Util
+            rect_util_screen = np.array([virtual_to_screen(corner) for corner in field.RectUtil.get_corners()])
+
+            # goal_area_ally
+            goal_area_ally_screen = np.array([virtual_to_screen(corner) for corner in field.goal_area_ally.get_corners()])
+
+            # goal_area_enemy
+            goal_area_enemy_screen = np.array([virtual_to_screen(corner) for corner in field.goal_area_enemy.get_corners()])
+
+            #Objeto de colisão da bola
+            ball_collision_center  = virtual_to_screen([ball.collision_object.x,ball.collision_object.y])
+            ball_collision_radius = ball.collision_object.radius / SCALE_PX_TO_CM
+
+            #Desenhando no pygame
+            pygame.draw.polygon(screen, (255, 255, 0), [(int(c[0]), int(c[1])) for c in rect_util_screen], 3)
+            pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_ally_screen], 3)
+            pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_enemy_screen], 3)
+
+            pygame.draw.circle(screen, (0, 255, 0), (ball_collision_center[0],ball_collision_center[1]), ball_collision_radius, 1)
+
+            # Desenhando os grids do sistema de detecção
+            x_start, x_end = BALL_INIT_MIN_X, BALL_INIT_MAX_X
+            y_start, y_end = BALL_INIT_MIN_Y, BALL_INIT_MAX_Y 
+
+            for x in range(x_start, x_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
                 pygame.draw.line(screen, GRID_COLOR, (x, y_start), (x, y_end), 1)
-            for y in range(y_start, y_end + 1, CELL_SIZE):
+            for y in range(y_start, y_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
                 pygame.draw.line(screen, GRID_COLOR, (x_start, y), (x_end, y), 1)
 
         # Interface (último plano por cima de tudo)
