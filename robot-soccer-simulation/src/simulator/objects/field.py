@@ -14,7 +14,8 @@ class Field:
         self.height = height
         self.color = color
         self.type_object = FIELD_OBJECT
-    
+
+        print(f"[Sistema]: Campo criado com w = {self.width}, h = {self.height} e do tipo {self.type_object}")
         self.collision_objects = []          #Lista utilizada apenas no draw() para fins gráficos 
         
         # Lista de pontos virtuais que limitam o campo
@@ -69,49 +70,55 @@ class Field:
             ], type_object=STRUCTURE_OBJECTS,reference=self)
 
         # --- Objetos especiais para detecção
+        print("\n[Sistema]: Criando áreas do campo")
         # Área onde a bola pode ser colocada com o mouse
+        print("[Sistema]: - RectUtil")
         self.RectUtil = CollisionRectangle(
             vp["fieldC"][0], vp["fieldC"][1],
             vp["fieldEx2"][0] - vp["fieldEx1"][0],
-            vp["fieldEx3"][1] - vp["fieldEx2"][1],
+            vp["fieldEx2"][1] - vp["fieldEx3"][1],
             type_object=POSSIBLE_BOAL_PUT_OBJECT,
             reference=self
         )
 
         # Áreas de gol (colisão real para lógica de pontuação)
         self.MED_ALLY = (vp["GAI1v"] + vp["GAI3v"]) / 2
+        print("\n[Sistema]: - AREA DO GOL ALIADO INTERNA")
         self.goal_area_ally = CollisionRectangle(
             self.MED_ALLY[0], self.MED_ALLY[1],
             (vp["GAI2v"] - vp["GAI1v"])[0],
-            (vp["GAI3v"] - vp["GAI2v"])[1],
+            (vp["GAI2v"] - vp["GAI3v"])[1],
             type_object=ALLY_GOAL_OBJECT,
             reference=self
         )
 
         self.MED_ENEMY = (vp["GEI1v"] + vp["GEI3v"]) / 2
+        print("\n[Sistema]: - AREA DO GOL INIMIGO INTERNA")
         self.goal_area_enemy = CollisionRectangle(
             self.MED_ENEMY[0], self.MED_ENEMY[1],
             (vp["GEI2v"] - vp["GEI1v"])[0],
-            (vp["GEI3v"] - vp["GEI2v"])[1],
+            (vp["GEI2v"] - vp["GEI3v"])[1],
             type_object=ENEMY_GOAL_OBJECT,
             reference=self
         )
 
         # Áreas do goleiro (zona restrita)
         self.MED_GK_ALLY = (vp["GA1v"] + vp["GA3v"]) / 2
+        print("\n[Sistema]: - AREA DO GOLEIRO ALIADO")
         self.goalkeeper_area_ally = CollisionRectangle(
             self.MED_GK_ALLY[0], self.MED_GK_ALLY[1],
             (vp["GA2v"] - vp["GA1v"])[0],
-            (vp["GA3v"] - vp["GA2v"])[1],
+            (vp["GA2v"] - vp["GA3v"])[1],
             type_object=GOALKEEPER_AREA_OBJECT_ALLY,
             reference=self
         )
 
         self.MED_GK_ENEMY = (vp["GE1v"] + vp["GE3v"]) / 2
+        print("\n[Sistema]: - AREA DO GOLEIRO INIMIGO")
         self.goalkeeper_area_enemy = CollisionRectangle(
             self.MED_GK_ENEMY[0], self.MED_GK_ENEMY[1],
             (vp["GE2v"] - vp["GE1v"])[0],
-            (vp["GE3v"] - vp["GE2v"])[1],
+            (vp["GE2v"] - vp["GE3v"])[1],
             type_object=GOALKEEPER_AREA_OBJECT_ENEMY,
             reference=self
         )

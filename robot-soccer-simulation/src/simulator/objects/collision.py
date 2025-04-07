@@ -115,9 +115,11 @@ class CollisionCircle(CollisionObject):
         super().__init__(type_object)
         self.x = x
         self.y = y
+
         self.radius = radius
         self.center = np.array([self.x, self.y])
 
+        print(f"[DEBUG]Círculo criado com x = {self.x}, y={self.y} e raio radius={self.radius}")
         #pai desse objeto de colisão
         self.reference = reference
 
@@ -212,6 +214,8 @@ class CollisionLine(CollisionObject):
         self.center = (self.start + self.end) / 2
         self.x = self.center[0]
         self.y = self.center[1]
+
+        print(f"[DEBUG] Linha criada com inicio {self.start} e fim {self.end}, posição do centro {self.center} e tamanho {self.length}")
 
         #pai desse objeto de colisão
         self.reference = reference
@@ -397,7 +401,10 @@ class CollisionRectangle(CollisionObject):
         self.width = width
         self.height = height
         self.angle = angle
+        self.corners = []
         self.update_corners()
+
+        print(f"[DEBUG] Retângulo criado com x = {self.x}, y={self.y} e width = {self.width} height={self.height}")
 
         #Pai dessa classe de colisão.
         self.reference = reference 
@@ -407,12 +414,15 @@ class CollisionRectangle(CollisionObject):
         Atualiza os cantos do retângulo com base na posição e rotação.
         """
         self.corners = self.get_corners()
+        for i, corner in enumerate(self.get_corners()):
+            print(f"Canto {i}: {corner}")
 
     def get_center(self):
         '''
             Retorna o centro do retângulo na forma [x,y]
         '''
         return [self.x, self.y]
+    
     def get_corners(self):
         """
         Calcula os cantos (vértices) do retângulo considerando sua posição, dimensão e rotação.
@@ -438,8 +448,8 @@ class CollisionRectangle(CollisionObject):
 
         # Cria a matriz de rotação 2D (sentido anti-horário)
         rotation_matrix = np.array([
-            [np.cos(radians), -np.sin(radians)],
-            [np.sin(radians),  np.cos(radians)]
+            [np.cos(radians), np.sin(radians)],
+            [-np.sin(radians),  np.cos(radians)]
         ])
 
         # Aplica a rotação e depois a translação (para a posição global [self.x, self.y])
@@ -486,38 +496,48 @@ class CollisionRectangle(CollisionObject):
 
     def check_point_inside(self, point):
         """
-        Verifica se um ponto está dentro do retângulo.
+        Verifica se um ponto está dentro do retângulo, levando em conta rotação.
         Retorna:
             [True, mtv] se estiver dentro, onde mtv é o vetor mínimo de translação para empurrar o ponto para fora.
             [False, None] caso contrário.
         """
-        local_point = np.array([point.x, point.y]) - np.array([self.x, self.y])
-        min_overlap = float('inf')
-        mtv_axis = None
+        # Vetor do ponto em relação ao centro
+        rel = np.array([point.x, point.y]) - np.array([self.x, self.y])
+
+        # Rotaciona o ponto de volta (rotação inversa ao retângulo)
+        radians = np.radians(-self.angle)
+        rotation_matrix = np.array([
+            [np.cos(radians), np.sin(radians)],
+            [-np.sin(radians),  np.cos(radians)]
+        ])
+        local_point = np.dot(rotation_matrix, rel)
+
+        # Agora o retângulo é considerado como AABB no referencial local
+        half_width = self.width / 2
+        half_height = self.height / 2
+
+        dx = half_width - abs(local_point[0])
+        dy = half_height - abs(local_point[1])
+
+        if dx >= 0 and dy >= 0:
+            # Está dentro do retângulo
+            if dx < dy:
+                mtv_local = np.array([np.sign(local_point[0]) * dx, 0])
+            else:
+                mtv_local = np.array([0, np.sign(local_point[1]) * dy])
+
+            # Rotaciona de volta o MTV para o espaço global
+            # Como usamos rotação inversa antes, agora voltamos com a rotação original
+            radians_back = np.radians(self.angle)
+            rotation_matrix_back = np.array([
+                [np.cos(radians_back), np.sin(radians_back)],
+                [-np.sin(radians_back),  np.cos(radians_back)]
+            ])
+            mtv_global = np.dot(rotation_matrix_back, mtv_local)
+            return [True, mtv_global]
         
-        for i in range(len(self.corners)):
-            #Calcula o vetor que representa o eixo 
-            edge = self.corners[(i + 1) % len(self.corners)] - self.corners[i]
+        return [False, None]
 
-            #Normal do vetor que irpa apontar para fora 
-            normal = np.array([-edge[1], edge[0]])
-            normal = normal/np.linalg.norm(normal) #normaliza 
-
-            #Projeção do ponto na normal
-            projection = np.dot(local_point, normal)
-
-           
-            if projection > 0: 
-                #Se o ponto está fora de um dos lados, então ele está fora do retângulo.
-                return [False, None]
-            
-            if abs(projection) < min_overlap:
-                min_overlap = abs(projection)
-                mtv_axis = normal
-
-        #Retorna se passar por todos os lados sem sair
-        mtv = mtv_axis * min_overlap 
-        return [True, mtv]
 
     def check_collision_with_circle(self, circle):
         """
@@ -530,8 +550,10 @@ class CollisionRectangle(CollisionObject):
         circle_center = np.array([circle.x, circle.y])
         corners = self.get_corners()
 
+        isInside, mtv = self.check_point_inside(circle)
+
         # Verifica se o centro do círculo está dentro do retângulo
-        if self.check_point_inside(circle):
+        if isInside:
             # Encontra o ponto mais próximo na borda
             closest = self.get_closest_point_on_rectangle(circle_center, corners)
             direction = circle_center - closest
@@ -567,8 +589,8 @@ class CollisionRectangle(CollisionObject):
                 else:
                     normal = distance_vector / distance 
                 mtv = normal*(circle.radius - distance)
+
                 return [True, mtv]
-        
         return [False, mtv]
 
     def get_closest_point_on_rectangle(self, point, corners):
@@ -690,8 +712,8 @@ class CollisionRectangle(CollisionObject):
         rel_y = self.y - center[1]
 
         # Aplica a rotação ao centro do retângulo
-        rotated_x = rel_x * np.cos(alpha) - rel_y * np.sin(alpha)
-        rotated_y = rel_x * np.sin(alpha) + rel_y * np.cos(alpha)
+        rotated_x = rel_x * np.cos(alpha) + rel_y * np.sin(alpha)
+        rotated_y = -rel_x * np.sin(alpha) + rel_y * np.cos(alpha)
 
         # Atualiza as coordenadas do retângulo
         self.x = rotated_x + center[0]
@@ -1006,7 +1028,6 @@ class CollisionManagerSAT:
         :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
         """
         self.clear()
-        print("[Motor Físico]: acionando o sistema de colisões")
 
         #1. Verifica se são objetos de colisão apenas e passa todos para o grid
         for obj in objects:
@@ -1037,9 +1058,11 @@ class CollisionManagerSAT:
 
                 # MOVING x STRUCTURE:
                 if other_type == STRUCTURE_OBJECTS and hasattr(other.reference, "virtual_points"):
-                    print("O pai do objeto é o campo")
                     hasCollision, mtv = obj.check_collision(other)
                     if hasCollision and np.linalg.norm(mtv) != 0:
+                        dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
+                        moddist = np.linalg.norm(dist)
+                        
                         self.resolve_collision_with_field(obj, mtv)
                     continue
 
@@ -1047,8 +1070,12 @@ class CollisionManagerSAT:
                 if other_type == MOVING_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
                     if hasCollision and np.linalg.norm(mtv)!=0:
-                        self.resolve_moving_collision(obj, other, mtv)
+                        dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
+                        moddist = np.linalg.norm(dist)
 
+
+                        self.resolve_moving_collision(obj, other, mtv)
+                    
     def resolve_moving_collision(self, obj1, obj2, mtv):
         """
         Resolve colisão entre dois objetos móveis com conservação de momento linear.
@@ -1056,7 +1083,6 @@ class CollisionManagerSAT:
         :param mtv: vetor mínimo de translação do SAT (resolve a sobreposição).
         """
         print("Resolvendo colisão de objetos em movimento")
-        
         #Pegando os pais que estão controlando os objetos de colisão
         obj1 = obj1.reference
         obj2 = obj2.reference
@@ -1124,7 +1150,7 @@ class CollisionManagerSAT:
         """
         print("Resolvendo colisões com o campo")
         obj = obj.reference 
-        
+
         norm_mtv = np.linalg.norm(mtv)
         if norm_mtv == 0:
             print("MTV nulo — colisão ignorada.")

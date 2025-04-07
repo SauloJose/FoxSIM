@@ -135,7 +135,7 @@ ROBOT_SIZE_CM                              = 8.0                            # La
 ROBOT_WHEELS_RADIUS_CM                     = 4                              # Raio da roda em pixels (3cm escalados)
 ROBOT_DISTANCE_WHEELS_CM                   = 7                              # Distância entre as rodas em pixels (10cm escalados)
 ROBOT_DISTANCE_WHEELS_TO_CENTER_CM         = ROBOT_DISTANCE_WHEELS_CM/2     # Distância do centro do robô até o meio das rodas em pixels (5cm escalados)
-
+ROBOT_MAX_SPEED                            = 10                             # 10 cm/s
 
 # Da bola
 BALL_MASS               = 0.045  # Massa da bola em kg (100g)
@@ -169,7 +169,7 @@ GRID_COLOR                              = (255,0,0)
 # Configurações de exibição
 # ============================
 # Quadros por segundo
-FPS = 60
+FPS = 120
 #tempo da partida
 TIMER_PARTY = 60  # Tempo da partida em segundos (5 minutos)
 
@@ -179,10 +179,6 @@ FIELD_MARGIN_TOP = 20
 FIELD_MARGIN_BOTTOM = 20
 FIELD_MARGIN_LEFT = 20
 FIELD_MARGIN_RIGHT = 20
-
-# Ajustar os limites do campo
-FIELD_INTERNAL_WIDTH_IN_PX = WINDOWS_FIELD_WIDTH_PX - FIELD_MARGIN_LEFT - FIELD_MARGIN_RIGHT
-FIELD_INTERNAL_HEIGHT_IN_PX = WINDOWS_FIELD_HEIGHT_PX - FIELD_MARGIN_TOP - FIELD_MARGIN_BOTTOM
 
 
 ## ========== Coordenadas dos pontos de referência na imagem para gerar os objetos

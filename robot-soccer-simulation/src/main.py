@@ -22,12 +22,17 @@ field_image = pygame.image.load("robot-soccer-simulation/src/assets/field.png")
 field_image = pygame.transform.scale(field_image, (WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX))
 
 # === Instanciação de Objetos ===
+print("[Sistema]: ======== Criando objetos ======= \n")
 interface = Interface(screen)
-field = Field(WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX, FIELD_COLOR)
+field = Field(FIELD_INTERNAL_WIDTH_IN_PX*SCALE_PX_TO_CM, FIELD_INTERNAL_HEIGHT_IN_PX*SCALE_PX_TO_CM, FIELD_COLOR)
 
+print(f"\n[Sistema]: Criando a bola nas posições ({XVBALL_INIT},{YVBALL_INIT} e {BALL_RADIUS_CM})")
 ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM, color=BALL_COLOR)
 
+print("\n[Sistema]: Criando robôs do time azul")
 blue_team = Team(TEAM_BLUE_COLOR, blue_team_positions, "blue", ball=ball, first_direction=np.array([1.0, 0.0]))
+
+print("\n[Sistema]: Criando robôs do time vermelho")
 red_team = Team(TEAM_RED_COLOR, red_team_positions, "red", ball=ball, first_direction=np.array([-1.0, 0.0]))
 
 clock = pygame.time.Clock()
@@ -36,6 +41,7 @@ timer = HighPrecisionTimer(TIMER_PARTY)
 # === Estados do Jogo ===
 game_started = False
 draw_collision_objects = False
+draw_grid_collision = False
 running = True
 is_game_paused = False 
 
@@ -45,11 +51,12 @@ def reset_simulation(timer):
     timer = HighPrecisionTimer(TIMER_PARTY)
     ball.reset_position(XVBALL_INIT, YVBALL_INIT)
     blue_team.reset_positions(blue_team_positions)
-    blue_team.set_speed(50)
+    blue_team.set_speed(ROBOT_MAX_SPEED)
     red_team.reset_positions(red_team_positions)
-    red_team.set_speed(50)
+    red_team.set_speed(ROBOT_MAX_SPEED)
 
 
+print("\n[Simulador] ======== simulação PRONTA para iniciar ========")
 # === Loop Principal ===
 while running:
     dt = clock.tick(FPS) / 1000.0
@@ -60,26 +67,27 @@ while running:
             running = False
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_d:
-                print("Alternando exibição dos objetos de colisão")
+                print("[Simulador]: Alternando exibição dos objetos de colisão")
                 draw_collision_objects = not draw_collision_objects
+            if event.key == pygame.K_i: #Exibir grade de colisões
+                print("[Simulator] Exibindo grade de colisão")
+                draw_grid_collision = not draw_grid_collision
             if event.key == pygame.K_p:
                 is_game_paused = not is_game_paused
                 if is_game_paused: 
                     timer.pause()
-                    print('Simulador pausou')
+                    print('[Simulador]: Simulador pausou')
 
                 else: 
                     timer.resume()
-                    print('Simulador retornou da pausa')
+                    print('[Simulador]: Simulador retornou da pausa')
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             x, y = pygame.mouse.get_pos()
-            print(f"Click ({x},{y}) => Coordenadas da imagem")
             # Move a bola se o jogo estiver pausado e clique estiver dentro do campo
             
             if (BALL_INIT_MIN_X+PADDING_BALL_OK_PX) <= x <= (BALL_INIT_MAX_X-PADDING_BALL_OK_PX) and (BALL_INIT_MIN_Y+PADDING_BALL_OK_PX) <= y <= (BALL_INIT_MAX_Y-PADDING_BALL_OK_PX):
                 ball.x, ball.y = screen_to_virtual([x, y]) 
-                print(f"Posição virtual da bola: {ball.x, ball.y}")
                 ball.collision_object.x = ball.x
                 ball.collision_object.y = ball.y
             # Botões de interface
@@ -121,7 +129,7 @@ while running:
 
 
     # Renderização na interface
-    interface.get_states(draw_collision_objects=draw_collision_objects, running=game_started, is_game_paused=is_game_paused)
+    interface.get_states(draw_collision_objects=draw_collision_objects, running=game_started, is_game_paused=is_game_paused, draw_grid_collision = draw_grid_collision)
     interface.draw(
         time_left=timer.get_time_left(),
         screen=screen,

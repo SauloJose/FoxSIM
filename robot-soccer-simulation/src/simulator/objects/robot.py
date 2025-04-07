@@ -4,7 +4,7 @@ from ui.interface_config import ROBOT_SIZE_CM
 from simulator.objects.collision import *
 
 class Robot:
-    def __init__(self, x, y, speed, team, role, color, ball, initial_direction=np.array([1.0,0.0]), rotation_speed=180):
+    def __init__(self, x, y, speed, team, role, color, ball, initial_direction=np.array([1.0,0.0]), rotation_speed=360):
         """
         Inicializa um robô.
         :param x: Posição X do robô.
@@ -32,6 +32,7 @@ class Robot:
        
         self.velocity = np.array([0.0,0.0]) # Velocidade do robô (vx, vy)
         
+        # Limite de rotação do robô
         self.rotation_speed= rotation_speed
         
         # Identificador dos robôs 
@@ -50,7 +51,10 @@ class Robot:
         self.distance_wheels = ROBOT_DISTANCE_WHEELS_CM  # Distância entre as rodas em cm
         self.distance_wheels_to_center = ROBOT_DISTANCE_WHEELS_TO_CENTER_CM  # Distância do centro do robô até o meio das rodas em cm
 
-        
+        #Salvando a posição da frente do robô
+        self.front_points = []
+
+
         #Adicionando objeto de colisão
         self.collision_object = CollisionRectangle(self.x,self.y,self.width,self.height,type_object=MOVING_OBJECTS,reference=self)
         
@@ -143,6 +147,8 @@ class Robot:
 
             # Aplica a rotação
             self.rotate(rotation_angle)
+        
+        self.sync_collision_object()
 
     def distance_to(self, x, y):
         """

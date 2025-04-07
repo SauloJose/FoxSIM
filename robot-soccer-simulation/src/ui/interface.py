@@ -11,6 +11,12 @@ class Interface:
         self.start_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20, BUTTON_WIDTH, BUTTON_HEIGHT)
         self.reset_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
 
+        #Variáveis internas 
+        self.draw_collision_objects = None
+        self.running = None
+        self.is_game_paused = None
+        self.draw_grid_collision = None
+
         # Ajusta a posição e altura da exibition_label com base nos botões
         top = self.start_button.top
         bottom = self.reset_button.bottom
@@ -45,10 +51,11 @@ class Interface:
         elif team == 2:
             self.score[1] += 1
 
-    def get_states(self, draw_collision_objects, running, is_game_paused):
+    def get_states(self, draw_collision_objects, running, is_game_paused, draw_grid_collision):
         self.draw_collision_objects = draw_collision_objects
         self.running = running
         self.is_game_paused = is_game_paused
+        self.draw_grid_collision = draw_grid_collision 
 
     def draw(self, time_left, screen, field_image, ball:Ball, robots:Robot, field:Field):
         screen.fill((200, 200, 200))
@@ -77,7 +84,7 @@ class Interface:
 
                 xball, yball = virtual_to_screen([ball.x, ball.y])
 
-
+            
                 dir_end = (xbot+ bot_dir[0] * 30, ybot + bot_dir[1] * 30)
                 pygame.draw.line(screen, (255, 100, 0), (xbot, ybot), dir_end, 2)
                 pygame.draw.line(screen, (250, 20, 255), (xbot, ybot), (xball, yball), 1)
@@ -102,15 +109,17 @@ class Interface:
             pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_enemy_screen], 3)
 
             pygame.draw.circle(screen, (0, 255, 0), (ball_collision_center[0],ball_collision_center[1]), ball_collision_radius, 1)
+            
+            #Verifica se desenha ou não o grid
+            if self.draw_grid_collision:
+                # Desenhando os grids do sistema de detecção
+                x_start, x_end = BALL_INIT_MIN_X, BALL_INIT_MAX_X
+                y_start, y_end = BALL_INIT_MIN_Y, BALL_INIT_MAX_Y 
 
-            # Desenhando os grids do sistema de detecção
-            x_start, x_end = BALL_INIT_MIN_X, BALL_INIT_MAX_X
-            y_start, y_end = BALL_INIT_MIN_Y, BALL_INIT_MAX_Y 
-
-            for x in range(x_start, x_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
-                pygame.draw.line(screen, GRID_COLOR, (x, y_start), (x, y_end), 1)
-            for y in range(y_start, y_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
-                pygame.draw.line(screen, GRID_COLOR, (x_start, y), (x_end, y), 1)
+                for x in range(x_start, x_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
+                    pygame.draw.line(screen, GRID_COLOR, (x, y_start), (x, y_end), 1)
+                for y in range(y_start, y_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
+                    pygame.draw.line(screen, GRID_COLOR, (x_start, y), (x_end, y), 1)
 
         # Interface (último plano por cima de tudo)
 
@@ -160,7 +169,8 @@ class Interface:
             " CONFIG. DA EXIBIÇÃO ",
             f"PAUSADO: {'SIM' if self.is_game_paused else 'NÃO'}",
             f"OBJ. COLISÃO: {'EXIBINDO' if self.draw_collision_objects else 'OCULTO'}",
-            f"RODANDO: {'SIM' if self.running else 'NÃO'}"
+            f"GRADE : {'EXIBINDO' if (self.draw_grid_collision and self.draw_collision_objects) else 'OCULTO'}",
+            f"RODANDO: {'SIM' if self.running else 'NÃO'}",
         ]
 
         pygame.draw.rect(screen, (0, 0, 0), self.exibition_label, width=1)
