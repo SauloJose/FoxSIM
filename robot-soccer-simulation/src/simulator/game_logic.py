@@ -1,4 +1,4 @@
-from simulator.objects.collision import *
+from simulator.collision.collision import *
 from simulator.objects.field import Field
 from simulator.objects.ball import Ball 
 from simulator.objects.robot import Robot 
@@ -14,10 +14,13 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
     ball.update_position(dt)
 
     # === 2. Atualiza os robôs (lógica de movimentação e decisão)
+    '''
+        Adicionar as inteligências para controlar os robôs e tomar as decisões
+    '''
     for robot in robots:
-        robot.turn_towards_ball(dt)
         robot.move(dt)
 
+    # ========================= Detectar e resolver colisões ======================
     # === 3. Junta os objetos móveis (robôs + bola)
     moving_objects = [ball] + robots
 
@@ -35,21 +38,15 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
     # === 6. Detecta e resolve colisões
     collision_manager = CollisionManagerSAT(cell_size=CELL_SIZE)
 
-    # Aqui garantimos que estamos passando SOMENTE objetos de colisão
-    moving_collision_objects = [obj.collision_object for obj in moving_objects]
-    static_collision_objects = field.collision_object.objects
-
     collision_manager.detect_and_resolve(
         [obj.collision_object for obj in moving_objects] + field.collision_object.objects
     )
 
-    # === 7. Verifica se houve gol
-    '''if ball.is_inside_goal(field.goal_area_ally):
-        print("Gol do time aliado!")
-        return POINT_ALLY
+    # ================== Aplicar regras do jogo ====================================
+    '''
+        Aplicar as Regras da partida.
+    '''
 
-    elif ball.is_inside_goal(field.goal_area_enemy):
-        print("Gol do time inimigo!")
-        return POINT_ENEMY'''
 
+    # ==================== Enviar o FLAG que irá informar o que aconteceu no jogo
     return NO_POINT_YET

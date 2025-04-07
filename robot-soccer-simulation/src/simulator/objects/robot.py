@@ -1,85 +1,130 @@
 import pygame
 import numpy as np
 from ui.interface_config import ROBOT_SIZE_CM
-from simulator.objects.collision import *
+from simulator.collision.collision import *
 
 class Robot:
-    def __init__(self, x, y, speed, team, role, color, ball, initial_direction=np.array([1.0,0.0]), rotation_speed=360):
-        """
-        Inicializa um robô.
-        :param x: Posição X do robô.
-        :param y: Posição Y do robô.
-        :param speed: Velocidade linear do robô.
-        :param team: Time do robô (ex: 'blue' ou 'red').
-        :param role: Função do robô ('attacker' ou 'goalkeeper').
-        :param color: Cor do robô (RGB).
-        :param initial_direction: Ângulo inicial do robô (em graus).
-        """
-        #Posição do robô
-        self.x = x
+    '''
+        Implementação dinâmica de um robô controlado por controle diferencial
+    '''
+    def __init__(self, x, y, team, role, color, initial_angle=0):
+        '''
+            Inicializando o robô
+        '''
+        #Coordenadas globais do robô no ambiente
+        self.x = x 
+        ''' Posição x do robô nas coordenadas globais'''
         self.y = y
-
-        #O objeto PAI pode ser de dois tipos: MOVING e STRUCTURE
-        self.type_object = ROBOT_OBJECT 
-
-        #Dados cinéticos
-        self.speed = speed
-        self.first_direction = initial_direction
-        self.direction = np.array(initial_direction)  # Ângulo em graus
-        if np.linalg.norm(self.direction) == 0:
-            self.direction = np.array([1.0, 0.0])  # Define uma direção padrão se o vetor for nulo
-        self.direction = self.direction / np.linalg.norm(self.direction)  # Normaliza o vetor
-       
-        self.velocity = np.array([0.0,0.0]) # Velocidade do robô (vx, vy)
-        
-        # Limite de rotação do robô
-        self.rotation_speed= rotation_speed
-        
-        # Identificador dos robôs 
-        self.team = team
-        self.role = role
-        self.color = color
-
-        #Ponteiros à objetos do jogo 
-        self.ball = ball #referência à bola
-
-        #Dados físicos do robô
-        self.width = ROBOT_SIZE_CM  # Largura do robô em pixels
-        self.height = ROBOT_SIZE_CM  # Altura do robô em pixels
-        self.mass = ROBOT_MASS  # Massa do robô em kg
-        self.wheels_radius = ROBOT_WHEELS_RADIUS_CM  # Raio das rodas do robô em cm
-        self.distance_wheels = ROBOT_DISTANCE_WHEELS_CM  # Distância entre as rodas em cm
-        self.distance_wheels_to_center = ROBOT_DISTANCE_WHEELS_TO_CENTER_CM  # Distância do centro do robô até o meio das rodas em cm
-
-        #Salvando a posição da frente do robô
-        self.front_points = []
+        ''' Posição y do robô nas coordenadas globais'''
+        self.theta = np.radians(initial_angle)  # Ângulo em radianos do eixo de rotação do robô com o eixo x do sistema cartesiano inicial
+        ''' Angulo theta com a horizontal em radianos'''
+        self.team = team                        # indicação do time
+        self.role = role                        # função do robô
+        self.color = color                      # Cor do robô
 
 
-        #Adicionando objeto de colisão
-        self.collision_object = CollisionRectangle(self.x,self.y,self.width,self.height,type_object=MOVING_OBJECTS,reference=self)
-        
-        # Superfície para desenhar o robô com rotação
+        # Tipo de objeto para o sistema de colisão
+        self.type_object = ROBOT_OBJECT
+
+        # Tamanhos e propriedades físicas
+        self.width = ROBOT_SIZE_CM
+        self.height = ROBOT_SIZE_CM
+        self.mass = ROBOT_MASS
+        self.wheels_radius = ROBOT_WHEELS_RADIUS_CM
+        self.distance_wheels = ROBOT_DISTANCE_WHEELS_CM
+        self.distance_wheels_to_center = ROBOT_DISTANCE_WHEELS_TO_CENTER_CM
+
+        # Velocidades das rodas (em cm/s)
+        self.v_l = 0.0  # esquerda
+        self.v_r = 0.0  # direita
+
+        # Velocidade linear e angular (no sentido)
+        self.v = 0.0
+        self.omega = 0.0
+
+        # Vetor velocidade do robô para ser utilizado nos cálculos e resolução de colisões
+
+
+        # Vetor de direção inicial
+        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+
+        #salva os valores iniciais para quando resetar
+        self.initial_theta      = self.theta
+        self.initial_vl         = self.v_l
+        self.initial_vr         = self.v_r 
+        self.initial_direction  = self.direction
+        self.initial_v          = self.v 
+        self.initial_omega      = self.omega
+        self.initial_x          = self.x 
+        self.initial_y          = self.y
+
+        # Colisão
+        self.collision_object = CollisionRectangle(self.x, self.y, self.width, self.height, type_object=MOVING_OBJECTS, reference=self)
+        self.sync_collision_object()
+
+        # Imagem para o Pygame
         width_px = int(self.width / SCALE_PX_TO_CM)
         height_px = int(self.height / SCALE_PX_TO_CM)
-
         self.image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
-        
-        
         pygame.draw.rect(self.image, self.color, (0, 0, width_px, height_px))
 
-    def move(self, dt):
-        """
-        Move o robô com base na direção e velocidade.
-        :param dt: Delta time (tempo desde a última atualização).
-        """
-        self.velocity = self.direction * self.speed 
-        
-        self.x += self.velocity[0] * dt
-        self.y +=  self.velocity[1]* dt
+    #setando velocidade das rodas
+    def set_wheel_speeds(self, v_l, v_r):
+        """Define as velocidades das rodas esquerda e direita (em cm/s)."""
+        self.v_l = v_l
+        self.v_r = v_r
 
-        #Movendo objeto de colisão
-        self.collision_object.x = self.x
-        self.collision_object.y = self.y 
+    #puxa as velocidades lineares das rodas
+    def get_vec_velocity(self):
+        """
+            Retorna o vetor velocidade (vx, vy) do robô no referencial global
+        """
+        v = (self.v_r + self.v_l) / 2.0
+        direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+        return v * direction
+
+    # seta o vetor velocidade do robô
+    def set_vec_velocity(self, vx,vy):
+        """
+        Define as velocidades das rodas com base em um vetor velocidade (global).
+        Esse vetor é projetado na direção do robô e converte-se em v e ω.
+        """
+        # Converte o vetor global para velocidade linear desejada
+        v_global = np.array([vx, vy])
+        
+        # Direção do robô
+        direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+
+        # Projeta o vetor na direção do robô
+        v = np.dot(v_global, direction)  # componente tangente ao robô
+
+        # Considera ω como zero, pois só queremos seguir naquela direção
+        omega = 0
+
+        # Calcula velocidades das rodas
+        self.v_l = v - (omega * self.distance_wheels / 2)
+        self.v_r = v + (omega * self.distance_wheels / 2)
+
+
+    # função para mover o robô devido um tempo dt
+    def move(self, dt):
+        """Atualiza posição e orientação usando modelo diferencial."""
+        L = self.distance_wheels
+
+        # Calcula velocidades linear e angular
+        self.v = (self.v_r + self.v_l) / 2
+        self.omega = (self.v_r - self.v_l) / L
+
+        # Atualiza orientação
+        self.theta += self.omega * dt
+
+        # Atualiza posição
+        self.x += self.v * np.cos(self.theta) * dt
+        self.y += self.v * np.sin(self.theta) * dt
+
+        # Atualiza vetor de direção
+        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+
         self.sync_collision_object()
 
     def rotate(self, angle):
@@ -87,67 +132,8 @@ class Robot:
         Rotaciona o robô em torno de seu centro.
         :param angle: Ângulo em graus para rotacionar.
         """
-
-        radians = np.radians(angle)
-        rotation_matrix = np.array([
-            [np.cos(radians), -np.sin(radians)],
-            [np.sin(radians), np.cos(radians)]
-        ])
-        self.direction = np.dot(rotation_matrix, self.direction)
-        self.direction = self.direction / np.linalg.norm(self.direction)  # Normaliza o vetor
-        
-        self.velocity = self.direction * self.speed  #atualiza o vetor velocidade
-
-        self.sync_collision_object()
-
-    def turns_towards(self, target_x, target_y):
-        """
-        Gira o robô para apontar em direção a um ponto específico.
-        :param target_x: Posição X do ponto alvo.
-        :param target_y: Posição Y do ponto alvo.
-        """
-        dx = target_x - self.x
-        dy = target_y - self.y
-        direction = np.array([dx, dy], dtype=float)
-
-        if np.linalg.norm(direction)>0:
-            self.direction = direction / np.linalg.norm(direction)  # Normaliza o vetor
-        
-        self.velocity = self.direction * self.speed
-        self.sync_collision_object()
-
-    def turn_towards_ball(self, dt):
-        """
-        Ajusta gradualmente a direção do robô para apontar para a bola.
-        :param dt: Delta time (tempo desde a última atualização).
-        """
-        # Calcula o vetor direção para a bola
-        dx = self.ball.x - self.x
-        dy = self.ball.y - self.y
-        target_direction = np.array([dx, dy], dtype=float)
-
-        # Verifica se o vetor direção é válido (evita divisão por zero)
-        if np.linalg.norm(target_direction) > 0:
-            target_direction = target_direction / np.linalg.norm(target_direction)  # Normaliza o vetor
-
-            # Calcula o ângulo atual e o ângulo alvo
-            current_angle = np.degrees(np.arctan2(self.direction[1], self.direction[0]))
-            target_angle = np.degrees(np.arctan2(target_direction[1], target_direction[0]))
-
-            # Calcula a diferença de ângulo
-            angle_diff = (target_angle - current_angle + 360) % 360
-            if angle_diff > 180:
-                angle_diff -= 360
-
-            # Ajusta a direção gradualmente, limitando a rotação por frame
-            max_rotation = self.rotation_speed * dt
-            rotation_angle = max_rotation if angle_diff > 0 else -max_rotation
-            if abs(angle_diff) < max_rotation:
-                rotation_angle = angle_diff  # Alinha diretamente se a diferença for pequena
-
-            # Aplica a rotação
-            self.rotate(rotation_angle)
-        
+        self.theta += np.radians(angle)
+        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
         self.sync_collision_object()
 
     def distance_to(self, x, y):
@@ -159,43 +145,30 @@ class Robot:
         """
         return np.linalg.norm(np.array([self.x - x, self.y - y]))
     
-    def reset_position(self, x, y):
+    def reset(self):
         """
         Reseta a posição do robô para as coordenadas fornecidas.
         :param x: Nova posição X.
         :param y: Nova posição Y.
         """
-        self.x = x
-        self.y = y
-        self.direction = self.first_direction
-        self.speed = 0
-        self.velocity = self.direction*self.speed
+        #Reseta configurações do robô
+        self.theta      = self.initial_theta  #Ângulo theta com a horizontal
+        self.v_l        = self.initial_vl         
+        self.v_r        = self.initial_vr          
+        self.direction  = self.initial_direction  
+        self.v          = self.initial_v          
+        self.omega      = self.initial_omega   
+        self.x          = self.initial_x          
+        self.y          = self.initial_y       
 
-        #Atualiza para o local do objeto
-        self.collision_object.x = self.x 
-        self.collision_object.y = self.y
+
+        # Imagem para o Pygame
+        width_px = int(self.width / SCALE_PX_TO_CM)
+        height_px = int(self.height / SCALE_PX_TO_CM)
+        self.image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
+        pygame.draw.rect(self.image, self.color, (0, 0, width_px, height_px))
+
         self.sync_collision_object()
-
-    def set_speed(self, speed):
-        """
-        Define a velocidade do robô.
-        :param speed: Velocidade em pixels por segundo.
-        """
-        self.speed = speed
-        self.velocity = self.direction * self.speed
-        self.sync_collision_object()
-
-    def set_velocity(self, vx, vy):
-        """
-        Define a velocidade do robô.
-        :param vx: Velocidade no eixo X.
-        :param vy: Velocidade no eixo Y.
-        """
-        self.velocity = np.array([vx, vy])
-        self.speed = np.linalg.norm(self.velocity)
-        self.direction = self.velocity/np.linalg.norm(self.velocity)
-        self.sync_collision_object()
-
 
     def set_position(self, x, y):
         """
@@ -205,9 +178,6 @@ class Robot:
         """
         self.x = x
         self.y = y
-        self.direction = np.array([0.0,0.0])
-        self.speed = 0
-        self.velocity = np.array([0.0, 0.0])
         self.sync_collision_object()
 
     def set_color(self, color):
@@ -216,15 +186,13 @@ class Robot:
         :param color: Cor do robô (RGB).
         """
         self.color = color
-        self.image.fill((0, 0, 0, 0))
 
     def stop(self):
         """
         Para o robô (define a velocidade como zero).
         """
-        self.set_speed(0)
-        self.set_velocity(0, 0)
-        self.sync_collision_object()
+        self.v_l = 0.0
+        self.v_r = 0.0
 
     def sync_collision_object(self):
         """
@@ -240,14 +208,22 @@ class Robot:
         Desenha o robô na tela com rotação e um vetor indicando a direção.
         :param screen: Superfície do pygame onde o robô será desenhado.
         """
-        # Rotaciona a imagem do robô
-        angle = np.degrees(np.arctan2(self.direction[1], self.direction[0]))
-        rotated_image = pygame.transform.rotate(self.image, -angle)
-        center = virtual_to_screen([self.x,self.y])
+
+        width_px = int(self.width / SCALE_PX_TO_CM)
+        height_px = int(self.height / SCALE_PX_TO_CM)
+
+        # Cria a imagem com a cor atual
+        image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
+        pygame.draw.rect(image, self.color, (0, 0, width_px, height_px))
+
+        # Rotaciona a imagem conforme o ângulo atual
+        angle = np.degrees(self.theta)
+        rotated_image = pygame.transform.rotate(image, -angle)
+
+        # Calcula posição central
+        center = virtual_to_screen([self.x, self.y])
         rect = rotated_image.get_rect(center=center)
 
-        #Atualiza o ângulo do objeot de colisão
-        self.collision_object.angle = angle
-
-        # Desenha o robô na tela
+        # Desenha na tela
         screen.blit(rotated_image, rect.topleft)
+

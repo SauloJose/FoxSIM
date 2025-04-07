@@ -1,6 +1,6 @@
 import pygame
 import numpy as np  # Substitui math por numpy
-from simulator.objects.collision import * 
+from simulator.collision.collision import * 
 from ui.interface_config import *
 
 class Ball:

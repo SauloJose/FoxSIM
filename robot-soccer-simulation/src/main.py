@@ -30,10 +30,10 @@ print(f"\n[Sistema]: Criando a bola nas posições ({XVBALL_INIT},{YVBALL_INIT} 
 ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM, color=BALL_COLOR)
 
 print("\n[Sistema]: Criando robôs do time azul")
-blue_team = Team(TEAM_BLUE_COLOR, blue_team_positions, "blue", ball=ball, first_direction=np.array([1.0, 0.0]))
+blue_team = Team(TEAM_BLUE_COLOR, blue_team_positions, "blue", initial_angle=0)
 
 print("\n[Sistema]: Criando robôs do time vermelho")
-red_team = Team(TEAM_RED_COLOR, red_team_positions, "red", ball=ball, first_direction=np.array([-1.0, 0.0]))
+red_team = Team(TEAM_RED_COLOR, red_team_positions, "red", initial_angle=180)
 
 clock = pygame.time.Clock()
 timer = HighPrecisionTimer(TIMER_PARTY)
@@ -51,9 +51,7 @@ def reset_simulation(timer):
     timer = HighPrecisionTimer(TIMER_PARTY)
     ball.reset_position(XVBALL_INIT, YVBALL_INIT)
     blue_team.reset_positions(blue_team_positions)
-    blue_team.set_speed(ROBOT_MAX_SPEED)
     red_team.reset_positions(red_team_positions)
-    red_team.set_speed(ROBOT_MAX_SPEED)
 
 
 print("\n[Simulador] ======== simulação PRONTA para iniciar ========")

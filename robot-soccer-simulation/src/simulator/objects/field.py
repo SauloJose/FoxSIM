@@ -1,5 +1,5 @@
 import pygame
-from simulator.objects.collision import *
+from simulator.collision.collision import *
 from ui.interface_config import *
 
 class Field:
@@ -114,7 +114,7 @@ class Field:
         )
 
         self.MED_GK_ENEMY = (vp["GE1v"] + vp["GE3v"]) / 2
-        print("\n[Sistema]: - AREA DO GOLEIRO INIMIGO")
+        print("[Sistema]: - AREA DO GOLEIRO INIMIGO")
         self.goalkeeper_area_enemy = CollisionRectangle(
             self.MED_GK_ENEMY[0], self.MED_GK_ENEMY[1],
             (vp["GE2v"] - vp["GE1v"])[0],

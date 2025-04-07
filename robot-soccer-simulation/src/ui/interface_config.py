@@ -61,6 +61,18 @@ def screen_to_virtual(pos_px):
 # Função para transformar vetores, visto que mudou o eixo y
 def virtual_direction_to_screen(vector_cm):
     return np.array([vector_cm[0], -vector_cm[1]])
+
+
+# 
+def rotate_vector(v, angle_degrees):
+    angle_rad = np.radians(angle_degrees)
+    rotation_matrix = np.array([
+        [np.cos(angle_rad), -np.sin(angle_rad)],
+        [np.sin(angle_rad),  np.cos(angle_rad)]
+    ])
+    v = np.array(v)
+    return rotation_matrix @ v  # ou np.dot(rotation_matrix, v)
+
 # ==================== Distâncias para desenhos.
 PADDING_BALL_OK_CM            = 2
 PADDING_BALL_OK_PX            = PADDING_BALL_OK_CM/SCALE_PX_TO_CM

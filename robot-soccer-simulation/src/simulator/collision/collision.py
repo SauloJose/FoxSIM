@@ -414,8 +414,9 @@ class CollisionRectangle(CollisionObject):
         Atualiza os cantos do retângulo com base na posição e rotação.
         """
         self.corners = self.get_corners()
-        for i, corner in enumerate(self.get_corners()):
+        '''for i, corner in enumerate(self.get_corners()):
             print(f"Canto {i}: {corner}")
+        '''
 
     def get_center(self):
         '''
@@ -448,12 +449,17 @@ class CollisionRectangle(CollisionObject):
 
         # Cria a matriz de rotação 2D (sentido anti-horário)
         rotation_matrix = np.array([
-            [np.cos(radians), np.sin(radians)],
-            [-np.sin(radians),  np.cos(radians)]
+            [np.cos(radians), -np.sin(radians)],
+            [np.sin(radians),  np.cos(radians)]
         ])
 
         # Aplica a rotação e depois a translação (para a posição global [self.x, self.y])
         return [np.dot(rotation_matrix, corner) + np.array([self.x, self.y]) for corner in corners]
+    
+    #Posso enviar os corners diretamente para o retângulo
+    def set_corners(self, corners):
+        self.corners = corners 
+
 
     def check_collision(self, other):
         """
@@ -592,6 +598,7 @@ class CollisionRectangle(CollisionObject):
 
                 return [True, mtv]
         return [False, mtv]
+
 
     def get_closest_point_on_rectangle(self, point, corners):
         """
@@ -1083,6 +1090,7 @@ class CollisionManagerSAT:
         :param mtv: vetor mínimo de translação do SAT (resolve a sobreposição).
         """
         print("Resolvendo colisão de objetos em movimento")
+        
         #Pegando os pais que estão controlando os objetos de colisão
         obj1 = obj1.reference
         obj2 = obj2.reference
