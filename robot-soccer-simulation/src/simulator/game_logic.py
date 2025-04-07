@@ -19,7 +19,7 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
     '''
     for robot in robots:
         # Seta velocidades no robô
-        robot.set_wheel_speeds(10, 15+np.random.uniform(-10,10))
+        robot.set_wheel_speeds(np.random.uniform(-5,10), np.random.uniform(-10,10))
 
         # Move com controle diferencial
         robot.move(dt)
@@ -27,18 +27,7 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
     # ========================= Detectar e resolver colisões ======================
     # === 3. Junta os objetos móveis (robôs + bola)
     moving_objects = [ball] + robots
-
-    # === 4. Injeta referências e types nos objetos de colisão móveis
-    for obj in moving_objects:
-        if obj.collision_object:
-            obj.collision_object.reference = obj
-            obj.collision_object.type_object = MOVING_OBJECTS
-
-    # === 5. Injeta referências e types nos objetos de colisão do campo
-    for struct in field.collision_object.objects:
-        struct.reference = field
-        struct.type_object = STRUCTURE_OBJECTS
-
+    
     # === 6. Detecta e resolve colisões
     collision_manager = CollisionManagerSAT(cell_size=CELL_SIZE)
 

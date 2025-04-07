@@ -10,7 +10,7 @@ class Team:
         self.color = color
         print("[DEBUG]: Criando robôs")
         self.robots = [
-            Robot(x, y,team=team_name, role=GOALKEEPER if i == 1 else ATACKER, color=color, initial_angle=initial_angle)
+            Robot(x, y,team=team_name, role=GOALKEEPER if i == 1 else ATACKER, color=color, id=i, initial_angle=initial_angle)
             for i, (x, y) in enumerate(positions)
         ]
     

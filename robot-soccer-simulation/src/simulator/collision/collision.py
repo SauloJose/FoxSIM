@@ -1035,19 +1035,28 @@ class CollisionManagerSAT:
         :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
         """
         self.clear()
-
+        print("\n[COLISSION]: Novo detect e resolve acionado =================\n")
         #1. Verifica se são objetos de colisão apenas e passa todos para o grid
         for obj in objects:
-            if hasattr(obj, "reference") or obj.type_object == STRUCTURE_OBJECTS:
+            if hasattr(obj, "reference"):
                 self.add_object(obj)
-        
+
         #2. Verifica colisões no grid
         for obj in objects:
             if obj.type_object != MOVING_OBJECTS:
                 continue 
-
+            
+            
             nearby = self._get_nearby_objects(obj)
 
+            if obj.reference.type_object == BALL_OBJECT:
+                print(f"\n[DEBUG]: Objeto analisado é a bola")
+                print("Objetos na vizinhança:", [obj.reference.type_object for obj in nearby])
+            elif obj.reference.type_object == ROBOT_OBJECT:
+                print(f"\n[DEBUG]: Objeto analisado é o Robô {obj.reference.role} do time {obj.reference.team} com id {obj.reference.id_robot}")
+                print("Objetos na vizinhança:",[obj.reference.type_object for obj in nearby])
+
+        
             #Verifica colisões com os vizinhos.
             for other in nearby:
                 if obj is other or not hasattr(other,"reference"):
@@ -1092,7 +1101,8 @@ class CollisionManagerSAT:
         obj2 = obj2.reference
 
         # Proteção: MTV nulo ou objetos sem massa válida
-        if np.linalg.norm(mtv) == 0:
+        mtv_norm = np.linalg.norm(mtv)
+        if mtv_norm < 1e-6:
             print("MTV nulo — colisão ignorada.")
             return
         if not hasattr(obj1, 'mass') or not hasattr(obj2, 'mass'):
@@ -1105,16 +1115,12 @@ class CollisionManagerSAT:
         normal = mtv / np.linalg.norm(mtv)
 
         # Separação mínima (posicional)
-        correction = 0.5 * mtv
-        obj1.x += correction[0]
-        obj1.y += correction[1]
-        obj2.x -= correction[0]
-        obj2.y -= correction[1]
-
-        obj1.x = obj1.x
-        obj1.y = obj1.y
-        obj2.x = obj2.x
-        obj2.y = obj2.y
+        # Separação posicional proporcional à massa
+        total_mass = obj1.mass + obj2.mass
+        obj1.x += mtv[0] * (obj2.mass / total_mass)
+        obj1.y += mtv[1] * (obj2.mass / total_mass)
+        obj2.x -= mtv[0] * (obj1.mass / total_mass)
+        obj2.y -= mtv[1] * (obj1.mass / total_mass)
 
         # Velocidades relativas
         v_rel = obj1.velocity - obj2.velocity
@@ -1130,6 +1136,9 @@ class CollisionManagerSAT:
         # Impulso escalar
         impulse_mag = -(1 + restitution) * vel_along_normal
         impulse_mag /= (1 / obj1.mass + 1 / obj2.mass)
+
+        MAX_IMPULSE = 100 # (cm/s * kg)
+        impulse_mag = np.clip(impulse_mag, -MAX_IMPULSE, MAX_IMPULSE)
         impulse = impulse_mag * normal
 
         obj1.velocity += impulse / obj1.mass
@@ -1138,7 +1147,12 @@ class CollisionManagerSAT:
         # Impulso de atrito (tangencial)
         tangent = np.array([-normal[1], normal[0]])
         v_rel_tangent = np.dot(v_rel, tangent)
+
         friction_impulse = -v_rel_tangent * friction
+        max_friction = np.abs(impulse_mag)*friction
+        friction_impulse = np.clip(friction_impulse, -max_friction, max_friction)
+        
+        
         impulse_friction = friction_impulse * tangent
 
         obj1.velocity += impulse_friction / obj1.mass

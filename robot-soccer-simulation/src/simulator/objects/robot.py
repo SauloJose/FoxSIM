@@ -7,7 +7,7 @@ class Robot:
     '''
         Implementação dinâmica de um robô controlado por controle diferencial
     '''
-    def __init__(self, x, y, team, role, color, initial_angle=0):
+    def __init__(self, x, y, team, role, color, id, initial_angle=0):
         '''
             Inicializando o robô
         '''
@@ -22,7 +22,7 @@ class Robot:
         self.role = role                        # função do robô
         self.color = color                      # Cor do robô
 
-
+        self.id_robot = id                    # Apenas um identificado para ele
         # Tipo de objeto para o sistema de colisão
         self.type_object = ROBOT_OBJECT
 
