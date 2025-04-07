@@ -24,26 +24,36 @@ Abaixo está a estrutura de arquivos do projeto:
 robot-soccer-simulation/
 │
 ├── src/
-│   ├── main.py                     # Arquivo principal que executa a simulação
+│   ├── main.py                         # Arquivo principal da simulação
+│   ├── assets/
+│   │   └── field.png                   # Imagem do campo de jogo
+│   │
 │   ├── simulator/
-│   │   ├── game_logic.py           # Lógica principal do jogo
+│   │   ├── game_logic.py               # Lógica principal do jogo
+│   │   ├── rules/
+│   │   │   └── __init__.py             # Regras da simulação (placeholder)
+│   │   ├── collision/
+│   │   │   ├── collision.py            # Sistema de colisões (SAT, círculos, etc.)
+│   │   │   └── COLLISION_README.md     # Documentação das colisões
+│   │   │
+│   │   ├── intelligence/
+│   │   │   ├── data/                   # Dados para inteligência artificial
+│   │   │   └── Intelligence.py         # Lógica da IA
+│   │   │
 │   │   ├── objects/
-│   │   │   ├── ball.py             # Classe Ball (representa a bola)
-│   │   │   ├── team.py             # Classe Team (representa os times)
-│   │   │   ├── robot.py            # Classe Robot (representa os robôs)
-│   │   │   ├── field.py            # Classe Field (representa o campo)
-│   │   │   ├── collision.py        # Sistema de colisões
-│   │   │   ├── timer.py            # Classe HighPrecisionTimer (controle de tempo)
-│   │   └── ...
+│   │   │   ├── ball.py                 # Classe Ball (representa a bola)
+│   │   │   ├── team.py                 # Classe Team (representa os times)
+│   │   │   ├── robot.py                # Classe Robot (representa os robôs)
+│   │   │   ├── field.py                # Classe Field (representa o campo)
+│   │   │   ├── timer.py                # Classe HighPrecisionTimer (controle de tempo)
+│   │   │   └── OBJECTS_README.md       # Documentação dos objetos do jogo
+│   │
 │   ├── ui/
-│   │   ├── interface.py            # Interface gráfica do jogo
-│   │   ├── interface_config.py     # Configurações da interface
-│   └── ...
-├── assets/
-│   ├── field.png                   # Imagem do campo
-│   └── ...
-├── README.md                       # Documentação do projeto
-└── requirements.txt                # Dependências do projeto
+│   │   └── (em desenvolvimento)        # Módulos da interface gráfica
+│
+├── README.md                           # Documentação do projeto
+└── requirements.txt                    # Dependências do projeto
+
 ```
 
 ---

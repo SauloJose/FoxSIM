@@ -74,40 +74,55 @@ class Robot:
         self.v_l = v_l
         self.v_r = v_r
 
+        #Atualizo a velocidade atual
+        self.update_velocity_vector()
+
     #puxa as velocidades lineares das rodas
     def get_vec_velocity(self):
         """
             Retorna o vetor velocidade (vx, vy) do robô no referencial global
         """
-        v = (self.v_r + self.v_l) / 2.0
-        direction = np.array([np.cos(self.theta), np.sin(self.theta)])
-        return v * direction
+        self.v = (self.v_r + self.v_l) / 2.0
+        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+        self.velocity = self.v*self.direction 
+        return self.velocity
+
+    def get_angle_from_direction(self, direction: np.ndarray) -> float:
+        """
+        Retorna o ângulo (em graus) correspondente a um vetor de direção 2D.
+        O ângulo é medido no sentido anti-horário a partir do eixo X positivo.
+
+        Ex: 
+        [1, 0] ➝ 0°
+        [0, 1] ➝ 90°
+        [-1, 0] ➝ 180°
+        [0, -1] ➝ 270°
+        """
+        angle_rad = np.arctan2(direction[1], direction[0])  # arctan2(dy, dx)
+        angle_deg = np.degrees(angle_rad)
+        return angle_deg % 360  # Garante que o ângulo esteja entre 0 e 360
 
     # seta o vetor velocidade do robô
     def set_vec_velocity(self, vx,vy):
         """
         Define as velocidades das rodas com base em um vetor velocidade (global).
-        Esse vetor é projetado na direção do robô e converte-se em v e ω.
         """
-        # Converte o vetor global para velocidade linear desejada
         v_global = np.array([vx, vy])
-        
-        # Direção do robô
-        direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
 
-        # Projeta o vetor na direção do robô
-        v = np.dot(v_global, direction)  # componente tangente ao robô
+        v = np.dot(v_global, self.direction)  # componente tangencial
+        omega = 0.0
 
-        # Considera ω como zero, pois só queremos seguir naquela direção
-        omega = 0
+        self.v = v
+        self.omega = omega
 
-        # Calcula velocidades das rodas
         self.v_l = v - (omega * self.distance_wheels / 2)
         self.v_r = v + (omega * self.distance_wheels / 2)
 
+        self.velocity = v_global
+        self.sync_collision_object()
 
-    # função para mover o robô devido um tempo dt
-    def move(self, dt):
+    def update_state_from_wheels(self, dt):
         """Atualiza posição e orientação usando modelo diferencial."""
         L = self.distance_wheels
 
@@ -125,6 +140,10 @@ class Robot:
         # Atualiza vetor de direção
         self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
 
+    # função para mover o robô devido um tempo dt
+    def move(self, dt):
+        """Atualiza posição e orientação usando modelo diferencial."""
+        self.update_state_from_wheels(dt)
         self.sync_collision_object()
 
     def rotate(self, angle):
@@ -160,7 +179,7 @@ class Robot:
         self.omega      = self.initial_omega   
         self.x          = self.initial_x          
         self.y          = self.initial_y       
-
+        self.velocity   = np.zeros(2)
 
         # Imagem para o Pygame
         width_px = int(self.width / SCALE_PX_TO_CM)
@@ -202,6 +221,13 @@ class Robot:
         self.collision_object.angle = angle
         self.collision_object.x = self.x
         self.collision_object.y = self.y
+
+    def update_velocity_vector(self):
+        """
+        Atualiza a velocidade vetorial do robô com base nas velocidades das rodas e direção atual.
+        """
+        v = (self.v_r + self.v_l) / 2  # velocidade linear
+        self.velocity = v * self.direction  # vetor velocidade
 
     def draw(self, screen):
         """
