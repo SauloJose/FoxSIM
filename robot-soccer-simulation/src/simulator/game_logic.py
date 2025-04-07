@@ -18,6 +18,10 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
         Adicionar as inteligências para controlar os robôs e tomar as decisões
     '''
     for robot in robots:
+        # Seta velocidades no robô
+        robot.set_wheel_speeds(10, 15+np.random.uniform(-10,10))
+
+        # Move com controle diferencial
         robot.move(dt)
 
     # ========================= Detectar e resolver colisões ======================

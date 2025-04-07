@@ -43,7 +43,12 @@ class Robot:
         self.omega = 0.0
 
         # Vetor velocidade do robô para ser utilizado nos cálculos e resolução de colisões
+        #
 
+
+        #Controle PID temporário
+        self.error_theta_integral = 0.0
+        self.last_error_theta = 0.0
 
         # Vetor de direção inicial
         self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
@@ -244,7 +249,7 @@ class Robot:
 
         # Rotaciona a imagem conforme o ângulo atual
         angle = np.degrees(self.theta)
-        rotated_image = pygame.transform.rotate(image, -angle)
+        rotated_image = pygame.transform.rotate(image, angle)
 
         # Calcula posição central
         center = virtual_to_screen([self.x, self.y])

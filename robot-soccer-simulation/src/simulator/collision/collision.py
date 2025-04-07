@@ -1038,15 +1038,11 @@ class CollisionManagerSAT:
 
         #1. Verifica se são objetos de colisão apenas e passa todos para o grid
         for obj in objects:
-            if not hasattr(obj, "reference"):
-                continue
-            self.add_object(obj)
+            if hasattr(obj, "reference") or obj.type_object == STRUCTURE_OBJECTS:
+                self.add_object(obj)
         
         #2. Verifica colisões no grid
         for obj in objects:
-            if not hasattr(obj, "reference"):
-                continue
-
             if obj.type_object != MOVING_OBJECTS:
                 continue 
 
@@ -1064,7 +1060,7 @@ class CollisionManagerSAT:
                 other_type = other.type_object 
 
                 # MOVING x STRUCTURE:
-                if other_type == STRUCTURE_OBJECTS and hasattr(other.reference, "virtual_points"):
+                if other_type == STRUCTURE_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
                     if hasCollision and np.linalg.norm(mtv) != 0:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])

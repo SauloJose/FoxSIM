@@ -122,6 +122,8 @@ while running:
             elif timer.is_finished():
                 print("Tempo esgotado! Fim da partida.")
                 game_started = False
+                reset_simulation(timer)
+
 
 
 
