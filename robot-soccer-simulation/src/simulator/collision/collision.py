@@ -696,13 +696,30 @@ class CollisionRectangle(CollisionObject):
                 min_overlap = overlap
                 mtv_axis = axis.copy()
 
-                # Ajusta a direção do MTV
-                center1 = np.mean(corners1, axis=0)
-                center2 = np.mean(corners2, axis=0)
-                direction = center1 - center2
-                if np.dot(direction, mtv_axis) <0:
-                    mtv_axis = -mtv_axis 
+        # Ajusta a direção do MTV
+        center1 = np.array([self.x, self.y])
+        center2 = np.array([other.x, other.y])
+        direction = center1 - center2
+        if np.dot(direction, mtv_axis) <0:
+            mtv_axis = -mtv_axis 
 
+        if min_overlap < 1e-2: #1mm em escala virtual
+            #use o vetor entre dois pontos mais próximos como MTV alternativo
+            min_dist = float("inf")
+            closest_pair = None 
+            for c1 in corners1:
+                for c2 in corners2:
+                    d = np.linalg.norm(c1-c2)
+                    if d<min_dist:
+                        min_dist = d
+                        closest_pair = (c1,c2)
+
+            if closest_pair:
+                alt_axis = closest_pair[1]-closest_pair[0]
+                if np.linalg.norm(alt_axis) != 0:
+                    mtv_axis = alt_axis / np.linalg.norm(alt_axis)
+                    min_overlap = 1e-2
+       
         mtv = mtv_axis *min_overlap 
 
         return [True, mtv]  # Nenhum eixo separador → colisão confirmada
@@ -1044,7 +1061,7 @@ class CollisionManagerSAT:
         :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
         """
         self.clear()
-        print("\n[COLISSION]: Novo detect e resolve acionado =================\n")
+        #print("\n[COLISSION]: Novo detect e resolve acionado =================\n")
         #1. Verifica se são objetos de colisão apenas e passa todos para o grid
         for obj in objects:
             if hasattr(obj, "reference"):
@@ -1061,12 +1078,12 @@ class CollisionManagerSAT:
             
             nearby = self._get_nearby_objects(obj)
 
-            if obj.reference.type_object == BALL_OBJECT:
-                print(f"\n[DEBUG]: Objeto analisado é a bola")
-                print("Objetos na vizinhança:", [obj.reference.type_object for obj in nearby])
-            elif obj.reference.type_object == ROBOT_OBJECT:
-                print(f"\n[DEBUG]: Objeto analisado é o Robô {obj.reference.role} do time {obj.reference.team} com id {obj.reference.id_robot}")
-                print("Objetos na vizinhança:",[obj.reference.type_object for obj in nearby])
+            #if obj.reference.type_object == BALL_OBJECT:
+            #    print(f"\n[DEBUG]: Objeto analisado é a bola")
+            #    print("Objetos na vizinhança:", [obj.reference.type_object for obj in nearby])
+            #elif obj.reference.type_object == ROBOT_OBJECT:
+            #    print(f"\n[DEBUG]: Objeto analisado é o Robô {obj.reference.role} do time {obj.reference.team} com id {obj.reference.id_robot}")
+            #    print("Objetos na vizinhança:",[obj.reference.type_object for obj in nearby])
 
 
             #Verifica colisões com os vizinhos.
@@ -1112,7 +1129,7 @@ class CollisionManagerSAT:
         :param mtv: vetor mínimo de translação do SAT (resolve a sobreposição).
          Esse MTV deve ser calculado de Obj2 para Obj1
         """
-        print("Resolvendo colisão de objetos em movimento")
+        #print("Resolvendo colisão de objetos em movimento")
         
         #Pegando os pais que estão controlando os objetos de colisão
         obj1 = obj1.reference

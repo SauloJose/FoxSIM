@@ -27,7 +27,7 @@ class Ball:
         self.radius = radius
         self.color = color  
         self.mass = BALL_MASS # Massa da bola em kg
-
+        self.inertia = 0.5*self.mass*self.radius**2     #disco sólido
 
         #ponteiro para o campo para verificar se ela está no gol ou não
         self.field = field 
