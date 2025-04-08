@@ -15,7 +15,7 @@ from ui.interface_config import *
 # === Inicialização ===
 pygame.init()
 screen = pygame.display.set_mode((WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))
-pygame.display.set_caption("Robot Soccer Simulation")
+pygame.display.set_caption(f"FoxSIM v{VERSION} - Simulador de futebol de robôs - por: Saulo José")
 
 # === Carregamento de Recursos ===
 field_image = pygame.image.load("robot-soccer-simulation/src/assets/field.png")

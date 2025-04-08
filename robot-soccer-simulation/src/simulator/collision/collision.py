@@ -11,14 +11,6 @@ if TYPE_CHECKING:
     from simulator.objects.ball import Ball
     from simulator.objects.field import Field
 
-# Constantes de coeficientes de restituição
-COEFFICIENT_RESTITUTION_BALL_ROBOT = 1.0
-COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.2
-COEFFICIENT_RESTITUTION_BALL_FIELD = 0.6
-COEFFICIENT_FRICTION_ROBOT_FIELD = 0.5 
-COEFFICIENT_FRICTION_ROBOT_ROBOT = 0.9  # Coeficiente de atrito
-
-
 ### Classes dos objetos de colisão
 class CollisionObject:
     """
@@ -1322,7 +1314,7 @@ class CollisionManagerSAT:
         :param mtv: vetor mínimo de translação
         """
         obj = obj.reference 
-        print(f"(Colisão de um {obj.type_object} com o campo)")
+        #print(f"(Colisão de um {obj.type_object} com o campo)")
 
         norm_mtv = np.linalg.norm(mtv)
         if norm_mtv == 0:
@@ -1342,7 +1334,7 @@ class CollisionManagerSAT:
         velocity_along_normal = np.dot(obj.velocity, normal)
         velocity_factor = abs(velocity_along_normal)*self.dt 
         mtv *= (1.0+velocity_factor*0.2) #Escala ajustável 
-        
+
         # Corrige posição (empurra o objeto para fora do campo)
         obj.x += mtv[0]
         obj.y += mtv[1]
