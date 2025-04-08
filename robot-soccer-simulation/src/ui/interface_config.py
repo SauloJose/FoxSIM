@@ -74,8 +74,8 @@ def rotate_vector(v, angle_degrees):
     return rotation_matrix @ v  # ou np.dot(rotation_matrix, v)
 
 # ==================== Distâncias para desenhos.
-PADDING_BALL_OK_CM            = 2
-PADDING_BALL_OK_PX            = PADDING_BALL_OK_CM/SCALE_PX_TO_CM
+PADDING_BALL_OK_CM            = 3.5
+PADDING_BALL_OK_PX            = int(PADDING_BALL_OK_CM/SCALE_PX_TO_CM)
 
 # ============================
 # Configurações das Áreas
@@ -239,6 +239,18 @@ fieldEx4= screen_to_virtual(np.array([97,452]))
 #Centro do campo
 fieldC = screen_to_virtual(np.array([322, 257]))  # Atualizado
 
+# Quinas do campo
+Q1A1v = screen_to_virtual(np.array([97,62+21]))
+Q1A2v = screen_to_virtual(np.array([97+21,62]))
+
+Q2A1v = screen_to_virtual(np.array([547-21,62]))
+Q2A2v = screen_to_virtual(np.array([547,62+21]))
+
+Q3A1v = screen_to_virtual(np.array([547,452-21]))
+Q3A2v = screen_to_virtual(np.array([547-21,452]))
+
+Q4A1v = screen_to_virtual(np.array([97+21,452]))
+Q4A2v = screen_to_virtual(np.array([97,452-21]))
 
 # LIMITES INFERIOR E SUPERIOR PARA ÁREA QUE POSSO COLOCAR A BOLA
 BALL_INIT_MIN_X, BALL_INIT_MIN_Y = 97, 62

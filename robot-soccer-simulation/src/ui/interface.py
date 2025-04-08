@@ -3,6 +3,7 @@ from ui.interface_config import *
 from simulator.objects.ball import Ball 
 from simulator.objects.robot import Robot 
 from simulator.objects.field import Field 
+from simulator.collision.collision import *
 
 # Dicionário de fontes da interface 
 class Interface:
@@ -91,7 +92,7 @@ class Interface:
 
             # Desenhando os objetos de colisão para o campo
             # Rect Util
-            rect_util_screen = np.array([virtual_to_screen(corner) for corner in field.RectUtil.get_corners()])
+            #rect_util_screen = np.array([virtual_to_screen(corner) for corner in field.RectUtil.get_corners()])
 
             # goal_area_ally
             goal_area_ally_screen = np.array([virtual_to_screen(corner) for corner in field.goal_area_ally.get_corners()])
@@ -102,9 +103,22 @@ class Interface:
             #Objeto de colisão da bola
             ball_collision_center  = virtual_to_screen([ball.collision_object.x,ball.collision_object.y])
             ball_collision_radius = ball.collision_object.radius / SCALE_PX_TO_CM
+            
+            for obj in field.collision_object.objects:
+                if isinstance(obj, CollisionRectangle):
+                    # Obtenha os vértices do retângulo e converta para coordenadas de tela
+                    vertices = [virtual_to_screen(v) for v in obj.get_corners()]
+                    pygame.draw.polygon(screen, (0, 255, 255), vertices, width=0)  # Preenchido
+                if isinstance(obj, CollisionCircle):
+                    obj_c = virtual_to_screen(obj.center)
+                    obj_r = obj.radius/SCALE_PX_TO_CM
+                    pygame.draw.circle(screen, (0, 255, 0), (int(obj_c[0]),int(obj_c[1])), ball_collision_radius, int(obj_r))
 
+
+
+            # Desenhar o campo 
             #Desenhando no pygame
-            pygame.draw.polygon(screen, (255, 255, 0), [(int(c[0]), int(c[1])) for c in rect_util_screen], 3)
+            #pygame.draw.polygon(screen, (255, 255, 0), [(int(c[0]), int(c[1])) for c in rect_util_screen], 3)
             pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_ally_screen], 3)
             pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_enemy_screen], 3)
 

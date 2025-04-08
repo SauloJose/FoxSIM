@@ -128,15 +128,34 @@ class CollisionCircle(CollisionObject):
         Verifica colisão com outro objeto.
         """
         if isinstance(other, CollisionCircle):
+            #retorna um vetor que vai do other -> self
             return self.check_collision_with_circle(other)
         elif isinstance(other, CollisionPoint):
-            return other.check_collision(self)
+            # Retorna um vetor que vai do other -> self
+            collided, mtv = other.check_collision(self)
+            if collided:
+                return [True, -mtv]
+            else:
+                return [False, None]
         elif isinstance(other, CollisionLine):
-            return other.check_collision_with_circle(self)
+            # Retorna um vetor que vai do other -> self
+            collided, mtv = other.check_collision_with_circle(self)
+            if collided:
+                return [True, -mtv]
+            else:
+                return [False, None]
         elif isinstance(other, CollisionRectangle):
-            return other.check_collision_with_circle(self)
+            collided, mtv = other.check_collision_with_circle(self)
+            if collided:
+                return [True, -mtv]
+            else:
+                return [False, None]
         elif isinstance(other, CollisionGroup):
-            return other.check_collision(self)
+            collided, mtv = other.check_collision(self)
+            if collided:
+                return [True, -mtv]
+            else:
+                return [False, None]
         return [False, None]
     
     def get_center(self):
@@ -153,6 +172,7 @@ class CollisionCircle(CollisionObject):
             - [True, mtv] Se ocorreu uma colisão
             - [False, None] Se não ocorreu uma colisão
         '''
+        # O MTV vai de other para self.
         #Puxando os centros dos círculos
         center_a = self.get_center()
         center_b = other.get_center()
@@ -499,11 +519,18 @@ class CollisionRectangle(CollisionObject):
 
         # Caso o outro objeto seja uma linha, chama o método da linha para verificar colisão com o retângulo
         elif isinstance(other, CollisionLine):
-            return other.check_collision_with_rectangles(self)
+            collided, mtv = other.check_collision_with_rectangles(self)
+            if collided:
+                return [True, -mtv]  # inverter para manter padrão: other → self
+            return [False, None]
 
         # Caso o outro objeto seja uma polilinha, também delega a verificação para o objeto da polilinha
         elif isinstance(other, CollisionGroup):
-            return other.check_collision(self)
+            collided, mtv = other.check_collision(self)
+            if collided:
+                return [True, -mtv]
+            else:
+                return [False, None]
 
         # Se o tipo do objeto não for reconhecido, retorna False por padrão
         return [False, None]
@@ -784,9 +811,14 @@ class CollisionGroup(CollisionObject):
         """
         super().__init__(type_object)
         self.objects = objects  # Lista de objetos de colisão
-        self.points = self._extract_points()  # Extrai os pontos dos objetos internos
         self.reference = reference  # Referência ao objeto pai (ex: Robot, Ball, etc.)
 
+        # Validação de tipos
+        for obj in self.objects:
+            if not isinstance(obj, CollisionObject):
+                raise TypeError(f"Objeto inválido no grupo: {type(obj)}")
+
+        self.points = self._extract_points()  # Extrai os pontos dos objetos internos
         self.aabb_corners = self._generate_aabb()
 
     def _extract_points(self):
@@ -801,24 +833,18 @@ class CollisionGroup(CollisionObject):
                 points.append((obj.x, obj.y))
 
             elif isinstance(obj, CollisionCircle):
-                # Adiciona o centro do círculo como ponto
                 points.append((obj.x, obj.y))
 
             elif isinstance(obj, CollisionRectangle):
-                # Adiciona os cantos do retângulo como tuplas
                 points.extend([tuple(corner) for corner in obj.get_corners()])
 
             elif isinstance(obj, CollisionLine):
-                # Converte para tupla se for np.array
                 start = tuple(obj.start) if isinstance(obj.start, np.ndarray) else obj.start
                 end = tuple(obj.end) if isinstance(obj.end, np.ndarray) else obj.end
-                
-                #Adiciono os pontos que configuram essa linha
-                points = [start, end]
-                points.append(points)
+                points.append(start)
+                points.append(end)
 
             elif isinstance(obj, CollisionGroup):
-                # Reutiliza o método recursivamente para subgrupos
                 points.extend(obj._extract_points())
 
         return points
@@ -840,6 +866,16 @@ class CollisionGroup(CollisionObject):
             elif isinstance(obj, CollisionLine):
                 xs.extend([obj.start[0], obj.end[0]])
                 ys.extend([obj.start[1], obj.end[1]])
+            elif isinstance(obj, CollisionCircle):
+                xs.append(obj.x - obj.radius)
+                xs.append(obj.x + obj.radius)
+                ys.append(obj.y - obj.radius)
+                ys.append(obj.y + obj.radius)
+
+            elif isinstance(obj, CollisionPoint):
+                xs.append(obj.x)
+                ys.append(obj.y)
+            
 
         if not xs or not ys:
             return [np.array([0, 0])] * 4
@@ -854,7 +890,6 @@ class CollisionGroup(CollisionObject):
             np.array([min_x, max_y])   # canto superior esquerdo
         ]
 
-    
     def _aabb_overlap(self, other_group):
         """
         Verifica se a AABB deste grupo colide com a AABB do outro grupo.
@@ -868,34 +903,32 @@ class CollisionGroup(CollisionObject):
             self_max[0] < other_min[0] or self_min[0] > other_max[0] or
             self_max[1] < other_min[1] or self_min[1] > other_max[1]
         )
-    
+
     def check_collision(self, other):
         """
         Verifica colisão com outro objeto externo.
-        
+
         retorna:
             - [True, mtv]:  Se ocorreu alguma colisão.
             - [False, None]: Se não teve nenhuma colisão
         """
         if isinstance(other, CollisionGroup):
             return self._check_collision_with_group(other)
-        
-        #se for um objeto individual
+
         return self._check_collision_with_object(other)
 
-
     def _check_collision_with_object(self, other):
-        '''
-            Verifica a colisão do grupo coeso com outro um objeto.
+        """
+        Verifica a colisão do grupo coeso com outro objeto.
 
-            retornos
-                [True, mtv] = Se haver colisão
-                [False, None] = Não teve colisão
-        '''
+        retornos:
+            [True, mtv] = Se houver colisão
+            [False, None] = Se não houver colisão
+        """
         menor_mtv = None
         menor_magnitude = float('inf')
 
-        for shape in self.shapes:
+        for shape in self.objects:
             collided, mtv = shape.check_collision(other)
             if collided:
                 magnitude = np.linalg.norm(mtv)
@@ -906,23 +939,23 @@ class CollisionGroup(CollisionObject):
         if menor_mtv is not None:
             return [True, menor_mtv]
         return [False, None]
-    
-    def _check_collision_with_group(self, other_group):
-        '''
-            Verifica a colisão do grupo coeso com outro grupo coeso.
 
-            retornos
-                [True, mtv] = Se haver colisão
-                [False, None] = Não teve colisão
-        '''
+    def _check_collision_with_group(self, other_group):
+        """
+        Verifica a colisão do grupo coeso com outro grupo coeso.
+
+        retornos:
+            [True, mtv] = Se houver colisão
+            [False, None] = Se não houver colisão
+        """
         if not self._aabb_overlap(other_group):
-            return [False, None]    #Otimização: bounding boxes não colidem
-        
-        menor_mtv = None 
+            return [False, None]  # Otimização: bounding boxes não colidem
+
+        menor_mtv = None
         menor_magnitude = float('inf')
 
-        for shape_self in self.shapes:
-            for shape_other in other_group.shapes:
+        for shape_self in self.objects:
+            for shape_other in other_group.objects:
                 collided, mtv = shape_self.check_collision(shape_other)
                 if collided:
                     magnitude = np.linalg.norm(mtv)
@@ -934,21 +967,18 @@ class CollisionGroup(CollisionObject):
             return [True, menor_mtv]
         return [False, None]
 
-
-
     def rotate(self, angle, center):
         """
         Rotaciona todos os objetos internos em torno de um centro.
         O centro deve ser uma tupla (x, y) e o ângulo em graus.
-        :param angle: Ângulo de rotação.
-        :param center: Centro de rotação.
         """
         for obj in self.objects:
             if hasattr(obj, "rotate"):
                 obj.rotate(angle, center)
 
-        # Após a rotação, atualiza os pontos internos
+        # Atualiza pontos e AABB após rotação
         self.points = self._extract_points()
+        self.aabb_corners = self._generate_aabb()
 
     def get_bounding_box(self):
         """
@@ -958,23 +988,31 @@ class CollisionGroup(CollisionObject):
         ys = [p[1] for p in self.aabb_corners]
         return min(xs), min(ys), max(xs), max(ys)
 
-    #Para exibir
     def get_aabb(self):
         """
-            Retorna os pontos do AABB para que possa ser desenhado na interface
-            caso seja preciso.
+        Retorna os pontos do AABB para que possa ser desenhado na interface
+        caso seja preciso.
         """
         if not hasattr(self, 'aabb_corners'):
             return
 
         corners = self.aabb_corners
-        points = [corner.tolist() for corner in corners]
-        
-        return points
+        return [corner.tolist() for corner in corners]
+
+    def add(self, obj):
+        '''
+        Adiciona novos objetos ao grupo de colisão e atualiza a AABB
+        '''
+        if not isinstance(obj, CollisionObject):
+            raise TypeError(f"Objeto inválido adicionado: {type(obj)}")
+        self.objects.append(obj)
+        self.points = self._extract_points()
+        self.aabb_corners = self._generate_aabb()
+
 
 ## Classe principal para controle das colisões
 class CollisionManagerSAT:
-    def __init__(self, cell_size=CELL_SIZE, screen=None):
+    def __init__(self, cell_size=CELL_SIZE, screen=None, dt = float(0.0)):
         """
         Gerenciador de colisões usando SAT com otimização por Spatial Hashing.
         :param cell_size: Tamanho de cada célula da grade para particionamento espacial.
@@ -984,6 +1022,9 @@ class CollisionManagerSAT:
         """
         self.cell_size = cell_size
         self.grid = defaultdict(list)
+
+        #Ter conhecimento do dt do código
+        self.dt = float(dt)
 
         #Apenas para debug virtual
         self.screen = screen
@@ -1124,14 +1165,10 @@ class CollisionManagerSAT:
                 if other_type == STRUCTURE_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
                     if hasCollision and np.linalg.norm(mtv) > 1e-6:
-                        #print(f"Objeto inicial {obj.reference.type_object} colidiu com {type(other).__name__} que é um {other.type_object} de {type(other.reference).__name__}")
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
                         self.draw_mtv(obj,mtv,color=(255,0,0))
-                        #raise RuntimeError("Parou para debug, verificando colisão com o campo")
-                        self.resolve_collision_with_field(obj, mtv)
-                    #else:
-                    #    print(f"Objeto inicial {obj.reference.type_object} não colidiu com {type(other).__name__} que é um {other.type_object} de {type(other.reference).__name__}")
+                        self.resolve_collision_with_field(obj, other, mtv)
                     continue
 
                 # MOVING x MOVING
@@ -1168,13 +1205,25 @@ class CollisionManagerSAT:
             print("Massa inválida em um dos objetos — colisão ignorada.")
             return
 
-        # Normalizada do vetor de separação (direção da colisão)
-        normal = mtv / np.linalg.norm(mtv)
+        # Correção da direção: 
+        direc = obj1.position - obj2.position 
+        if np.dot(mtv,direc) < 0:
+            mtv =  - mtv
 
+        # Normalizada do vetor de separação (direção da colisão)
+        normal = mtv / mtv_norm
+
+        # Verifica se MTV é suficiente (baseado em velocidade relativa)
         # Separação mínima (posicional)
         # Separação posicional proporcional à massa
         total_mass = obj1.mass + obj2.mass
-        correction = mtv *1.01  #Levemente maior para garantir a separação
+        relative_velocity = np.linalg.norm(obj1.velocity - obj2.velocity)
+        mass_ratio = total_mass / (obj1.mass * obj2.mass)
+        scaling_factor = 1.0 + min(1.0, relative_velocity * mass_ratio * 0.1)  # tunável
+        mtv *= scaling_factor
+        correction = mtv * 1.01
+        
+        # Separação mínima (posicional)
         obj1.position += correction*(obj2.mass/total_mass)
         obj2.position -= correction*(obj1.mass/total_mass)
 
@@ -1222,8 +1271,8 @@ class CollisionManagerSAT:
         inv_inertia1 = 1 / getattr(obj1, 'inertia', 1)
         inv_inertia2 = 1 / getattr(obj2, 'inertia', 1)
 
-        r1_cross_n = r1[0] * normal[1] - r1[1] * normal[0]
-        r2_cross_n = r2[0] * normal[1] - r2[1] * normal[0]
+        r1_cross_n = np.cross(r1,normal)
+        r2_cross_n = np.cross(r2, normal)
 
         denom = inv_mass1 + inv_mass2 + (r1_cross_n**2) * inv_inertia1 + (r2_cross_n**2) * inv_inertia2
 
@@ -1237,8 +1286,8 @@ class CollisionManagerSAT:
 
 
         # Aplicação do impulso linear (Torque - Impulso angular)
-        obj1.velocity += impulse / obj1.mass
-        obj2.velocity -= impulse / obj2.mass
+        obj1.velocity += impulse *inv_mass1
+        obj2.velocity -= impulse *inv_mass2
 
         # --- Impulso Angular (Torque) ---
         # Torque (impulso angular)
@@ -1248,30 +1297,25 @@ class CollisionManagerSAT:
         # Impulso de atrito (tangencial)
         tangent = np.array([-normal[1], normal[0]])
         v_rel_tangent = np.dot(v_rel, tangent)
+        jt = -v_rel_tangent / denom
+        jt = np.clip(jt, -abs(impulse_mag) * friction, abs(impulse_mag) * friction)
+        friction_impulse = jt * tangent
 
-        # Cálculo do impulso de atrito limitado
-        friction_impulse_mag = -v_rel_tangent * friction
-        max_friction = np.abs(impulse_mag)*friction
-        friction_impulse_mag = np.clip(friction_impulse_mag, -max_friction, max_friction)
-        impulse_friction = friction_impulse_mag * tangent
+        obj1.velocity += friction_impulse * inv_mass1
+        obj2.velocity -= friction_impulse * inv_mass2
 
-        # Aplicação do impulso de atrito
-        obj1.velocity += impulse_friction * inv_mass1
-        obj2.velocity -= impulse_friction * inv_mass2
-
-        # Torque devido ao atrito (gira em sentido contrário ao deslizamento)
-        r1_cross_t = r1[0] * tangent[1] - r1[1] * tangent[0]
-        r2_cross_t = r2[0] * tangent[1] - r2[1] * tangent[0]
-        obj1.angular_velocity += r1_cross_t * friction_impulse_mag * inv_inertia1
-        obj2.angular_velocity -= r2_cross_t * friction_impulse_mag * inv_inertia2
+        r1_cross_t = np.cross(r1, tangent)
+        r2_cross_t = np.cross(r2, tangent)
+        obj1.angular_velocity += r1_cross_t * jt * inv_inertia1
+        obj2.angular_velocity -= r2_cross_t * jt * inv_inertia2
 
         # DAMPING — simula atrito com o campo
         obj1.velocity *= 0.98
         obj2.velocity *= 0.98
-        obj1.angular_velocity *= 0.9
-        obj2.angular_velocity *= 0.9
+        obj1.angular_velocity *= 0.5
+        obj2.angular_velocity *= 0.5
 
-    def resolve_collision_with_field(self, obj, mtv, contact_point=None):
+    def resolve_collision_with_field(self, obj, objfield, mtv, contact_point=None):
         """
         Resolve colisão entre objeto móvel e o campo (estrutura estática de massa infinita).
         :param obj: objeto que colidiu
@@ -1289,12 +1333,16 @@ class CollisionManagerSAT:
 
        # Garante que a MTV está empurrando o objeto para fora do campo
         object_pos = np.array([obj.x, obj.y])
-        field_center = np.array([REAL_FIELD_INTERNAL_WIDTH_CM / 2, REAL_FIELD_INTERNAL_HEIGHT_CM / 2])  # ajuste se o campo tiver outro centro
-        to_object = object_pos - field_center
-        if np.dot(to_object, normal) < 0:
-            normal = normal
-            mtv = mtv
+        pos_field = np.array([objfield.x, objfield.y]) if hasattr(objfield, 'x') and hasattr(objfield, 'y') else np.mean(objfield.get_corners(), axis=0)
+        if np.dot(object_pos - pos_field, normal) < 0:
+            normal = -normal
+            mtv = -mtv
 
+        # Corrige MTV com base na velocidade e no delta time
+        velocity_along_normal = np.dot(obj.velocity, normal)
+        velocity_factor = abs(velocity_along_normal)*self.dt 
+        mtv *= (1.0+velocity_factor*0.2) #Escala ajustável 
+        
         # Corrige posição (empurra o objeto para fora do campo)
         obj.x += mtv[0]
         obj.y += mtv[1]
@@ -1330,7 +1378,9 @@ class CollisionManagerSAT:
         obj_inv_mass = 1/obj.mass
         obj_inv_inertia = 1/obj.inertia
         denom = obj_inv_mass + (rn ** 2) * obj_inv_inertia
+
         j = -(1 + restitution) * vel_along_normal / denom
+        j = np.clip(j, -100, 100)
 
         impulse = j * normal
         obj.apply_impulse(impulse, contact_point)
@@ -1338,10 +1388,13 @@ class CollisionManagerSAT:
         # Atrito (tangente à colisão)
         tangent = np.array([-normal[1], normal[0]])
         vel_tangent = np.dot(vel_at_contact, tangent)
-
         jt = -vel_tangent / denom
         max_friction = friction * abs(j)
         jt = np.clip(jt, -max_friction, max_friction)
 
         friction_impulse = jt * tangent
         obj.apply_impulse(friction_impulse, contact_point)
+
+        # Damping leve
+        obj.velocity *= 0.98
+        obj.angular_velocity *= 0.5

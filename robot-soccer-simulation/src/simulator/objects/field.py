@@ -48,35 +48,69 @@ class Field:
             "fieldEx2": fieldEx2,
             "fieldEx3": fieldEx3,
             "fieldEx4": fieldEx4,
-            "fieldC": fieldC
+            "fieldC": fieldC, #Atribuindo quinas do campo
+            "Q1A1v": Q1A1v,
+            "Q1A2v": Q1A2v,
+            "Q2A1v": Q2A1v,
+            "Q2A2v": Q2A2v,
+            "Q3A1v": Q3A1v,
+            "Q3A2v": Q3A2v,
+            "Q4A1v": Q4A1v,
+            "Q4A2v": Q4A2v,
         }
 
         vp = self.virtual_points # Apenas para deixar mais simples a escrita.
+        
+        dim_vertice = 1
 
         # Objetos de colisão (linhas e áreas do campo)
         self.collision_object = CollisionGroup([
-            CollisionLine(fieldEx1, fieldEx2,reference=self, type_object=STRUCTURE_OBJECTS), 
-            CollisionLine(fieldEx2, GEI1v,reference=self, type_object=STRUCTURE_OBJECTS), 
-            CollisionLine(GEI1v, GEI2v,reference=self, type_object=STRUCTURE_OBJECTS), 
-            CollisionLine(GEI2v, GEI3v,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(GEI3v, GEI4v,reference=self, type_object=STRUCTURE_OBJECTS), 
-            CollisionLine(GEI4v, fieldEx3,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(fieldEx3, fieldEx4,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(fieldEx4, GAI3v,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(GAI3v, GAI4v,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(GAI4v, GAI1v,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(GAI1v, GAI2v,reference=self, type_object=STRUCTURE_OBJECTS),
-            CollisionLine(GAI2v, fieldEx1,reference=self, type_object=STRUCTURE_OBJECTS)
-            ], type_object=STRUCTURE_OBJECTS,reference=self)
+            self.line_to_thin_rectangle(Q1A1v, Q1A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q1A2v, Q2A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(Q2A1v, Q2A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(Q2A2v, GEI1v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(GEI1v, GEI2v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(GEI2v, GEI3v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GEI3v, GEI4v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(GEI4v, Q3A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q3A1v, Q3A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q3A2v, Q4A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q4A1v, Q4A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q4A2v, GAI3v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI3v, GAI4v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI4v, GAI1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI1v, GAI2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI2v, Q1A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),  #Adicionando os pontos de colisão 
+            CollisionCircle(Q1A1v[0],Q1A1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q1A2v[0],Q1A2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q2A1v[0],Q2A1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q2A2v[0],Q2A2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q3A1v[0],Q3A1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q3A2v[0],Q3A2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q4A1v[0],Q4A1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(Q4A2v[0],Q4A2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+
+            CollisionCircle(GEI1v[0],GEI1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(GEI2v[0],GEI2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(GEI3v[0],GEI3v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(GEI4v[0],GEI4v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            
+            CollisionCircle(GAI1v[0],GAI1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(GAI2v[0],GAI2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(GAI3v[0],GAI3v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+            CollisionCircle(GAI4v[0],GAI4v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
+
+        ], type_object=STRUCTURE_OBJECTS, reference=self)
 
         # --- Objetos especiais para detecção
         print("\n[Sistema]: Criando áreas do campo")
+
         # Área onde a bola pode ser colocada com o mouse
         print("[Sistema]: - RectUtil")
         self.RectUtil = CollisionRectangle(
             vp["fieldC"][0], vp["fieldC"][1],
-            vp["fieldEx2"][0] - vp["fieldEx1"][0],
-            vp["fieldEx2"][1] - vp["fieldEx3"][1],
+            (vp["fieldEx2"][0] - vp["fieldEx1"][0])-7,
+            (vp["fieldEx2"][1] - vp["fieldEx3"][1])-7,
             type_object=POSSIBLE_BOAL_PUT_OBJECT,
             reference=self
         )
@@ -122,3 +156,18 @@ class Field:
             type_object=GOALKEEPER_AREA_OBJECT_ENEMY,
             reference=self
         )
+
+    def line_to_thin_rectangle(self, p1, p2, thickness=1, reference=None, type_object=STRUCTURE_OBJECTS):
+        '''
+            Método necessário para ajustar o bug que acontece com as paredes do campo.
+        '''
+        # Centro do retângulo
+        center = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+        # Comprimento da linha
+        dx = p2[0] - p1[0]
+        dy = p2[1] - p1[1]
+        length = np.sqrt(dx**2 + dy**2)
+        # Ângulo em graus
+        angle = np.degrees(np.arctan2(dy, dx))
+        
+        return CollisionRectangle(center[0],center[1], length, thickness, angle=angle, reference=reference, type_object=type_object)
