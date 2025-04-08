@@ -142,12 +142,12 @@ XVBALL_INIT, YVBALL_INIT = screen_to_virtual([XBALL_INIT, YBALL_INIT])
 # ============================
 # massa (kg), distancias (cm)
 # Dos robôs
-ROBOT_MASS                                 = 0.5                            # Massa do robô em kg
-ROBOT_SIZE_CM                              = 8.0                            # Largura das laterais  cm
-ROBOT_WHEELS_RADIUS_CM                     = 4                              # Raio da roda em pixels (3cm escalados)
-ROBOT_DISTANCE_WHEELS_CM                   = 7                              # Distância entre as rodas em pixels (10cm escalados)
-ROBOT_DISTANCE_WHEELS_TO_CENTER_CM         = ROBOT_DISTANCE_WHEELS_CM/2     # Distância do centro do robô até o meio das rodas em pixels (5cm escalados)
-ROBOT_MAX_SPEED                            = 10                             # 10 cm/s
+ROBOT_MASS                                 = 0.5                                # Massa do robô em kg
+ROBOT_SIZE_CM                              = 8.0                                # Largura das laterais  cm
+ROBOT_WHEELS_RADIUS_CM                     = 4.0                                # Raio da roda em pixels (3cm escalados)
+ROBOT_DISTANCE_WHEELS_CM                   = 8.0                                # Distância entre as rodas em pixels (10cm escalados)
+ROBOT_DISTANCE_WHEELS_TO_CENTER_CM         = ROBOT_DISTANCE_WHEELS_CM/2         # Distância do centro do robô até o meio das rodas em pixels (5cm escalados)
+ROBOT_MAX_SPEED                            = 10                                 # 10 cm/s
 
 # Da bola
 BALL_MASS               = 0.045  # Massa da bola em kg (100g)

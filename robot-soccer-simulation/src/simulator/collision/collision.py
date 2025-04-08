@@ -1108,7 +1108,7 @@ class CollisionManagerSAT:
                     if hasCollision and np.linalg.norm(mtv) > 1e-2:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
-                        
+                        raise t
                         self.resolve_collision_with_field(obj, mtv)
                     continue
 
@@ -1146,21 +1146,38 @@ class CollisionManagerSAT:
         if obj1.mass <= 0 or obj2.mass <= 0:
             print("Massa inválida em um dos objetos — colisão ignorada.")
             return
-    
+
+        # Normalizada do vetor de separação (direção da colisão)
         normal = mtv / np.linalg.norm(mtv)
 
         # Separação mínima (posicional)
         # Separação posicional proporcional à massa
         total_mass = obj1.mass + obj2.mass
-        obj1.x += mtv[0] * (obj2.mass / total_mass)
-        obj1.y += mtv[1] * (obj2.mass / total_mass)
-        obj2.x -= mtv[0] * (obj1.mass / total_mass)
-        obj2.y -= mtv[1] * (obj1.mass / total_mass)
+        correction = mtv *1.01  #Levemente maior para garantir a separação
+        obj1.position += correction*(obj2.mass/total_mass)
+        obj2.position -= correction*(obj1.mass/total_mass)
 
-        # Velocidades relativas
-        v_rel = obj1.velocity - obj2.velocity
+        # Estimativa do ponto de colisão (centro entre os dois objetos)
+        collision_point = (obj1.position+obj2.position)/2
+
+        # Vetores do centro ao ponto de contato
+        r1 = collision_point - obj1.position
+        r2 = collision_point - obj2.position
+
+        # Velocidade rotacional nos pontos de contato (v = ω × r)
+        v_rot1 = getattr(obj1, 'angular_velocity', 0.0) * np.array([-r1[1], r1[0]])
+        v_rot2 = getattr(obj2, 'angular_velocity', 0.0) * np.array([-r2[1], r2[0]])
+
+        # Velocidade total nos pontos de contato (linear + rotacional)
+        v1_total = obj1.velocity + v_rot1
+        v2_total = obj2.velocity + v_rot2
+
+        # Velocidade relativa no ponto de contato
+        v_rel = v1_total - v2_total
+
+        # Componente da velocidade relativa na direção normal
         vel_along_normal = np.dot(v_rel, normal)
-        
+   
         if vel_along_normal > 0:
             return  # já estão se separando
 
@@ -1168,32 +1185,60 @@ class CollisionManagerSAT:
         restitution = COEFFICIENT_RESTITUTION_BALL_ROBOT if is_ball_robot else COEFFICIENT_RESTITUTION_ROBOT_ROBOT
         friction = COEFFICIENT_FRICTION_ROBOT_ROBOT
 
-        # Impulso escalar
-        impulse_mag = -(1 + restitution) * vel_along_normal
-        impulse_mag /= (1 / obj1.mass + 1 / obj2.mass)
+        # Calculando impulso escalar
+        inv_mass1 = 1 / obj1.mass
+        inv_mass2 = 1 / obj2.mass
+        inv_inertia1 = 1 / getattr(obj1, 'inertia', 1)
+        inv_inertia2 = 1 / getattr(obj2, 'inertia', 1)
 
+        r1_cross_n = r1[0] * normal[1] - r1[1] * normal[0]
+        r2_cross_n = r2[0] * normal[1] - r2[1] * normal[0]
+
+        denom = inv_mass1 + inv_mass2 + (r1_cross_n**2) * inv_inertia1 + (r2_cross_n**2) * inv_inertia2
+
+        impulse_mag = -(1 + restitution) * vel_along_normal / denom
+        
         MAX_IMPULSE = 100 # (cm/s * kg)
         impulse_mag = np.clip(impulse_mag, -MAX_IMPULSE, MAX_IMPULSE)
-        impulse = impulse_mag * normal
+        
+        # Impulso na direção normal
+        impulse = impulse_mag * normal 
 
+
+        # Aplicação do impulso linear (Torque - Impulso angular)
         obj1.velocity += impulse / obj1.mass
         obj2.velocity -= impulse / obj2.mass
+
+        # --- Impulso Angular (Torque) ---
+        # Torque (impulso angular)
+        obj1.angular_velocity += r1_cross_n * impulse_mag * inv_inertia1
+        obj2.angular_velocity -= r2_cross_n * impulse_mag * inv_inertia2
 
         # Impulso de atrito (tangencial)
         tangent = np.array([-normal[1], normal[0]])
         v_rel_tangent = np.dot(v_rel, tangent)
 
-        friction_impulse = -v_rel_tangent * friction
+        # Cálculo do impulso de atrito limitado
+        friction_impulse_mag = -v_rel_tangent * friction
         max_friction = np.abs(impulse_mag)*friction
-        friction_impulse = np.clip(friction_impulse, -max_friction, max_friction)
-        
-        
-        impulse_friction = friction_impulse * tangent
+        friction_impulse_mag = np.clip(friction_impulse_mag, -max_friction, max_friction)
+        impulse_friction = friction_impulse_mag * tangent
 
-        obj1.velocity += impulse_friction / obj1.mass
-        obj2.velocity -= impulse_friction / obj2.mass
+        # Aplicação do impulso de atrito
+        obj1.velocity += impulse_friction * inv_mass1
+        obj2.velocity -= impulse_friction * inv_mass2
 
+        # Torque devido ao atrito (gira em sentido contrário ao deslizamento)
+        r1_cross_t = r1[0] * tangent[1] - r1[1] * tangent[0]
+        r2_cross_t = r2[0] * tangent[1] - r2[1] * tangent[0]
+        obj1.angular_velocity += r1_cross_t * friction_impulse_mag * inv_inertia1
+        obj2.angular_velocity -= r2_cross_t * friction_impulse_mag * inv_inertia2
 
+        # DAMPING — simula atrito com o campo
+        obj1.velocity *= 0.98
+        obj2.velocity *= 0.98
+        obj1.angular_velocity *= 0.9
+        obj2.angular_velocity *= 0.9
 
     def resolve_collision_with_field(self, obj, mtv):
         """

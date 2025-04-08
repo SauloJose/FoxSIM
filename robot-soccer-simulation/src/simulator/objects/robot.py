@@ -19,16 +19,15 @@ class Robot:
             Inicializando o robô
         '''
         #Coordenadas globais do robô no ambiente
-        self.position=[x,y]
-        self.theta = np.radians(initial_angle)  # Ângulo em radianos do eixo de rotação do robô com o eixo x do sistema cartesiano inicial
-        self.x = x
-        self.y = y
+        self._position=np.array([x,y], dtype=float)
+        self.angle = np.radians(initial_angle)  # Ângulo em radianos do eixo de rotação do robô com o eixo x do sistema cartesiano inicial
+        
         ''' Angulo theta com a horizontal em radianos'''
         self.team = team                        # indicação do time
         self.role = role                        # função do robô
-        self.color = color                      # Cor do robô
-
+        self.color = color                      # Cor do robo
         self.id_robot = id                    # Apenas um identificado para ele
+        
         # Tipo de objeto para o sistema de colisão
         self.type_object = ROBOT_OBJECT
 
@@ -47,9 +46,8 @@ class Robot:
         self.force = np.zeros(2, dtype=float)
         self.torque = 0.0
         self.impulse = None
-        self.angle = self.theta  # ângulo usado internamente na rotação contínua
-        self.position = np.array([self.x, self.y], dtype=float)  # posição como vetor
-
+        self.angle = self.angle  # ângulo usado internamente na rotação contínua
+        
         # Velocidades separadas
         self.control_velocity = np.array([0.0, 0.0])    # da cinemática
         self.physical_velocity = np.array([0.0, 0.0])   # da física
@@ -59,7 +57,7 @@ class Robot:
         self.angular_velocity = 0.0     # Velocidade angular
         
         # Vetor de direção inicial
-        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+        self.direction = np.array([np.cos(self.angle), np.sin(self.angle)])
 
         # Velocidades das rodas (em cm/s)
         self.v_l = 0.0  # esquerda
@@ -69,8 +67,14 @@ class Robot:
         self.v = 0.0
         self.omega = 0.0
 
+
+        # Colisão
+        self.collision_object = CollisionRectangle(self.x, self.y, self.width, self.height, type_object=MOVING_OBJECTS, reference=self)
+        self.sync_collision_object()
+
+
         #salva os valores iniciais para quando resetar
-        self.initial_theta      = self.theta
+        self.initial_theta      = self.angle
         self.initial_vl         = self.v_l
         self.initial_vr         = self.v_r 
         self.initial_direction  = self.direction.copy()
@@ -80,12 +84,18 @@ class Robot:
         self.initial_y          = self.y
         self.initial_angular_velocity = self.angular_velocity
 
-        # Colisão
-        self.collision_object = CollisionRectangle(self.x, self.y, self.width, self.height, type_object=MOVING_OBJECTS, reference=self)
-        self.sync_collision_object()
-
         # Imagem para o Pygame
         self.initialize_image()
+
+    @property
+    def position(self):
+        return self._position
+    
+    @position.setter 
+    def position(self, value):
+        self._position =np.array(value,dtype=float)
+        self.collision_object.x = self._position[0]
+        self.collision_object.y = self._position[1]
 
     @property
     def x(self):
@@ -94,6 +104,7 @@ class Robot:
     @x.setter
     def x(self, value):
         self.position[0] = value
+        self.collision_object.x =value
 
     @property
     def y(self):
@@ -102,6 +113,7 @@ class Robot:
     @y.setter
     def y(self, value):
         self.position[1] = value
+        self.collision_object.y =value
     
     #definindo bloco initialize
     def initialize_image(self):
@@ -148,7 +160,7 @@ class Robot:
         Define as velocidades das rodas com base em um vetor velocidade (global).
         """
         v_global = np.array([vx, vy])
-        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+        self.direction = np.array([np.cos(self.angle), np.sin(self.angle)])
 
         v = np.dot(v_global, self.direction)  # componente tangencial
         omega = 0.0
@@ -231,8 +243,8 @@ class Robot:
         Rotaciona o robô em torno de seu centro.
         :param angle: Ângulo em graus para rotacionar.
         """
-        self.theta += np.radians(angle)
-        self.direction = np.array([np.cos(self.theta), np.sin(self.theta)])
+        self.angle += np.radians(angle)
+        self.direction = np.array([np.cos(self.angle), np.sin(self.angle)])
         self.sync_collision_object()
 
     def distance_to(self, x, y):
@@ -251,7 +263,7 @@ class Robot:
         :param y: Nova posição Y.
         """
         #Reseta configurações do robô
-        self.theta      = self.initial_theta  #Ângulo theta com a horizontal
+        self.angle      = self.initial_theta  #Ângulo theta com a horizontal
         self.v_l        = self.initial_vl         
         self.v_r        = self.initial_vr          
         self.direction  = self.initial_direction  
@@ -296,8 +308,6 @@ class Robot:
         """
         angle= np.degrees(np.arctan2(self.direction[1], self.direction[0]))
         self.collision_object.angle = angle
-        self.collision_object.x = self.x
-        self.collision_object.y = self.y
 
     def update_velocity_vector(self):
         """
@@ -319,8 +329,9 @@ class Robot:
         image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
         pygame.draw.rect(image, self.color, (0, 0, width_px, height_px))
 
+        angle= np.degrees(np.arctan2(self.direction[1], self.direction[0]))
+        
         # Rotaciona a imagem conforme o ângulo atual
-        angle = np.degrees(self.theta)
         rotated_image = pygame.transform.rotate(image, angle)
 
         # Calcula posição central
