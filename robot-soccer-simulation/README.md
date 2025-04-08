@@ -48,9 +48,14 @@ robot-soccer-simulation/
 │   │   │   ├── timer.py                # Classe HighPrecisionTimer (controle de tempo)
 │   │   │   └── OBJECTS_README.md       # Documentação dos objetos do jogo
 │   │
-│   ├── ui/
-│   │   └── (em desenvolvimento)        # Módulos da interface gráfica
-│
+│   ├── ui/                   
+│   │   ├── interface_config.py         # Dados configuráveis do simulador
+│   │   ├── interface.py                # Arquivo da organização da interface e desenho
+│   │   └──  scoreboard                 # Lógica do scoreboard do jogo
+│   │   
+│   │
+│   └── utils/
+│       └── helpers.py         # Dados configuráveis do simulador
 ├── README.md                           # Documentação do projeto
 └── requirements.txt                    # Dependências do projeto
 
@@ -69,13 +74,17 @@ robot-soccer-simulation/
   - `game_started`: Indica se o jogo está em andamento.
   - `draw_collision_objects`: Alterna a exibição dos objetos de colisão.
 
+### `simulator/objects/robot.py`
+- ** Classe `Robot`**:
+  - Robô com direção e movimento baseados em forças e torque.
+  - Possui `velocity`, `angular_velocity`, `mass`, `inertia`.
+  - Sincroniza com `CollisionRectangle` para colisões com quinas e frente do robô.
+
 ### `simulator/objects/ball.py`
 - **Classe `Ball`**:
-  - Representa a bola no jogo.
-  - Métodos:
-    - `update_position`: Atualiza a posição da bola com base na velocidade.
-    - `set_velocity`: Define a velocidade da bola.
-    - `reset_position`: Reseta a posição da bola para o centro do campo.
+  - Movimento com atrito, rotação e colisões.
+  - Resposta à colisão controlada por coeficientes de restituição específicos.
+
 
 ### `simulator/objects/team.py`
 - **Classe `Team`**:
@@ -85,15 +94,29 @@ robot-soccer-simulation/
     - `set_speed`: Define a velocidade dos robôs.
 
 ### `simulator/objects/collision.py`
-- **Sistema de Colisões**:
-  - Classes:
-    - `CollisionObject`: Classe base para objetos de colisão.
-    - `CollisionCircle`, `CollisionRectangle`, `CollisionLine`: Representam diferentes formas geométricas para detecção de colisão.
-    - `Collision`: Gerencia as colisões entre objetos móveis (bola, robôs) e estruturas (campo, paredes).
-  - Métodos:
-    - `handle_collisions`: Gerencia todas as colisões no jogo.
-    - `resolve_ball_robot_collision`: Resolve colisões entre a bola e os robôs.
-    - `resolve_robot_robot_collision`: Resolve colisões entre robôs.
+#### `CollisionSystem`
+- Sistema completo de detecção e resposta a colisões.
+- Classes:
+  - `CollisionCircle`, `CollisionRectangle`, `CollisionLine`, `CollisionGroup`.
+  - `resolve_collision_with_field`: Aplica MTV, impulso e torque em MOVING vs STRUCTURE.
+  - Detecção entre pares otimizada via spatial hashing e bounding box AABB.
+
+#### ⚙️ Física de Colisão e Torque
+
+- **MTV (Minimum Translation Vector)**:
+  - Calculado para separar objetos colidindo.
+  - Sempre empurra o objeto MOVING para fora de STRUCTURE.
+
+- **Torque**:
+  - Calculado a partir do vetor até o ponto de contato.
+  - `τ = r × F` aplicado dinamicamente a `angular_velocity`.
+
+- **Resolução com Impulsos**:
+  - Normal + fricção.
+  - Suporte para restituição elástica e inércia rotacional.
+
+---
+
 
 ### `simulator/game_logic.py`
 - **Função `update_game_state`**:
@@ -106,10 +129,10 @@ robot-soccer-simulation/
     - `draw`: Desenha os elementos da interface, incluindo botões e tempo restante.
 
 ---
-
-## Configurações Importantes
-
+## 🔧 Parâmetros Configuráveis
 ### Arquivo `ui/interface_config.py`
+
+Editáveis via `interface_config.py` ou constantes de colisão:
 - **Parâmetros Configuráveis**:
   - `FIELD_WIDTH`, `FIELD_HEIGHT`: Dimensões do campo.
   - `SCOREBOARD_HEIGHT`: Altura do placar.
@@ -117,7 +140,16 @@ robot-soccer-simulation/
   - `TIMER_PARTY`: Tempo total da partida.
   - `TEAM_BLUE_COLOR`, `TEAM_RED_COLOR`: Cores dos times.
 
+Demais editáveis
+- Tamanho do campo (`REAL_FIELD_INTERNAL_WIDTH_CM`, etc.)
+- Massa e inércia de objetos
+- Coeficientes de:
+  - Atrito
+  - Restituição
+- Controle de visualização do debug
+
 ---
+
 
 ## Objetivos e Implementações Futuras
 
@@ -136,14 +168,8 @@ robot-soccer-simulation/
 4. **Simulação Física Melhorada**:
    - Adicionar efeitos como atrito e rotação da bola.
 
-5. **Modo Multijogador**:
-   - Permitir que jogadores humanos controlem os robôs.
-
-6. **Gráficos Melhorados**:
+5. **Gráficos Melhorados**:
    - Substituir os elementos gráficos básicos por sprites mais detalhados.
-
-7. **Sistema de Replays**:
-   - Implementar um sistema para salvar e reproduzir partidas.
 
 ---
 
