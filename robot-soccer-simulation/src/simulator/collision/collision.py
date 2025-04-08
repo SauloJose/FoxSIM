@@ -547,57 +547,66 @@ class CollisionRectangle(CollisionObject):
 
     def check_collision_with_circle(self, circle):
         """
-        Verifica colisão entre o retângulo rotacionado e um círculo, e retorna o MTV.
-        
-        Retorna:
-            [True, mtv] se houver colisão,
-            [False, None] caso contrário.
+        Verifica colisão entre este retângulo (rotacionado) e um círculo.
+        Retorna [True, mtv] ou [False, None].
         """
-        circle_center = np.array([circle.x, circle.y])
-        corners = self.get_corners()
+        cx, cy = circle.x, circle.y
+        radius = circle.radius
 
-        isInside, mtv = self.check_point_inside(circle)
+        # Transforma o centro do círculo para o espaço local do retângulo
+        dx = cx - self.x
+        dy = cy - self.y
+        angle_rad = -np.radians(self.angle)
 
-        # Verifica se o centro do círculo está dentro do retângulo
-        if isInside:
-            # Encontra o ponto mais próximo na borda
-            closest = self.get_closest_point_on_rectangle(circle_center, corners)
-            direction = circle_center - closest
-            if np.linalg.norm(direction) == 0:
-                direction = np.array([1.0, 0.0])  # vetor arbitrário se o círculo estiver perfeitamente no centro
+        cos_a = np.cos(angle_rad)
+        sin_a = np.sin(angle_rad)
+        local_x = cos_a * dx - sin_a * dy
+        local_y = sin_a * dx + cos_a * dy
+
+        # Limita o ponto ao retângulo (em seu espaço local)
+        half_w = self.width / 2
+        half_h = self.height / 2
+
+        closest_x = max(-half_w, min(local_x, half_w))
+        closest_y = max(-half_h, min(local_y, half_h))
+
+        # Distância do centro da bola ao ponto mais próximo do retângulo
+        dist_x = local_x - closest_x
+        dist_y = local_y - closest_y
+        dist_sq = dist_x**2 + dist_y**2
+
+        if dist_sq > radius**2:
+            return [False, None]
+
+        # Colisão detectada — calcula MTV
+        dist = np.sqrt(dist_sq)
+        if dist != 0:
+            # MTV no espaço local
+            penetration = radius - dist
+            mtv_local = np.array([dist_x, dist_y]) / dist * penetration
+            if dist < 1e-2:
+                mtv_local *=1.5 #Empurrão extra em tangenciamentos quase exatos
+        else:
+            # Caso especial: centro da bola está exatamente no canto — empurra radialmente
+            # Exemplo: empurra para a direita
+            direction_local = np.array([local_x, local_y])
+            if np.linalg.norm(direction_local) != 0:
+                mtv_local = (direction_local / np.linalg.norm(direction_local))*radius
             else:
-                direction = direction / np.linalg.norm(direction)
-            mtv = direction * circle.radius
-            return [True, mtv]
+                mtv_local = np.array([1.0, 0.0]) * radius
 
-        # Verifica colisão com as arestas do retângulo
-        for i in range(len(corners)):
-            start = corners[i]
-            end = corners[(i + 1) % len(corners)]  # Próximo canto (fechando o retângulo)
-            edge_vector = end - start
-            point_vector = circle_center - start
+        # Converte MTV de volta ao espaço global
+        mtv_global = np.array([
+            cos_a * mtv_local[0] + -sin_a * mtv_local[1],
+            sin_a * mtv_local[0] +  cos_a * mtv_local[1],
+        ])
 
-            # Projeção do ponto no segmento de linha
-            projection = np.dot(point_vector, edge_vector) / np.dot(edge_vector, edge_vector)
-            projection = max(0, min(1, projection))  # Restringe a projeção ao segmento de linha
+        #Cortanto o MTV caso seja numericamente estável
+        if np.linalg.norm(mtv_global) <1e-3:
+            return [False, None]
+        
+        return [True, mtv_global]
 
-            # Calcula o ponto mais próximo na aresta
-            closest = start + projection * edge_vector
-
-            # Calcula a distância entre o centro do círculo e o ponto mais próximo
-            distance_vector = circle_center - closest
-            distance = np.linalg.norm(distance_vector)
-
-            # Verifica se a distância é menor ou igual ao raio do círculo
-            if distance <= circle.radius:
-                if distance ==0:
-                    normal = np.array([1.0,0.0]) #vetor arbitrário
-                else:
-                    normal = distance_vector / distance 
-                mtv = normal*(circle.radius - distance)
-
-                return [True, mtv]
-        return [False, mtv]
 
 
     def get_closest_point_on_rectangle(self, point, corners):
@@ -690,7 +699,7 @@ class CollisionRectangle(CollisionObject):
                 # Ajusta a direção do MTV
                 center1 = np.mean(corners1, axis=0)
                 center2 = np.mean(corners2, axis=0)
-                direction = center2 - center1 
+                direction = center1 - center2
                 if np.dot(direction, mtv_axis) <0:
                     mtv_axis = -mtv_axis 
 
@@ -1041,6 +1050,9 @@ class CollisionManagerSAT:
             if hasattr(obj, "reference"):
                 self.add_object(obj)
 
+        #Verifica se o par já foi checado anteriormente.
+        checked_pairs = set()
+
         #2. Verifica colisões no grid
         for obj in objects:
             if obj.type_object != MOVING_OBJECTS:
@@ -1056,22 +1068,27 @@ class CollisionManagerSAT:
                 print(f"\n[DEBUG]: Objeto analisado é o Robô {obj.reference.role} do time {obj.reference.team} com id {obj.reference.id_robot}")
                 print("Objetos na vizinhança:",[obj.reference.type_object for obj in nearby])
 
-        
+
             #Verifica colisões com os vizinhos.
             for other in nearby:
                 if obj is other or not hasattr(other,"reference"):
                     continue 
 
-                #Evita tratar colisões de "eu com eu"
-                if id(obj) >id(other):
-                    continue 
+                #cria o par ordenado de IDs para evitar dupla verificação
+                pair = (min(id(obj), id(other)),max(id(obj),id(other)))
+                
+                if pair in checked_pairs:
+                    continue
+                
+                #Adiciona para tratar
+                checked_pairs.add(pair)
 
                 other_type = other.type_object 
 
                 # MOVING x STRUCTURE:
                 if other_type == STRUCTURE_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
-                    if hasCollision and np.linalg.norm(mtv) != 0:
+                    if hasCollision and np.linalg.norm(mtv) > 1e-2:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
                         
@@ -1081,7 +1098,7 @@ class CollisionManagerSAT:
                 # MOVING x MOVING
                 if other_type == MOVING_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
-                    if hasCollision and np.linalg.norm(mtv)!=0:
+                    if hasCollision and np.linalg.norm(mtv) > 1e-2:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
 
@@ -1093,6 +1110,7 @@ class CollisionManagerSAT:
         Resolve colisão entre dois objetos móveis com conservação de momento linear.
         :param obj1, obj2: objetos com massa, velocidade e posição.
         :param mtv: vetor mínimo de translação do SAT (resolve a sobreposição).
+         Esse MTV deve ser calculado de Obj2 para Obj1
         """
         print("Resolvendo colisão de objetos em movimento")
         
