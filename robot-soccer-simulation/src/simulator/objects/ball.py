@@ -25,6 +25,10 @@ class Ball:
         self.inertia = 0.5 *self.mass*self.radius**2 #Disco sólido
         self.angular_velocity =0.0  #rad/s
 
+        # Agentes físicos
+        self.force = np.zeros(2,dtype=float)
+        self.torque = 0.0
+        self.impulse = None 
 
         # Outros
         self.color = color  
@@ -75,25 +79,63 @@ class Ball:
         :param vx: Velocidade no eixo X.
         :param vy: Velocidade no eixo Y.
         """
-        self.velocity = np.array([vx, vy])
+        self.velocity = np.array([vx, vy], dtype=float)
         self.speed = np.linalg.norm(self.velocity)  # Atualiza a velocidade linear
         
-        if np.linalg.norm(self.velocity) > 0:
-            self.direction = self.velocity /np.linalg.norm(self.velocity)  # Atualiza a direção
+        if self.speed > 0:
+            self.direction = self.velocity /self.speed  # Atualiza a direção
 
 
     def update_position(self, dt):
         """
-        Atualiza a posição da bola com base na velocidade.
-        :param dt: Delta time (tempo desde a última atualização).
+        Move a bola com base nas forças e torque acumulados no frame.
+        Zera os acumuladores após o movimento.
         """
-        self.position += self.velocity*dt 
+        # 1. Aplica impulso (se existir)
+        if self.impulse is not None:
+            self.velocity += self.impulse / self.mass
+            self.impulse = None
+
+        # 2. Calcula aceleração linear e atualiza velocidade
+        acceleration = self.force / self.mass
+        self.velocity += acceleration * dt
+
+        # 3. Atualiza posição
+        self.position += self.velocity * dt
+
+        # 4. Calcula aceleração angular e atualiza velocidade angular
+        angular_acceleration = self.torque / self.inertia
+        self.angular_velocity += angular_acceleration * dt
+
+        # 5. Atualiza direção (para possíveis efeitos visuais)
+        if np.linalg.norm(self.velocity) > 0:
+            self.direction = self.velocity / np.linalg.norm(self.velocity)
+
+        # 6. Reseta forças acumuladas
+        self.force = np.zeros(2, dtype=float)
+        self.impulse = None
+        self.torque = 0.0
+
+    def apply_force(self, force: np.ndarray, point: np.ndarray =None):
+        '''
+            Acumula uma força na bola
+        '''
+        if point is None:
+            point = self.position
+        self.force += force 
+        r = point - self.position
+        torque = np.cross(r,force)
+        self.torque += torque 
 
     def apply_impulse(self, impulse, contact_point = None):
         '''
             Aplica um impulso na bola
         '''
-        self.velocity +=impulse/self.mass 
+        if self.impulse is None:
+            self.impulse = impulse 
+        else:
+            self.impulse +=impulse 
+
         if contact_point is not None:
             r = contact_point - np.array([self.x, self.y])
             torque_impulse = np.cross(r, impulse)
@@ -109,6 +151,13 @@ class Ball:
         angular_acceleration = torque / self.inertia
         self.angular_velocity += angular_acceleration * dt
 
+    def clear_forces(self):
+        '''
+            Reseta as forças e torques acumulados. Útil após o update entre frames
+        '''
+        self.force[:] = 0
+        self.torque = 0
+        self.impulse = None 
 
     def reset_position(self, x, y):
         """

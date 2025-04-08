@@ -345,12 +345,8 @@ class CollisionLine(CollisionObject):
             overlap = min(max_rect, max_line) - max(min_rect, min_line)
             if overlap < min_overlap:
                 min_overlap = overlap
-                mtv = axis
-
-        # Ajusta direção do MTV
-        direction = rectangle.get_center() - ((self.start + self.end) / 2)
-        if np.dot(direction, mtv) < 0:
-            mtv = -mtv
+                direction = rectangle.get_center() -((self.start+self.end)/2)
+                mtv = axis if np.dot(direction, axis) > 0 else -axis
 
         return [True, mtv * min_overlap]
 
@@ -416,6 +412,7 @@ class CollisionRectangle(CollisionObject):
         self.corners = []
         self.update_corners()
 
+        
         print(f"[DEBUG] Retângulo criado com x = {self.x}, y={self.y} e width = {self.width} height={self.height}")
 
         #Pai dessa classe de colisão.
@@ -977,7 +974,7 @@ class CollisionGroup(CollisionObject):
 
 ## Classe principal para controle das colisões
 class CollisionManagerSAT:
-    def __init__(self, cell_size=CELL_SIZE):
+    def __init__(self, cell_size=CELL_SIZE, screen=None):
         """
         Gerenciador de colisões usando SAT com otimização por Spatial Hashing.
         :param cell_size: Tamanho de cada célula da grade para particionamento espacial.
@@ -987,6 +984,9 @@ class CollisionManagerSAT:
         """
         self.cell_size = cell_size
         self.grid = defaultdict(list)
+
+        #Apenas para debug virtual
+        self.screen = screen
 
     def clear(self):
         """ Limpa o grid de detecção de colisões. """
@@ -1065,7 +1065,13 @@ class CollisionManagerSAT:
                 cell = (cx + dx, cy + dy)
                 nearby.extend(self.grid.get(cell, []))
 
-        return nearby
+        return nearby   
+    
+    def draw_mtv(self, obj, mtv, color=(255,0,0)):
+        #Desenhando o vetor mtv para debug
+        start_pos = (int(obj.x), int(obj.y))
+        end_pos = (int(obj.x + mtv[0]*10), int(obj.y + mtv[1]*10))  # escala para visual
+        pygame.draw.line(self.screen, color, start_pos, end_pos, 2)
 
     def detect_and_resolve(self, objects):
         """
@@ -1117,20 +1123,24 @@ class CollisionManagerSAT:
                 # MOVING x STRUCTURE:
                 if other_type == STRUCTURE_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
-                    if hasCollision and np.linalg.norm(mtv) > 1e-2:
+                    if hasCollision and np.linalg.norm(mtv) > 1e-6:
+                        #print(f"Objeto inicial {obj.reference.type_object} colidiu com {type(other).__name__} que é um {other.type_object} de {type(other.reference).__name__}")
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
+                        self.draw_mtv(obj,mtv,color=(255,0,0))
                         #raise RuntimeError("Parou para debug, verificando colisão com o campo")
                         self.resolve_collision_with_field(obj, mtv)
+                    #else:
+                    #    print(f"Objeto inicial {obj.reference.type_object} não colidiu com {type(other).__name__} que é um {other.type_object} de {type(other.reference).__name__}")
                     continue
 
                 # MOVING x MOVING
                 if other_type == MOVING_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
-                    if hasCollision and np.linalg.norm(mtv) > 1e-2:
+                    if hasCollision and np.linalg.norm(mtv) > 1e-6:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
-
+                        self.draw_mtv(obj,mtv,color=(255,0,0))
                         self.resolve_moving_collision(obj, other, mtv)
                     
     def resolve_moving_collision(self, obj1, obj2, mtv):

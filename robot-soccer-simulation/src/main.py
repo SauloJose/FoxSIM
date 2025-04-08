@@ -29,6 +29,7 @@ field = Field(FIELD_INTERNAL_WIDTH_IN_PX*SCALE_PX_TO_CM, FIELD_INTERNAL_HEIGHT_I
 print(f"\n[Sistema]: Criando a bola nas posições ({XVBALL_INIT},{YVBALL_INIT} e {BALL_RADIUS_CM})")
 ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM, color=BALL_COLOR)
 
+#Só para debug:
 print("\n[Sistema]: Criando robôs do time azul")
 blue_team = Team(TEAM_BLUE_COLOR, blue_team_positions, "blue", initial_angle=0)
 
@@ -109,7 +110,8 @@ while running:
                 robots=blue_team.robots + red_team.robots,
                 ball=ball,
                 dt=dt,
-                field=field
+                field=field,
+                screen=screen
             )
 
             if situation == POINT_ALLY:

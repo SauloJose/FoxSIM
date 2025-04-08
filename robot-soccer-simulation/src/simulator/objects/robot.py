@@ -49,15 +49,15 @@ class Robot:
         self.angle = self.angle  # ângulo usado internamente na rotação contínua
         
         # Velocidades separadas
-        self.control_velocity = np.array([0.0, 0.0])    # da cinemática
-        self.physical_velocity = np.array([0.0, 0.0])   # da física
-        self.velocity = np.array([0.0, 0.0])             # final (composta)
+        self.control_velocity = np.array([0.0, 0.0],dtype=float)    # da cinemática
+        self.physical_velocity = np.array([0.0, 0.0],dtype=float)   # da física
+        self.velocity = np.array([0.0, 0.0],dtype=float)             # final (composta)
 
         self.control_angular_velocity = 0.0
         self.angular_velocity = 0.0     # Velocidade angular
         
         # Vetor de direção inicial
-        self.direction = np.array([np.cos(self.angle), np.sin(self.angle)])
+        self.direction = np.array([np.cos(self.angle), np.sin(self.angle)],dtype=float)
 
         # Velocidades das rodas (em cm/s)
         self.v_l = 0.0  # esquerda
@@ -69,7 +69,9 @@ class Robot:
 
 
         # Colisão
-        self.collision_object = CollisionRectangle(self.x, self.y, self.width, self.height, type_object=MOVING_OBJECTS, reference=self)
+        self.collision_object = CollisionRectangle(
+            self.x, self.y, self.width, self.height, 
+            type_object=MOVING_OBJECTS, reference=self)
         self.sync_collision_object()
 
 
@@ -159,7 +161,7 @@ class Robot:
         """
         Define as velocidades das rodas com base em um vetor velocidade (global).
         """
-        v_global = np.array([vx, vy])
+        v_global = np.array([vx, vy], dtype=float)
         self.direction = np.array([np.cos(self.angle), np.sin(self.angle)])
 
         v = np.dot(v_global, self.direction)  # componente tangencial
@@ -270,7 +272,7 @@ class Robot:
         self.v          = self.initial_v          
         self.omega      = self.initial_omega   
         self.position = np.array([self.initial_x, self.initial_y], dtype=float)    
-        self.velocity   = np.zeros(2)
+        self.velocity   = np.zeros(2, dtype=float)
         self.angular_velocity = self.initial_angular_velocity
 
         # Imagem para o Pygame
