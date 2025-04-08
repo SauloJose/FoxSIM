@@ -8,6 +8,20 @@ from simulator.collision.collision import *
 # Dicionário de fontes da interface 
 class Interface:
     def __init__(self, screen):
+        # Nome da interface
+        pygame.display.set_caption(f"FoxSIM v{VERSION} - Simulador de futebol de robôs - por: Saulo José")
+
+        self.field_image = pygame.image.load("src/assets/field.png")
+        self.field_image = pygame.transform.scale(self.field_image, (WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX))
+
+        #Setando ícone
+        icone = pygame.image.load("src/assets/logo_minus.png")  # use o caminho da sua imagem
+
+        # Define o ícone da janela
+        pygame.display.set_icon(icone)
+
+
+        # === Carregamento de Recursos ===
         self.screen = screen
         self.start_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20, BUTTON_WIDTH, BUTTON_HEIGHT)
         self.reset_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
@@ -58,7 +72,7 @@ class Interface:
         self.is_game_paused = is_game_paused
         self.draw_grid_collision = draw_grid_collision 
 
-    def draw(self, time_left, screen, field_image, ball:Ball, robots:Robot, field:Field):
+    def draw(self, time_left, screen, ball:Ball, robots:Robot, field:Field):
         screen.fill((200, 200, 200))
 
         minutes = int(time_left // 60)
@@ -68,7 +82,7 @@ class Interface:
         pygame.draw.rect(screen, (200, 200, 200), (0, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX, WINDOWS_FIELD_WIDTH_PX + SIDEBAR_WIDTH_PX, CONFIG_HEIGHT_PX))
 
         # Campo de jogo e robôs/bola primeiro
-        screen.blit(field_image, (0, SCOREBOARD_HEIGHT_PX))
+        screen.blit(self.field_image, (0, SCOREBOARD_HEIGHT_PX))
         for robot in robots:
             robot.draw(screen)
         ball.draw(screen)

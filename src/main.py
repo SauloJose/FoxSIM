@@ -15,15 +15,12 @@ from ui.interface_config import *
 # === Inicialização ===
 pygame.init()
 screen = pygame.display.set_mode((WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))
-pygame.display.set_caption(f"FoxSIM v{VERSION} - Simulador de futebol de robôs - por: Saulo José")
-
-# === Carregamento de Recursos ===
-field_image = pygame.image.load("robot-soccer-simulation/src/assets/field.png")
-field_image = pygame.transform.scale(field_image, (WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX))
 
 # === Instanciação de Objetos ===
 print("[Sistema]: ======== Criando objetos ======= \n")
 interface = Interface(screen)
+
+#Gerando objetos da simulação
 field = Field(FIELD_INTERNAL_WIDTH_IN_PX*SCALE_PX_TO_CM, FIELD_INTERNAL_HEIGHT_IN_PX*SCALE_PX_TO_CM, FIELD_COLOR)
 
 print(f"\n[Sistema]: Criando a bola nas posições ({XVBALL_INIT},{YVBALL_INIT} e {BALL_RADIUS_CM})")
@@ -136,7 +133,6 @@ while running:
     interface.draw(
         time_left=timer.get_time_left(),
         screen=screen,
-        field_image=field_image,
         ball=ball,
         field=field,
         robots=blue_team.robots + red_team.robots,
