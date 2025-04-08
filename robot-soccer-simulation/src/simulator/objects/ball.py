@@ -58,7 +58,7 @@ class Ball:
     def x(self, value):
         self._position[0] = value
         self.collision_object.x =value
-        
+
     @property
     def y(self):
         return self.position[1]
@@ -89,11 +89,16 @@ class Ball:
         """
         self.position += self.velocity*dt 
 
-    def apply_impulse(self, impulse):
+    def apply_impulse(self, impulse, contact_point = None):
         '''
             Aplica um impulso na bola
         '''
         self.velocity +=impulse/self.mass 
+        if contact_point is not None:
+            r = contact_point - np.array([self.x, self.y])
+            torque_impulse = np.cross(r, impulse)
+            self.angular_velocity += torque_impulse / self.inertia
+            
 
     def apply_torque(self, torque, dt):
         """

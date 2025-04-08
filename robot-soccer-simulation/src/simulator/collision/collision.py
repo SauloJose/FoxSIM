@@ -131,6 +131,8 @@ class CollisionCircle(CollisionObject):
             return self.check_collision_with_circle(other)
         elif isinstance(other, CollisionPoint):
             return other.check_collision(self)
+        elif isinstance(other, CollisionLine):
+            return other.check_collision_with_circle(self)
         elif isinstance(other, CollisionRectangle):
             return other.check_collision_with_circle(self)
         elif isinstance(other, CollisionGroup):
@@ -231,7 +233,7 @@ class CollisionLine(CollisionObject):
         elif isinstance(other, CollisionLine):
             return self.check_collision_with_line(other)
         elif isinstance(other, CollisionRectangle):
-            return self.check_collision_with_retangles(other)
+            return self.check_collision_with_rectangles(other)
         elif isinstance(other, CollisionGroup):
             return other.check_collision(self)
         return [False, None]
@@ -283,65 +285,75 @@ class CollisionLine(CollisionObject):
             return [True, mtv]
         return [False, None]
 
-    def check_collision_with_retangles(self, rectangle:CollisionRectangle):
+    def check_collision_with_rectangles(self, rectangle: CollisionRectangle):
         """
-        Verifica colisão com um retângulo.
+        Verifica colisão com um retângulo rotacionado.
+        Combina interseção direta com SAT.
 
         retorna:
-            - [True, MTV] : Caso tenha colisão
-            - [False, None]: Caso não tenha colisão.
+            - [True, mtv]: se teve colisão
+            - [False, [0.0,0.0]]: Se não teve colisão
         """
-        axes = []       #Eixos condidatos
-        
-        #Puxa os lados do retângulo
         rect_corners = rectangle.get_corners()
         line_points = [self.start, self.end]
 
-        # 1. Normais dos lados do retângulo
+        # --- 1. Teste de interseção direta com os lados do retângulo ---
+        for i in range(4):
+            p1 = rect_corners[i]
+            p2 = rect_corners[(i + 1) % 4]
+            intersect, _ = self.line_segment_intersection(self.start, self.end, p1, p2)
+            if intersect:
+                # Colidiu — ainda calculamos o MTV usando SAT abaixo
+                break
+        else:
+            # Nenhum lado foi cruzado — pode ser que a linha esteja dentro sem interseção
+            # Nesse caso, só SAT pode detectar
+            pass  # Continuamos para SAT
+
+        # --- 2. SAT (Separating Axis Theorem) ---
+        axes = []
+
+        # Normais dos lados do retângulo
         for i in range(len(rect_corners)):
-            edge = rect_corners[(i+1)%len(rect_corners)]- rect_corners[i]
+            edge = rect_corners[(i + 1) % len(rect_corners)] - rect_corners[i]
             normal = np.array([-edge[1], edge[0]])
             normal = normal / np.linalg.norm(normal)
             axes.append(normal)
 
-        # 2. Adiciona o normal da linha
-        line_edge = self.end - self.start 
+        # Normal da linha
+        line_edge = self.end - self.start
         if np.linalg.norm(line_edge) != 0:
             line_normal = np.array([-line_edge[1], line_edge[0]])
             line_normal = line_normal / np.linalg.norm(line_normal)
             axes.append(line_normal)
 
-        #mtv
         mtv = None
         min_overlap = float('inf')
 
         for axis in axes:
-            # Projeta o retângulo
             projections_rect = [np.dot(corner, axis) for corner in rect_corners]
             min_rect = min(projections_rect)
             max_rect = max(projections_rect)
 
-            # Projeta a linha
             projections_line = [np.dot(point, axis) for point in line_points]
             min_line = min(projections_line)
             max_line = max(projections_line)
 
-            # Verifica separação
             if max_rect < min_line or max_line < min_rect:
                 return [False, None]  # Separação encontrada
 
-            # Calcula sobreposição
             overlap = min(max_rect, max_line) - max(min_rect, min_line)
             if overlap < min_overlap:
                 min_overlap = overlap
                 mtv = axis
 
-        # Garante direção apontando da linha para o retângulo
+        # Ajusta direção do MTV
         direction = rectangle.get_center() - ((self.start + self.end) / 2)
         if np.dot(direction, mtv) < 0:
             mtv = -mtv
 
         return [True, mtv * min_overlap]
+
 
     def line_segment_intersection(self, p1, p2, q1, q2):
         """
@@ -490,7 +502,7 @@ class CollisionRectangle(CollisionObject):
 
         # Caso o outro objeto seja uma linha, chama o método da linha para verificar colisão com o retângulo
         elif isinstance(other, CollisionLine):
-            return other.check_collision_with_retangles(self)
+            return other.check_collision_with_rectangles(self)
 
         # Caso o outro objeto seja uma polilinha, também delega a verificação para o objeto da polilinha
         elif isinstance(other, CollisionGroup):
@@ -1108,7 +1120,7 @@ class CollisionManagerSAT:
                     if hasCollision and np.linalg.norm(mtv) > 1e-2:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
-                        raise t
+                        #raise RuntimeError("Parou para debug, verificando colisão com o campo")
                         self.resolve_collision_with_field(obj, mtv)
                     continue
 
@@ -1118,7 +1130,6 @@ class CollisionManagerSAT:
                     if hasCollision and np.linalg.norm(mtv) > 1e-2:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
-
 
                         self.resolve_moving_collision(obj, other, mtv)
                     
@@ -1181,9 +1192,19 @@ class CollisionManagerSAT:
         if vel_along_normal > 0:
             return  # já estão se separando
 
-        is_ball_robot = ('Ball' in str(type(obj1)) or 'Ball' in str(type(obj2)))
-        restitution = COEFFICIENT_RESTITUTION_BALL_ROBOT if is_ball_robot else COEFFICIENT_RESTITUTION_ROBOT_ROBOT
-        friction = COEFFICIENT_FRICTION_ROBOT_ROBOT
+        type1 = type(obj1).__name__
+        type2 = type(obj2).__name__
+
+        # Restituição
+        if 'Ball' in (type1, type2) and 'Robot' in (type1, type2):
+            restitution = COEFFICIENT_RESTITUTION_BALL_ROBOT
+            friction = COEFICIENT_FRICTION_ROBOT_ROBOT  # Pode refinar esse se quiser diferenciar atrito bola-robô
+        elif 'Robot' in type1 and 'Robot' in type2:
+            restitution = COEFFICIENT_RESTITUTION_ROBOT_ROBOT
+            friction = COEFICIENT_FRICTION_ROBOT_ROBOT
+        else:
+            restitution = 0.5  # fallback
+            friction = 0.1     # fallback
 
         # Calculando impulso escalar
         inv_mass1 = 1 / obj1.mass
@@ -1240,14 +1261,14 @@ class CollisionManagerSAT:
         obj1.angular_velocity *= 0.9
         obj2.angular_velocity *= 0.9
 
-    def resolve_collision_with_field(self, obj, mtv):
+    def resolve_collision_with_field(self, obj, mtv, contact_point=None):
         """
         Resolve colisão entre objeto móvel e o campo (estrutura estática de massa infinita).
         :param obj: objeto que colidiu
         :param mtv: vetor mínimo de translação
         """
-        print("Resolvendo colisões com o campo")
         obj = obj.reference 
+        print(f"(Colisão de um {obj.type_object} com o campo)")
 
         norm_mtv = np.linalg.norm(mtv)
         if norm_mtv == 0:
@@ -1256,6 +1277,14 @@ class CollisionManagerSAT:
 
         normal = mtv / norm_mtv
 
+       # Garante que a MTV está empurrando o objeto para fora do campo
+        object_pos = np.array([obj.x, obj.y])
+        field_center = np.array([REAL_FIELD_INTERNAL_WIDTH_CM / 2, REAL_FIELD_INTERNAL_HEIGHT_CM / 2])  # ajuste se o campo tiver outro centro
+        to_object = object_pos - field_center
+        if np.dot(to_object, normal) < 0:
+            normal = normal
+            mtv = mtv
+
         # Corrige posição (empurra o objeto para fora do campo)
         obj.x += mtv[0]
         obj.y += mtv[1]
@@ -1263,20 +1292,46 @@ class CollisionManagerSAT:
         obj.collision_object.y = obj.y
 
         # Verifica componente da velocidade na direção da normal
-        vel_along_normal = np.dot(obj.velocity, normal)
-        if vel_along_normal >= 0:
-            return  # já está se afastando da parede
+        if contact_point is None:
+            contact_point = object_pos.copy()
 
-        # Escolhe restituição com base no tipo
-        is_ball = 'Ball' in str(type(obj))
-        restitution = COEFFICIENT_RESTITUTION_BALL_FIELD if is_ball else COEFFICIENT_RESTITUTION_ROBOT_FIELD
-        friction = COEFFICIENT_FRICTION_ROBOT_FIELD if not is_ball else 0
+        # Velocidade relativa no ponto de contato
+        r = contact_point - object_pos 
+        vel_at_contact = obj.velocity + obj.angular_velocity * np.array([-r[1],r[0]])
 
-        # Reflete a velocidade com restituição (rebote)
-        obj.velocity -= (1 + restitution) * vel_along_normal * normal
+        # Componente na direção normal
+        vel_along_normal = np.dot(vel_at_contact, normal)
+        if vel_along_normal >= 0 :
+            return
+        
+        type_name = type(obj).__name__
+        if 'Ball' in type_name:
+            restitution = COEFFICIENT_RESTITUTION_BALL_FIELD
+            friction = 0
+        elif 'Robot' in type_name:
+            restitution = COEFFICIENT_RESTITUTION_ROBOT_FIELD
+            friction = COEFICIENT_FRICTION_ROBOT_FIELD
+        else:
+            restitution = 0.3  # fallback
+            friction = 0.05
 
-        # Aplica atrito (na direção tangencial ao plano de colisão)
+        # Impulso escalar (restituição + torque)
+        rn = np.cross(r, normal)
+        obj_inv_mass = 1/obj.mass
+        obj_inv_inertia = 1/obj.inertia
+        denom = obj_inv_mass + (rn ** 2) * obj_inv_inertia
+        j = -(1 + restitution) * vel_along_normal / denom
+
+        impulse = j * normal
+        obj.apply_impulse(impulse, contact_point)
+
+        # Atrito (tangente à colisão)
         tangent = np.array([-normal[1], normal[0]])
-        v_tangent = np.dot(obj.velocity, tangent)
-        friction_impulse = -v_tangent * friction
-        obj.velocity += friction_impulse * tangent
+        vel_tangent = np.dot(vel_at_contact, tangent)
+
+        jt = -vel_tangent / denom
+        max_friction = friction * abs(j)
+        jt = np.clip(jt, -max_friction, max_friction)
+
+        friction_impulse = jt * tangent
+        obj.apply_impulse(friction_impulse, contact_point)

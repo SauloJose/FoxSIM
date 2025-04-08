@@ -19,7 +19,7 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field):
     '''
     for robot in robots:
         # Seta velocidades no robô
-        robot.set_wheel_speeds(10, 10)
+        robot.set_wheel_speeds(45, 50)
 
         # Move com controle diferencial
         robot.move(dt)
