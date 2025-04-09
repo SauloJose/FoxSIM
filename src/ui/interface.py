@@ -16,10 +16,7 @@ class Interface:
 
         #Setando ícone
         icone = pygame.image.load("src/assets/logo_minus.png")  # use o caminho da sua imagem
-
-        # Define o ícone da janela
         pygame.display.set_icon(icone)
-
 
         # === Carregamento de Recursos ===
         self.screen = screen
@@ -83,6 +80,8 @@ class Interface:
 
         # Campo de jogo e robôs/bola primeiro
         screen.blit(self.field_image, (0, SCOREBOARD_HEIGHT_PX))
+
+        #Desenhando objetos do jogo
         for robot in robots:
             robot.draw(screen)
         ball.draw(screen)
@@ -99,7 +98,7 @@ class Interface:
 
                 xball, yball = virtual_to_screen([ball.x, ball.y])
 
-            
+                # Desenhando 
                 dir_end = (xbot+ bot_dir[0] * 30, ybot + bot_dir[1] * 30)
                 pygame.draw.line(screen, (255, 100, 0), (xbot, ybot), dir_end, 2)
                 pygame.draw.line(screen, (250, 20, 255), (xbot, ybot), (xball, yball), 1)
@@ -131,7 +130,6 @@ class Interface:
 
 
             # Desenhar o campo 
-            #Desenhando no pygame
             #pygame.draw.polygon(screen, (255, 255, 0), [(int(c[0]), int(c[1])) for c in rect_util_screen], 3)
             pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_ally_screen], 3)
             pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_enemy_screen], 3)

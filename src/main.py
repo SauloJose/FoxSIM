@@ -28,10 +28,10 @@ ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM, color=B
 
 #Só para debug:
 print("\n[Sistema]: Criando robôs do time azul")
-blue_team = Team(TEAM_BLUE_COLOR, blue_team_positions, "blue", initial_angle=0)
+blue_team = Team(blue_team_positions,BLUE_TEAM, initial_angle=0)
 
 print("\n[Sistema]: Criando robôs do time vermelho")
-red_team = Team(TEAM_RED_COLOR, red_team_positions, "red", initial_angle=180)
+red_team = Team(red_team_positions, RED_TEAM, initial_angle=180)
 
 clock = pygame.time.Clock()
 timer = HighPrecisionTimer(TIMER_PARTY)
@@ -123,9 +123,6 @@ while running:
                 print("Tempo esgotado! Fim da partida.")
                 game_started = False
                 reset_simulation(timer)
-
-
-
 
 
     # Renderização na interface

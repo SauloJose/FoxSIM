@@ -10,23 +10,24 @@ from ui.interface_config import (
 )
 from simulator.collision.collision import *
 
+
 class Robot:
     '''
         Implementação dinâmica de um robô controlado por controle diferencial
     '''
-    def __init__(self, x, y, team, role, color, id, initial_angle=0):
+    def __init__(self, x, y, team, role, id, image, initial_angle=0):
         '''
-            Inicializando o robô
+            Inicializando o objeto robô que será um objeto que irá se mover e interagir na simulação
         '''
         #Coordenadas globais do robô no ambiente
         self._position=np.array([x,y], dtype=float)
-        self.angle = np.radians(initial_angle)  # Ângulo em radianos do eixo de rotação do robô com o eixo x do sistema cartesiano inicial
-        
+
         ''' Angulo theta com a horizontal em radianos'''
         self.team = team                        # indicação do time
         self.role = role                        # função do robô
-        self.color = color                      # Cor do robo
-        self.id_robot = id                    # Apenas um identificado para ele
+        self.id_robot = id                      # Apenas um identificado para ele
+        self.image    = image                   # Imagem que representa o robô7
+        self.initial_image = image              # Imagem inicial para quando resetar o robô.
         
         # Tipo de objeto para o sistema de colisão
         self.type_object = ROBOT_OBJECT
@@ -46,7 +47,7 @@ class Robot:
         self.force = np.zeros(2, dtype=float)
         self.torque = 0.0
         self.impulse = None
-        self.angle = self.angle  # ângulo usado internamente na rotação contínua
+        self.angle = np.radians(initial_angle)  # Ângulo em radianos do eixo de rotação do robô com o eixo x do sistema cartesiano inicial
         
         # Velocidades separadas
         self.control_velocity = np.array([0.0, 0.0],dtype=float)    # da cinemática
@@ -86,8 +87,6 @@ class Robot:
         self.initial_y          = self.y
         self.initial_angular_velocity = self.angular_velocity
 
-        # Imagem para o Pygame
-        self.initialize_image()
 
     @property
     def position(self):
@@ -117,13 +116,6 @@ class Robot:
         self.position[1] = value
         self.collision_object.y =value
     
-    #definindo bloco initialize
-    def initialize_image(self):
-        width_px = int(self.width / SCALE_PX_TO_CM)
-        height_px = int(self.height / SCALE_PX_TO_CM)
-        self.image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
-        pygame.draw.rect(self.image, self.color, (0, 0, width_px, height_px))
-
     #setando velocidade das rodas
     def set_wheel_speeds(self, v_l, v_r):
         """Define as velocidades das rodas esquerda e direita (em cm/s)."""
@@ -176,42 +168,42 @@ class Robot:
         self.velocity = v_global
         self.sync_collision_object()
 
-    # função para mover o robô devido um tempo dt
     def move(self, dt: float):
-        # --- 1. Força das rodas neste frame
+        # 1. Força das rodas
         left_force = self.v_l * self.mass
         right_force = self.v_r * self.mass
         force_magnitude = (left_force + right_force) / 2
         direction_force = self.direction * force_magnitude
 
-        # --- 2. Torque gerado pelas rodas (diferencial)
-        torque = (right_force - left_force) * self.distance_wheels / 2
+        # 2. Acumula força e torque do controle
+        self.force += direction_force
+        self.torque += (right_force - left_force) * self.distance_wheels / 2
 
-        # --- 3. Impulsos (de colisões ou outros eventos físicos)
-        if self.impulse is not None:
-            self.velocity += self.impulse / self.mass
-            self.impulse = None
-
-        # --- 4. Atualiza velocidade linear e angular (integrando aceleração)
-        acceleration = direction_force / self.mass
+        # 3. Integra aceleração linear e angular
+        acceleration = self.force / self.mass
         self.velocity += acceleration * dt
-        self.angular_velocity += torque / self.inertia * dt
+        self.angular_velocity += (self.torque / self.inertia) * dt
 
-        # --- 5. Atualiza posição e rotação
+        # 4. Atualiza posição e rotação
         self.position += self.velocity * dt
         self.angle += self.angular_velocity * dt
         self.angle %= 2 * np.pi
 
-        # --- 6. Atualiza vetor direção
+        # 5. Atualiza direção
         self.direction = np.array([np.cos(self.angle), np.sin(self.angle)], dtype=float)
 
-        # --- 7. Sincroniza o objeto de colisão
+        # 6. Damping realista (simula atrito com o solo)
+        linear_damping = 0.01
+        angular_damping = 0.05
+        self.velocity *= (1 - linear_damping)
+        self.angular_velocity *= (1 - angular_damping)
+
+        # 7. Sincroniza colisão
         self.sync_collision_object()
 
-        # --- 8. Limpa força acumulada e torque (para o próximo frame)
-        self.force = np.zeros(2, dtype=float)
+        # 8. Reseta acumuladores
+        self.force[:] = 0
         self.torque = 0.0
-
 
 
     # Aplicar força contínua (pouco usada, mas disponível)
@@ -219,11 +211,9 @@ class Robot:
         '''
             Aplica uma força contínua ao robô
         '''
-        acceleration = force / self.mass
-        self.physical_velocity += acceleration
+        self.force += force
         torque = np.cross(contact_vector, force)
-        angular_acceleration = torque / self.inertia
-        self.angular_velocity += angular_acceleration
+        self.torque +=torque
     
     def apply_torque(self, torque):
         '''
@@ -239,6 +229,8 @@ class Robot:
             torque_impulse = np.cross(r, impulse)
             self.angular_velocity += torque_impulse/self.inertia
 
+    def inertia_rectangle(self):
+        self.inertia = (1/12)*self.mass*(self.width**2+self.height**2)
 
     def rotate(self, angle):
         """
@@ -276,7 +268,7 @@ class Robot:
         self.angular_velocity = self.initial_angular_velocity
 
         # Imagem para o Pygame
-        self.initialize_image()
+        self.image = self.initial_image 
         
         self.sync_collision_object()
 
@@ -289,13 +281,6 @@ class Robot:
         self.x = x
         self.y = y
         self.sync_collision_object()
-
-    def set_color(self, color):
-        """
-        Define a cor do robô.
-        :param color: Cor do robô (RGB).
-        """
-        self.color = color
 
     def stop(self):
         """
@@ -324,22 +309,18 @@ class Robot:
         :param screen: Superfície do pygame onde o robô será desenhado.
         """
 
-        width_px = int(self.width / SCALE_PX_TO_CM)
-        height_px = int(self.height / SCALE_PX_TO_CM)
+        # Converte o ângulo de rotação para graus
+        angle = np.degrees(self.angle)
 
-        # Cria a imagem com a cor atual
-        image = pygame.Surface((width_px, height_px), pygame.SRCALPHA)
-        pygame.draw.rect(image, self.color, (0, 0, width_px, height_px))
+        # Rotaciona a imagem do robô conforme o ângulo atual
+        rotated_image = pygame.transform.rotate(self.image, angle)  # negativo pois y do Pygame cresce para baixo
 
-        angle= np.degrees(np.arctan2(self.direction[1], self.direction[0]))
-        
-        # Rotaciona a imagem conforme o ângulo atual
-        rotated_image = pygame.transform.rotate(image, angle)
-
-        # Calcula posição central
+        # Converte coordenadas virtuais para coordenadas de tela
         center = virtual_to_screen([self.x, self.y])
+
+        # Centraliza a imagem no ponto do robô
         rect = rotated_image.get_rect(center=center)
 
-        # Desenha na tela
+        # Desenha a imagem rotacionada na tela
         screen.blit(rotated_image, rect.topleft)
 

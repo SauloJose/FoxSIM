@@ -1176,6 +1176,7 @@ class CollisionManagerSAT:
         """
         Resolve colisão entre dois objetos móveis com conservação de momento linear.
         :param obj1, obj2: objetos com massa, velocidade e posição.
+
         :param mtv: vetor mínimo de translação do SAT (resolve a sobreposição).
          Esse MTV deve ser calculado de Obj2 para Obj1
         """
@@ -1187,40 +1188,50 @@ class CollisionManagerSAT:
 
         # Proteção: MTV nulo ou objetos sem massa válida
         mtv_norm = np.linalg.norm(mtv)
-        if mtv_norm < 1e-6:
+        if mtv_norm < 1e-6 or obj1.mass <= 0 or obj2.mass <= 0:
             print("MTV nulo — colisão ignorada.")
             return
-        if not hasattr(obj1, 'mass') or not hasattr(obj2, 'mass'):
-            print("Um dos objetos não possui massa — colisão ignorada.")
-            return
-        if obj1.mass <= 0 or obj2.mass <= 0:
-            print("Massa inválida em um dos objetos — colisão ignorada.")
-            return
-
-        # Correção da direção: 
-        direc = obj1.position - obj2.position 
-        if np.dot(mtv,direc) < 0:
-            mtv =  - mtv
+        
+            # Corrige direção da MTV
+        if np.dot(mtv, obj1.position - obj2.position) < 0:
+            mtv = -mtv
 
         # Normalizada do vetor de separação (direção da colisão)
         normal = mtv / mtv_norm
 
         # Verifica se MTV é suficiente (baseado em velocidade relativa)
-        # Separação mínima (posicional)
         # Separação posicional proporcional à massa
         total_mass = obj1.mass + obj2.mass
-        relative_velocity = np.linalg.norm(obj1.velocity - obj2.velocity)
-        mass_ratio = total_mass / (obj1.mass * obj2.mass)
-        scaling_factor = 1.0 + min(1.0, relative_velocity * mass_ratio * 0.1)  # tunável
-        mtv *= scaling_factor
-        correction = mtv * 1.01
-        
-        # Separação mínima (posicional)
-        obj1.position += correction*(obj2.mass/total_mass)
-        obj2.position -= correction*(obj1.mass/total_mass)
+        correction = mtv * (1.01 + np.linalg.norm(obj1.velocity - obj2.velocity) * 0.01)
+        obj1.position += correction * (obj2.mass / total_mass)
+        obj2.position -= correction * (obj1.mass / total_mass)
 
-        # Estimativa do ponto de colisão (centro entre os dois objetos)
-        collision_point = (obj1.position+obj2.position)/2
+       # === Ponto de contato ===
+        type1 = obj1.type_object
+        type2 = obj2.type_object
+
+        if {type1, type2} == {ROBOT_OBJECT, BALL_OBJECT}:
+            # Robô-Bola → ponto estimado: centro da bola
+            if type1 == BALL_OBJECT:
+                collision_point = obj1.position.copy()
+            else:
+                collision_point = obj2.position.copy()
+        elif {type1, type2} == {ROBOT_OBJECT}:
+            # Robô-Robô → ponto composto (média entre os dois pontos mais próximos)
+            corners1 = obj1.collision_object.get_corners()
+            corners2 = obj2.collision_object.get_corners()
+            min_dist = float('inf')
+            pts = []
+            for c1 in corners1:
+                for c2 in corners2:
+                    dist = np.linalg.norm(c1 - c2)
+                    if dist < min_dist:
+                        min_dist = dist
+                        pts = [c1, c2]
+            collision_point = np.mean(pts, axis=0)
+        else:
+            collision_point = (obj1.position + obj2.position) / 2
+
 
         # Vetores do centro ao ponto de contato
         r1 = collision_point - obj1.position
@@ -1243,19 +1254,16 @@ class CollisionManagerSAT:
         if vel_along_normal > 0:
             return  # já estão se separando
 
-        type1 = type(obj1).__name__
-        type2 = type(obj2).__name__
-
-        # Restituição
-        if 'Ball' in (type1, type2) and 'Robot' in (type1, type2):
+        # Coeficientes
+        if {type1, type2} == {ROBOT_OBJECT, BALL_OBJECT}:
             restitution = COEFFICIENT_RESTITUTION_BALL_ROBOT
-            friction = COEFICIENT_FRICTION_ROBOT_ROBOT  # Pode refinar esse se quiser diferenciar atrito bola-robô
-        elif 'Robot' in type1 and 'Robot' in type2:
+            friction = COEFICIENT_FRICTION_BALL_ROBOT
+        elif {type1, type2} == {ROBOT_OBJECT}:
             restitution = COEFFICIENT_RESTITUTION_ROBOT_ROBOT
             friction = COEFICIENT_FRICTION_ROBOT_ROBOT
         else:
-            restitution = 0.5  # fallback
-            friction = 0.1     # fallback
+            restitution = 0.5
+            friction = 0.1
 
         # Calculando impulso escalar
         inv_mass1 = 1 / obj1.mass
@@ -1267,45 +1275,34 @@ class CollisionManagerSAT:
         r2_cross_n = np.cross(r2, normal)
 
         denom = inv_mass1 + inv_mass2 + (r1_cross_n**2) * inv_inertia1 + (r2_cross_n**2) * inv_inertia2
-
         impulse_mag = -(1 + restitution) * vel_along_normal / denom
-        
-        MAX_IMPULSE = 100 # (cm/s * kg)
         impulse_mag = np.clip(impulse_mag, -MAX_IMPULSE, MAX_IMPULSE)
         
         # Impulso na direção normal
         impulse = impulse_mag * normal 
 
+        obj1.apply_impulse(+impulse, collision_point)
+        obj2.apply_impulse(-impulse, collision_point)
 
-        # Aplicação do impulso linear (Torque - Impulso angular)
-        obj1.velocity += impulse *inv_mass1
-        obj2.velocity -= impulse *inv_mass2
-
-        # --- Impulso Angular (Torque) ---
-        # Torque (impulso angular)
-        obj1.angular_velocity += r1_cross_n * impulse_mag * inv_inertia1
-        obj2.angular_velocity -= r2_cross_n * impulse_mag * inv_inertia2
-
-        # Impulso de atrito (tangencial)
         tangent = np.array([-normal[1], normal[0]])
+        tangent /= np.linalg.norm(tangent)
         v_rel_tangent = np.dot(v_rel, tangent)
         jt = -v_rel_tangent / denom
         jt = np.clip(jt, -abs(impulse_mag) * friction, abs(impulse_mag) * friction)
         friction_impulse = jt * tangent
 
-        obj1.velocity += friction_impulse * inv_mass1
-        obj2.velocity -= friction_impulse * inv_mass2
+        obj1.apply_impulse(+friction_impulse, collision_point)
+        obj2.apply_impulse(-friction_impulse, collision_point)
 
-        r1_cross_t = np.cross(r1, tangent)
-        r2_cross_t = np.cross(r2, tangent)
-        obj1.angular_velocity += r1_cross_t * jt * inv_inertia1
-        obj2.angular_velocity -= r2_cross_t * jt * inv_inertia2
-
-        # DAMPING — simula atrito com o campo
-        obj1.velocity *= 0.98
-        obj2.velocity *= 0.98
-        obj1.angular_velocity *= 0.5
-        obj2.angular_velocity *= 0.5
+        # Efeito Magnus (apenas se um dos objetos for bola)
+        for obj in (obj1, obj2):
+            if hasattr(obj, 'type_object') and obj.type_object == BALL_OBJECT:
+                magnus_strength = 0.005  # fator ajustável
+                omega = obj.angular_velocity
+                v = obj.velocity
+                if np.linalg.norm(v) > 0 and abs(omega) > 0:
+                    magnus_force = magnus_strength * omega * np.array([-v[1], v[0]])
+                    obj.apply_force(magnus_force)
 
     def resolve_collision_with_field(self, obj, objfield, mtv, contact_point=None):
         """

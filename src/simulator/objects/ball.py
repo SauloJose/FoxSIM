@@ -88,8 +88,12 @@ class Ball:
 
     def update_position(self, dt):
         """
-        Move a bola com base nas forças e torque acumulados no frame.
-        Zera os acumuladores após o movimento.
+        Atualiza a posição da bola com física realista:
+        - Impulso
+        - Força contínua
+        - Rolamento com resistência
+        - Efeito Magnus (emulação 3D)
+        - Perda progressiva da rotação
         """
         # 1. Aplica impulso (se existir)
         if self.impulse is not None:
@@ -99,19 +103,38 @@ class Ball:
         # 2. Calcula aceleração linear e atualiza velocidade
         acceleration = self.force / self.mass
         self.velocity += acceleration * dt
+        
+        # 3. Atrito com o solo (dinâmico linear)
+        if np.linalg.norm(self.velocity) > 0:
+            # Aproximação de desaceleração natural por rolamento
+            rolling_resistance_coeff = 0.002  # Bem menor que atrito deslizante
+            friction_force_mag = rolling_resistance_coeff * self.mass * 980  # N = m.g
+            # A direção oposta à velocidade
+            friction_dir = -self.velocity / np.linalg.norm(self.velocity)
+            friction_accel = friction_dir * (friction_force_mag / self.mass)
+            
+            new_velocity = self.velocity + friction_accel * dt
+            if np.dot(new_velocity, self.velocity) < 0:
+                self.velocity = np.zeros(2)
+            else:
+                self.velocity = new_velocity
+            # Atualiza rotação associada ao rolamento
+            linear_speed = np.linalg.norm(self.velocity)
+            self.angular_velocity = linear_speed / self.radius
 
-        # 3. Atualiza posição
+        # 4. Atualiza posição com velocidade final
         self.position += self.velocity * dt
 
-        # 4. Calcula aceleração angular e atualiza velocidade angular
-        angular_acceleration = self.torque / self.inertia
-        self.angular_velocity += angular_acceleration * dt
 
-        # 5. Atualiza direção (para possíveis efeitos visuais)
+        # 5. Calcula aceleração angular e atualiza velocidade angular
+        self.angular_velocity += 0.995
+
+
+        # 6. Atualiza direção (para possíveis efeitos visuais)
         if np.linalg.norm(self.velocity) > 0:
             self.direction = self.velocity / np.linalg.norm(self.velocity)
 
-        # 6. Reseta forças acumuladas
+        # 7. Reseta forças acumuladas
         self.force = np.zeros(2, dtype=float)
         self.impulse = None
         self.torque = 0.0
