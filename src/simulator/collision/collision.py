@@ -1304,86 +1304,91 @@ class CollisionManagerSAT:
                     magnus_force = magnus_strength * omega * np.array([-v[1], v[0]])
                     obj.apply_force(magnus_force)
 
-    def resolve_collision_with_field(self, obj, objfield, mtv, contact_point=None):
+    def resolve_collision_with_field(self, obj, objfield, mtv, contact_points=None):
         """
         Resolve colisão entre objeto móvel e o campo (estrutura estática de massa infinita).
-        :param obj: objeto que colidiu
-        :param mtv: vetor mínimo de translação
+        Aplica múltiplos impulsos e torques realistas, agrupando pontos próximos.
         """
-        obj = obj.reference 
-        #print(f"(Colisão de um {obj.type_object} com o campo)")
+        obj = obj.reference
 
         norm_mtv = np.linalg.norm(mtv)
         if norm_mtv == 0:
             print("MTV nulo — colisão ignorada.")
             return
 
-        normal = mtv / norm_mtv
-
-       # Garante que a MTV está empurrando o objeto para fora do campo
+        # Direção do MTV — deve ir de objfield → obj
+        pos_field = np.array([objfield.x, objfield.y]) if hasattr(objfield, 'x') else np.mean(objfield.get_corners(), axis=0)
         object_pos = np.array([obj.x, obj.y])
-        pos_field = np.array([objfield.x, objfield.y]) if hasattr(objfield, 'x') and hasattr(objfield, 'y') else np.mean(objfield.get_corners(), axis=0)
+        normal = mtv / norm_mtv
         if np.dot(object_pos - pos_field, normal) < 0:
             normal = -normal
             mtv = -mtv
 
-        # Corrige MTV com base na velocidade e no delta time
+        # Escala MTV com velocidade e dt (para garantir separação em velocidades altas)
         velocity_along_normal = np.dot(obj.velocity, normal)
-        velocity_factor = abs(velocity_along_normal)*self.dt 
-        mtv *= (1.0+velocity_factor*0.2) #Escala ajustável 
+        velocity_factor = abs(velocity_along_normal) * self.dt
+        mtv *= (1.0 + velocity_factor * 0.2)  # fator ajustável
 
-        # Corrige posição (empurra o objeto para fora do campo)
+        # Corrige posição
         obj.x += mtv[0]
         obj.y += mtv[1]
         obj.collision_object.x = obj.x
         obj.collision_object.y = obj.y
 
-        # Verifica componente da velocidade na direção da normal
-        if contact_point is None:
-            contact_point = object_pos.copy()
-
-        # Velocidade relativa no ponto de contato
-        r = contact_point - object_pos 
-        vel_at_contact = obj.velocity + obj.angular_velocity * np.array([-r[1],r[0]])
-
-        # Componente na direção normal
-        vel_along_normal = np.dot(vel_at_contact, normal)
-        if vel_along_normal >= 0 :
-            return
-        
+        # --- Parâmetros de colisão por tipo ---
         type_name = type(obj).__name__
         if 'Ball' in type_name:
             restitution = COEFFICIENT_RESTITUTION_BALL_FIELD
-            friction = 0
+            friction = 0.0
+            contact_points = [object_pos.copy()]
         elif 'Robot' in type_name:
             restitution = COEFFICIENT_RESTITUTION_ROBOT_FIELD
             friction = COEFICIENT_FRICTION_ROBOT_FIELD
+            if hasattr(obj.collision_object, "get_corners"):
+                corners = obj.collision_object.get_corners()
+                mid_edges = [(corners[i] + corners[(i + 1) % 4]) / 2 for i in range(4)]
+                contact_points = corners + mid_edges
+            else:
+                contact_points = [object_pos.copy()]
         else:
-            restitution = 0.3  # fallback
+            restitution = 0.3
             friction = 0.05
+            contact_points = [object_pos.copy()]
 
-        # Impulso escalar (restituição + torque)
-        rn = np.cross(r, normal)
-        obj_inv_mass = 1/obj.mass
-        obj_inv_inertia = 1/obj.inertia
-        denom = obj_inv_mass + (rn ** 2) * obj_inv_inertia
+        # --- Filtra pontos redundantes (agrupa próximos) ---
+        filtered_points = []
+        eps = 1.0  # Tolerância em cm
+        for p in contact_points:
+            if all(np.linalg.norm(p - fp) > eps for fp in filtered_points):
+                filtered_points.append(p)
 
-        j = -(1 + restitution) * vel_along_normal / denom
-        j = np.clip(j, -100, 100)
+        # --- Aplica impulso e torque nos pontos filtrados ---
+        obj_inv_mass = 1 / obj.mass
+        obj_inv_inertia = 1 / obj.inertia
 
-        impulse = j * normal
-        obj.apply_impulse(impulse, contact_point)
+        for point in filtered_points:
+            r = point - object_pos
+            vel_at_contact = obj.velocity + obj.angular_velocity * np.array([-r[1], r[0]])
+            vel_normal = np.dot(vel_at_contact, normal)
+            if vel_normal >= 0:
+                continue
 
-        # Atrito (tangente à colisão)
-        tangent = np.array([-normal[1], normal[0]])
-        vel_tangent = np.dot(vel_at_contact, tangent)
-        jt = -vel_tangent / denom
-        max_friction = friction * abs(j)
-        jt = np.clip(jt, -max_friction, max_friction)
+            rn = np.cross(r, normal)
+            denom = obj_inv_mass + (rn ** 2) * obj_inv_inertia
+            j = -(1 + restitution) * vel_normal / denom
+            j = np.clip(j, -100, 100)
+            impulse = j * normal
+            obj.apply_impulse(impulse, point)
 
-        friction_impulse = jt * tangent
-        obj.apply_impulse(friction_impulse, contact_point)
+            # Atrito
+            tangent = np.array([-normal[1], normal[0]])
+            vel_tangent = np.dot(vel_at_contact, tangent)
+            jt = -vel_tangent / denom
+            jt = np.clip(jt, -abs(j) * friction, abs(j) * friction)
+            friction_impulse = jt * tangent
+            obj.apply_impulse(friction_impulse, point)
 
-        # Damping leve
+        # Damping
         obj.velocity *= 0.98
         obj.angular_velocity *= 0.5
+

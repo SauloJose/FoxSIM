@@ -42,7 +42,7 @@ def update_game_state(allies: list[Robot],enemies: list[Robot], ball: Ball, dt: 
     #Controlando inimigos
     for robot in enemies:
         # Seta velocidades no robô
-        robot.set_wheel_speeds(20, 25)
+        robot.set_wheel_speeds(-20, -25)
 
         # Move com controle diferencial
         robot.move(dt)
