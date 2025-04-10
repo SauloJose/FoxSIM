@@ -19,6 +19,12 @@ class Ball:
         self.velocity = np.zeros(2, dtype=float) #(vx, vy)
         self.direction = np.array([1.0,0.0],dtype=float)
 
+        #Escala para a bola
+        scale = (BALL_RADIUS_CM / SCALE_PX_TO_CM, BALL_RADIUS_CM / SCALE_PX_TO_CM)
+
+        #imagem que representa a bola
+        self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
+        
         # Física
         self.radius = radius 
         self.mass = BALL_MASS 

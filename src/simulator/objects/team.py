@@ -17,17 +17,18 @@ class Team:
         # Escala para o tamanho do robô
         scale = (ROBOT_SIZE_CM / SCALE_PX_TO_CM, ROBOT_SIZE_CM / SCALE_PX_TO_CM)
 
-        # Imagens dos aliados
-        self.ATA1_image = pygame.transform.scale(pygame.image.load("src/assets/ATA1.png"), scale)
-        self.ATA2_image = pygame.transform.scale(pygame.image.load("src/assets/ATA2.png"), scale)
-        self.ATGK_image = pygame.transform.scale(pygame.image.load("src/assets/ATGK.png"), scale)
+        # Imagens dos aliados com máxima qualidade
+        self.ATA1_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATA1.png").convert_alpha(), scale)
+        self.ATA2_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATA2.png").convert_alpha(), scale)
+        self.ATGK_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATGK.png").convert_alpha(), scale)
         self.ally_images = [self.ATGK_image, self.ATA1_image, self.ATA2_image]
 
-        # Imagens dos inimigos
-        self.ETA1_image = pygame.transform.scale(pygame.image.load("src/assets/ETA1.png"), scale)
-        self.ETA2_image = pygame.transform.scale(pygame.image.load("src/assets/ETA2.png"), scale)
-        self.ETGK_image = pygame.transform.scale(pygame.image.load("src/assets/ETGK.png"), scale)
+        # Imagens dos inimigos com máxima qualidade
+        self.ETA1_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ETA1.png").convert_alpha(), scale)
+        self.ETA2_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ETA2.png").convert_alpha(), scale)
+        self.ETGK_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ETGK.png").convert_alpha(), scale)
         self.enemies_images = [self.ETGK_image, self.ETA1_image, self.ETA2_image]
+
 
         imagesRobot = self.ally_images if team_name == BLUE_TEAM else self.enemies_images
 

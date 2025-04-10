@@ -110,7 +110,7 @@ XVBALL_INIT, YVBALL_INIT = screen_to_virtual([XBALL_INIT, YBALL_INIT])
 # DADOS FÍSICOS DO ROBÔ E BOLA
 # ------------------------------------------------------------
 #ROBÔ
-ROBOT_MASS = 0.5
+ROBOT_MASS = 0.7
 ROBOT_SIZE_CM = 8.0
 ROBOT_WHEELS_RADIUS_CM = 4.0
 ROBOT_DISTANCE_WHEELS_CM = 8.0

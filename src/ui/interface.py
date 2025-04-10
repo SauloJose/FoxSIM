@@ -85,23 +85,86 @@ class Interface:
         for robot in robots:
             robot.draw(screen)
         ball.draw(screen)
-
+        
         # Desenho extra se ativado
         if self.draw_collision_objects:
+            #Desenhando a linha da direção da bola
+             # === Vetor de velocidade da bola (corrigido com escala e Y invertido) ===
+            max_speed = 100.0  # cm/s (ajuste conforme sua física)
+            max_arrow_length = 30  # pixels
+
+            ball_speed = np.linalg.norm(ball.velocity)
+            if ball_speed > 0:
+                # Direção normalizada no sistema virtual
+                direction_virtual = ball.velocity / ball_speed
+
+                # Corrigindo direção para Pygame (inverte Y e ajusta escala)
+                direction_screen = np.array([direction_virtual[0], -direction_virtual[1]])
+
+                # Tamanho proporcional
+                length = min(ball_speed / max_speed * max_arrow_length, max_arrow_length)
+
+                # Posição da bola na tela
+                ball_screen_pos = virtual_to_screen(ball.position)
+                end_pos = (
+                    ball_screen_pos[0] + direction_screen[0] * length,
+                    ball_screen_pos[1] + direction_screen[1] * length
+                )
+
+                # Interpolação de cor: azul → vermelho
+                t = min(ball_speed / max_speed, 1.0)
+                r = int(255 * t)
+                g = 0
+                b = int(255 * (1 - t))
+                color = (r, g, b)
+
+                # Linha do vetor velocidade
+                pygame.draw.line(screen, color, ball_screen_pos, end_pos, 3)
+
+                # Cabeça da seta
+                head_length = 3
+                perp = np.array([-direction_screen[1], direction_screen[0]])
+                tip = np.array(end_pos)
+                left = tip - direction_screen * head_length + perp * 3
+                right = tip - direction_screen * head_length - perp * 3
+                pygame.draw.polygon(screen, color, [tip, left, right])
+
+            #Para os robôs
             for robot in robots:
+                # Desenha o retângulo do objeto de colisão
                 corners = np.array([virtual_to_screen(corner) for corner in robot.collision_object.get_corners()])
                 pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in corners], 3)
 
-                #Convertendo valores virtuais para indices desenháveis na tela
-                xbot, ybot = virtual_to_screen([robot.x,robot.y])
-                bot_dir    = virtual_direction_to_screen(robot.direction)
+                # Centro do robô na tela
+                xbot, ybot = virtual_to_screen([robot.x, robot.y])
 
-                xball, yball = virtual_to_screen([ball.x, ball.y])
+                # Direção no sistema virtual → ajusta para Pygame (inverte Y e escala)
+                dir_virtual = robot.direction
+                dir_screen = np.array([dir_virtual[0], -dir_virtual[1]])  # escala de 3x
 
-                # Desenhando 
-                dir_end = (xbot+ bot_dir[0] * 30, ybot + bot_dir[1] * 30)
-                pygame.draw.line(screen, (255, 100, 0), (xbot, ybot), dir_end, 2)
-                pygame.draw.line(screen, (250, 20, 255), (xbot, ybot), (xball, yball), 1)
+                # Ponto final da seta
+                length = ROBOT_SIZE_CM/SCALE_PX_TO_CM*1.5  # pixels
+                end_x = xbot + dir_screen[0] * length
+                end_y = ybot + dir_screen[1] * length
+                end_pos = (end_x, end_y)
+
+                # Cor da seta (laranja)
+                color = (255, 100, 0)
+
+                # Desenha a linha da direção
+                pygame.draw.line(screen, color, (xbot, ybot), end_pos, 2)
+
+                # Cabeça da seta    
+
+                head_length = 5
+                direction_norm = dir_screen / np.linalg.norm(dir_screen)
+                perp = np.array([-direction_norm[1], direction_norm[0]])  # perpendicular para fazer a ponta
+
+                tip = np.array(end_pos)
+                left = tip - direction_norm * head_length + perp * 3
+                right = tip - direction_norm * head_length - perp * 3
+
+                pygame.draw.polygon(screen, color, [tip, left, right])
 
             # Desenhando os objetos de colisão para o campo
             # Rect Util
