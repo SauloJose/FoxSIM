@@ -23,7 +23,7 @@ class Ball:
         scale = (BALL_RADIUS_CM / SCALE_PX_TO_CM, BALL_RADIUS_CM / SCALE_PX_TO_CM)
 
         #imagem que representa a bola
-        self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
+        #self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
         
         # Física
         self.radius = radius 
