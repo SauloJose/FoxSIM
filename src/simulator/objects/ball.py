@@ -20,13 +20,13 @@ class Ball:
         self.direction = np.array([1.0,0.0],dtype=float)
 
         #Escala para a bola
-        scale = (BALL_RADIUS_CM / SCALE_PX_TO_CM, BALL_RADIUS_CM / SCALE_PX_TO_CM)
+        scale = (2*BALL_RADIUS_CM / SCALE_PX_TO_CM, 2*BALL_RADIUS_CM / SCALE_PX_TO_CM)
 
         #imagem que representa a bola
-        #self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
+        self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
         
         # Física
-        self.radius = radius 
+        self.radius = radius    
         self.mass = BALL_MASS 
         self.inertia = 0.5 *self.mass*self.radius**2 #Disco sólido
         self.angular_velocity =0.0  #rad/s
@@ -218,12 +218,15 @@ class Ball:
         Desenha a bola na tela.
         :param screen: Superfície do pygame onde a bola será desenhada.
         """
-        #retorna posições na imagem antes de desenhar
-        pos_img = virtual_to_screen([self.x,self.y])
-        pygame.draw.circle(
-            screen, self.color, (pos_img[0], pos_img[1]), 
-            int(self.radius/SCALE_PX_TO_CM)
-        )
+        # Converte posição virtual para coordenada de tela
+        pos_img = virtual_to_screen([self.x, self.y])
+
+        # Pega o retângulo da imagem da bola e centraliza na posição da bola
+        ball_rect = self.image.get_rect(center=(pos_img[0], pos_img[1]))
+
+        # Desenha a imagem da bola com fundo transparente
+        screen.blit(self.image, ball_rect)
+
 
     def distance_to(self, x, y):
         """

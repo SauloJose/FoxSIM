@@ -61,7 +61,7 @@ class Field:
 
         vp = self.virtual_points # Apenas para deixar mais simples a escrita.
         
-        dim_vertice = 1
+        dim_vertice = 1.5
 
         # Objetos de colisão (linhas e áreas do campo)
         self.collision_object = CollisionGroup([
