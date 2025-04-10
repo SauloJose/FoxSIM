@@ -104,7 +104,8 @@ while running:
         # --- Atualização do Jogo ---
         if game_started:
             situation = update_game_state(
-                robots=blue_team.robots + red_team.robots,
+                allies=blue_team.robots,
+                enemies=red_team.robots,
                 ball=ball,
                 dt=dt,
                 field=field,

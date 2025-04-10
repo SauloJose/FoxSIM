@@ -5,17 +5,14 @@ from simulator.objects.robot import Robot
 import numpy as np
 
 
-def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field,screen):
+def update_game_state(allies: list[Robot],enemies: list[Robot], ball: Ball, dt: float, field: Field,screen):
     """
     Atualiza o estado do jogo com base no tempo dt.
     Inclui atualização de posição, movimentação, detecção e resposta de colisões via SAT.
     """
-    # === 1. Atualiza a posição da bola
-
-
     # ========================= Detectar e resolver colisões ======================
-    # === 3. Junta os objetos móveis (robôs + bola)
-    moving_objects = [ball] + robots
+    # === 1. Junta os objetos móveis (robôs + bola)
+    moving_objects = [ball] + allies+enemies
 
     # ==== Juntando objetos de colisão
     all_collision_objects = [obj.collision_object for obj in moving_objects]
@@ -34,12 +31,22 @@ def update_game_state(robots: list[Robot], ball: Ball, dt: float, field: Field,s
     '''
         Adicionar as inteligências para controlar os robôs e tomar as decisões
     '''
-    for robot in robots:
+    #Controlando aliados
+    for robot in allies:
         # Seta velocidades no robô
-        robot.set_wheel_speeds(20, 20)
+        robot.set_wheel_speeds(20, 15)
 
         # Move com controle diferencial
         robot.move(dt)
+
+    #Controlando inimigos
+    for robot in enemies:
+        # Seta velocidades no robô
+        robot.set_wheel_speeds(20, 25)
+
+        # Move com controle diferencial
+        robot.move(dt)
+
     # ================== Aplicar regras do jogo ====================================
     '''
         Aplicar as Regras da partida.

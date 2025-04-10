@@ -11,7 +11,7 @@
 import numpy as np
 
 #VERSÃO ATUAL DO CÓDIGO
-VERSION = 0.7
+VERSION = 0.7363
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DA JANELA

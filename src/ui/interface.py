@@ -142,8 +142,14 @@ class Interface:
                 dir_virtual = robot.direction
                 dir_screen = np.array([dir_virtual[0], -dir_virtual[1]])  # escala de 3x
 
-                # Ponto final da seta
-                length = ROBOT_SIZE_CM/SCALE_PX_TO_CM*1.5  # pixels
+                # Comprimento da seta proporcional à velocidade (mínimo 10px, máximo 20px)
+                speed = np.linalg.norm(robot.velocity)  # em cm/s
+                max_speed = 100  # velocidade que representa o máximo comprimento (ajuste conforme o modelo)
+
+                # Mapeia a velocidade para o intervalo [10, 20]
+                length = 25 + (min(speed, max_speed) / max_speed) * 10
+
+                # Vetor direção em coordenadas de tela (já está normalizado)
                 end_x = xbot + dir_screen[0] * length
                 end_y = ybot + dir_screen[1] * length
                 end_pos = (end_x, end_y)
