@@ -3,7 +3,9 @@ import numpy as np
 from typing import TYPE_CHECKING
 from ui.interface_config import *
 from collections import defaultdict
+from utils.helpers import normalize
 import pygame 
+
 
 # Importações para tipagem tardia, evitando problemas de importação circular
 if TYPE_CHECKING:
@@ -438,6 +440,11 @@ class CollisionRectangle(CollisionObject):
         '''for i, corner in enumerate(self.get_corners()):
             print(f"Canto {i}: {corner}")
         '''
+
+    def get_edges(self):
+        corners = self.get_corners()
+        return [(corners[i], corners[(i + 1) % 4]) for i in range(4)]
+
 
     def get_center(self):
         '''
@@ -1101,10 +1108,43 @@ class CollisionManagerSAT:
         return nearby   
     
     def draw_mtv(self, obj, mtv, color=(255,0,0)):
+        if not self.screen: return 
         #Desenhando o vetor mtv para debug
         start_pos = (int(obj.x), int(obj.y))
         end_pos = (int(obj.x + mtv[0]*10), int(obj.y + mtv[1]*10))  # escala para visual
         pygame.draw.line(self.screen, color, start_pos, end_pos, 2)
+
+    def check_segment_intersection(self, p1, p2, q1, q2):
+        """
+        Verifica se os segmentos [p1, p2] e [q1, q2] se cruzam.
+        Retorna (True, ponto) se sim.
+        """
+        def ccw(a, b, c):
+            return (c[1]-a[1])*(b[0]-a[0]) > (b[1]-a[1])*(c[0]-a[0])
+        if (ccw(p1, q1, q2) != ccw(p2, q1, q2)) and (ccw(p1, p2, q1) != ccw(p1, p2, q2)):
+            return True, None
+        return False, None
+
+    def check_segment_circle_intersection(self, p1, p2, center, radius):
+        """
+        Verifica se o segmento [p1, p2] intersecta o círculo com dado centro e raio.
+        """
+        d = p2 - p1
+        f = p1 - center
+        a = np.dot(d, d)
+        b = 2 * np.dot(f, d)
+        c = np.dot(f, f) - radius * radius
+        discriminant = b*b - 4*a*c
+        if discriminant < 0:
+            return False
+        discriminant = np.sqrt(discriminant)
+        t1 = (-b - discriminant)/(2*a)
+        t2 = (-b + discriminant)/(2*a)
+        return (0 <= t1 <= 1) or (0 <= t2 <= 1)
+
+
+
+
 
     def detect_and_resolve(self, objects):
         """
@@ -1156,13 +1196,13 @@ class CollisionManagerSAT:
                 # MOVING x STRUCTURE:
                 if other_type == STRUCTURE_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
+
                     if hasCollision and np.linalg.norm(mtv) > 1e-6:
                         dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
                         moddist = np.linalg.norm(dist)
                         self.draw_mtv(obj,mtv,color=(255,0,0))
                         self.resolve_collision_with_field(obj, other, mtv)
-                    continue
-
+                    
                 # MOVING x MOVING
                 if other_type == MOVING_OBJECTS:
                     hasCollision, mtv = obj.check_collision(other)
@@ -1304,13 +1344,20 @@ class CollisionManagerSAT:
                     magnus_force = magnus_strength * omega * np.array([-v[1], v[0]])
                     obj.apply_force(magnus_force)
 
+    def line_segment_intersect(self, p1, p2, q1, q2):
+        def ccw(a, b, c):
+            return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0])
+        return ccw(p1, q1, q2) != ccw(p2, q1, q2) and ccw(p1, p2, q1) != ccw(p1, p2, q2)
+
+
     def resolve_collision_with_field(self, obj, objfield, mtv, contact_points=None):
         """
         Resolve colisão entre objeto móvel e o campo (estrutura estática de massa infinita).
         Aplica múltiplos impulsos e torques realistas, agrupando pontos próximos.
         """
-        obj = obj.reference
 
+        obj = obj.reference
+  
         norm_mtv = np.linalg.norm(mtv)
         if norm_mtv == 0:
             print("MTV nulo — colisão ignorada.")
@@ -1389,6 +1436,7 @@ class CollisionManagerSAT:
             obj.apply_impulse(friction_impulse, point)
 
         # Damping
-        obj.velocity *= 0.98
-        obj.angular_velocity *= 0.5
+        obj.velocity *= (1 - 0.02 * self.dt * 60)  # Aproximadamente 2% por frame a 60fps
+        obj.angular_velocity *= (1 - 0.5 * self.dt * 60)
+
 

@@ -86,7 +86,7 @@ while running:
                 ball.x, ball.y = screen_to_virtual([x, y]) 
                 ball.collision_object.x = ball.x
                 ball.collision_object.y = ball.y
-                ball.velocity = 0
+                ball.velocity = np.array([0,0],dtype=float)
             # Botões de interface
             if interface.start_button.collidepoint(x, y):
                 if not is_game_paused: 

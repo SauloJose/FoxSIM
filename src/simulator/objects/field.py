@@ -61,8 +61,8 @@ class Field:
 
         vp = self.virtual_points # Apenas para deixar mais simples a escrita.
         
-        dim_vertice = 1.5
-
+        dim_vertice = DIM_VERTICES
+        thickness   = THICKNESS 
         # Objetos de colisão (linhas e áreas do campo)
         self.collision_object = CollisionGroup([
             self.line_to_thin_rectangle(Q1A1v, Q1A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
@@ -158,9 +158,21 @@ class Field:
         )
 
     def line_to_thin_rectangle(self, p1, p2, thickness=1, reference=None, type_object=STRUCTURE_OBJECTS):
-        '''
-            Método necessário para ajustar o bug que acontece com as paredes do campo.
-        '''
+        """
+        Converte uma linha entre dois pontos (p1, p2) em um CollisionRectangle fino,
+        usado para representar paredes ou linhas do campo como objetos reais de colisão.
+        Isso evita problemas de colisão com linhas infinitamente finas (sem volume).
+
+        Args:
+            p1, p2 (tuple): Pontos de início e fim da linha.
+            thickness (float): Espessura do retângulo resultante.
+            reference (object): Objeto de referência para o retângulo.
+            type_object (int): Tipo do objeto de colisão, ex: STRUCTURE_OBJECTS.
+
+        Returns:
+            CollisionRectangle: Retângulo fino rotacionado entre os pontos.
+        """
+
         # Centro do retângulo
         center = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
         # Comprimento da linha

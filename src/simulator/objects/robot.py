@@ -21,6 +21,7 @@ class Robot:
         '''
         #Coordenadas globais do robô no ambiente
         self._position=np.array([x,y], dtype=float)
+        self.previous_position = np.array([0.0,0.0],dtype=float)    #Posição anterior para aplicar o crossing
 
         ''' Angulo theta com a horizontal em radianos'''
         self.team = team                        # indicação do time
@@ -169,6 +170,8 @@ class Robot:
         self.sync_collision_object()
 
     def move(self, dt: float):
+        #Salvando posição anterior:
+        self.previous_position = self.position.copy()
         # 1. Força das rodas
         left_force = self.v_l * self.mass
         right_force = self.v_r * self.mass

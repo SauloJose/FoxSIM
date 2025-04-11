@@ -11,7 +11,7 @@
 import numpy as np
 
 #VERSÃO ATUAL DO CÓDIGO
-VERSION = 0.7363
+VERSION = 0.7364
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DA JANELA
@@ -138,6 +138,11 @@ COEFICIENT_FRICTION_BALL_ROBOT = 0.3
 # Máximo impulso do simulador.
 MAX_IMPULSE = 10000 #(cm/s)*kg
 
+
+# Limitadores
+MAX_FRAME_VELOCITY = 1           #CM/FRAME
+DIM_VERTICES = 1
+THICKNESS   = 1
 # ------------------------------------------------------------
 # GRID PARA DETECÇÃO DE COLISÕES (SPATIAL HASHING)
 # ------------------------------------------------------------

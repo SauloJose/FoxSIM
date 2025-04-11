@@ -1,3 +1,5 @@
+import numpy as np
+
 def get_color(name):
     colors = {
         "black": (0, 0, 0),
@@ -16,3 +18,9 @@ def calculate_distance(point1, point2):
 
 def clamp(value, min_value, max_value):
     return max(min_value, min(value, max_value))
+
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return np.array([0.0, 0.0])
+    return v / norm

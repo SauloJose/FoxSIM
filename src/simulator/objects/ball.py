@@ -19,6 +19,9 @@ class Ball:
         self.velocity = np.zeros(2, dtype=float) #(vx, vy)
         self.direction = np.array([1.0,0.0],dtype=float)
 
+        #Variáveis anteriores para poder aplicar o Crossing
+        self.previous_pos = np.array([0,0],dtype=float)
+
         #Escala para a bola
         scale = (2*BALL_RADIUS_CM / SCALE_PX_TO_CM, 2*BALL_RADIUS_CM / SCALE_PX_TO_CM)
 
@@ -77,8 +80,8 @@ class Ball:
     def y(self, value):
         self._position[1] = value
         self.collision_object.y = value
-    
-    
+
+
     def set_velocity(self, vx, vy):
         """
         Define a velocidade da bola.
@@ -98,9 +101,13 @@ class Ball:
         - Impulso
         - Força contínua
         - Rolamento com resistência
-        - Efeito Magnus (emulação 3D)
         - Perda progressiva da rotação
         """
+        #Gambiarra para evitar crossing
+        self.dt = dt
+
+        #Atualiza posição anterior
+        self.previous_pos = self.position.copy()
         # 1. Aplica impulso (se existir)
         if self.impulse is not None:
             self.velocity += self.impulse / self.mass

@@ -194,7 +194,7 @@ class Interface:
                 if isinstance(obj, CollisionCircle):
                     obj_c = virtual_to_screen(obj.center)
                     obj_r = obj.radius/SCALE_PX_TO_CM
-                    pygame.draw.circle(screen, (0, 255, 0), (int(obj_c[0]),int(obj_c[1])), ball_collision_radius, int(obj_r))
+                    pygame.draw.circle(screen, (0, 255, 0), (int(obj_c[0]),int(obj_c[1])), radius=int(obj_r), width=2)
 
 
 
