@@ -11,7 +11,7 @@
 import numpy as np
 
 #VERSÃO ATUAL DO CÓDIGO
-VERSION = 0.7377
+VERSION = 0.7378
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DA JANELA
@@ -160,7 +160,7 @@ GRID_COLOR = (255, 0, 0)
 # ------------------------------------------------------------
 FPS = 60
 
-TIMER_PARTY = 60
+TIMER_PARTY = 10
 
 
 FIELD_MARGIN_TOP = 20

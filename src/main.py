@@ -128,7 +128,7 @@ while running:
             # O arbitro analisa a situação do game
             situation = arbitrator.analyzer()
 
-            if timer.is_finished():
+            if situation == 1:
                 print("Tempo esgotado! Fim da partida.")
                 game_started = False
                 reset_simulation(timer)

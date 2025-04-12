@@ -7,16 +7,38 @@ from ui.interface import Interface
 from simulator.objects.timer import *
 from ui.interface_config import *
 
-#Possíveis decisões do Arbitro
-class Decisions:
+from enum import Enum, auto
+
+# Possíveis decisões do Árbitro
+class Decisions(Enum):
     '''
-        Classe que encapsula as decisões tomadas pelo Árbitro para posicionar os playes
+    Enum que representa as decisões possíveis tomadas pelo Árbitro no VSSS (IEEE Rules).
     '''
-    def __init__(self):
-        self.FINISH = "Finish",
-        self.PENAULT_ALLY = "P.A",
-        self.PENAULT_ENEMY = "P.E",
-        self.ALLY_GOAL     = "A.G",
+    FINISH = auto()              # Fim da partida
+
+    ALLY_GOAL = auto()           # Gol do time aliado
+    ENEMY_GOAL = auto()          # Gol do time adversário
+
+    PENALTY_ALLY = auto()        # Pênalti a favor dos aliados
+    PENALTY_ENEMY = auto()       # Pênalti a favor dos inimigos
+
+    FOUL_ALLY = auto()           # Falta cometida pelos aliados
+    FOUL_ENEMY = auto()          # Falta cometida pelos inimigos
+    GK_AREA_VIOLATION_ALLY = auto()   # Invasão da área do goleiro aliado
+    GK_AREA_VIOLATION_ENEMY = auto()  # Invasão da área do goleiro adversário
+
+    THROW_IN_ALLY = auto()       # Lateral a favor dos aliados
+    THROW_IN_ENEMY = auto()      # Lateral a favor dos inimigos
+
+    CORNER_ALLY = auto()         # Escanteio a favor dos aliados
+    CORNER_ENEMY = auto()        # Escanteio a favor dos inimigos
+
+    GOALKICK_ALLY = auto()       # Tiro de meta para os aliados
+    GOALKICK_ENEMY = auto()      # Tiro de meta para os inimigos
+
+    DROP_BALL = auto()           # Bola ao chão (bola presa ou empate de disputa)
+    RESTART = auto()             # Recomeço padrão
+
 
 #Posições 
 class BasicPositions:
@@ -75,7 +97,11 @@ class Arbitrator:
         if self._is_goal():
             self._reset_initial_positions()
             self._reset_timer()
+            return 0
 
+        if self._is_party_end():
+            return 1
+        
         '''if self._check_goalkeeper_foul():
             self._handle_penalty()
 
@@ -99,10 +125,12 @@ class Arbitrator:
         Atualiza o placar e a interface se necessário.
         """
         if self.ball.is_inside_goal(self.enemy_goaL):
+            "[Arbitro]: Gol do time A"
             self.pontuation[0] += 1
             self.interface.update_score(1)  # Atualiza placar dos aliados
             return True
         elif self.ball.is_inside_goal(self.ally_goal):
+            "[Arbitro]: Gol do time B"
             self.pontuation[1] += 1
             self.interface.update_score(2)  # Atualiza placar dos inimigos
             return True
