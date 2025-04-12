@@ -58,9 +58,9 @@ class Interface:
         self.is_game_paused = None
 
     def update_score(self, team):
-        if team == 1:
+        if team == 1: #Time aliado
             self.score[0] += 1
-        elif team == 2:
+        elif team == 2: #Time inimigo
             self.score[1] += 1
 
     def get_states(self, draw_collision_objects, running, is_game_paused, draw_grid_collision):

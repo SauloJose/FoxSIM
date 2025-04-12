@@ -195,13 +195,13 @@ class Ball:
         self.torque = 0
         self.impulse = None 
 
-    def reset_position(self, x, y):
+    def reset_position(self):
         """
         Reseta a posição da bola para as coordenadas fornecidas.
         :param x: Nova posição X.
         :param y: Nova posição Y.
         """
-        self.position = np.array([x,y], dtype=float)
+        self.position = np.array([XVBALL_INIT, YVBALL_INIT], dtype=float)
         self.velocity = np.zeros(2,dtype=float)
         self.direction =np.array([1.0, 0.0],dtype=float)
         self.speed = 0

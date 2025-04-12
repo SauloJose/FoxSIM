@@ -11,7 +11,7 @@
 import numpy as np
 
 #VERSÃO ATUAL DO CÓDIGO
-VERSION = 0.7364
+VERSION = 0.7377
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DA JANELA
@@ -141,7 +141,7 @@ MAX_IMPULSE = 10000 #(cm/s)*kg
 
 # Limitadores
 MAX_FRAME_VELOCITY = 1           #CM/FRAME
-DIM_VERTICES = 1
+DIM_VERTICES = 1.5
 THICKNESS   = 1
 # ------------------------------------------------------------
 # GRID PARA DETECÇÃO DE COLISÕES (SPATIAL HASHING)
@@ -159,7 +159,9 @@ GRID_COLOR = (255, 0, 0)
 # CONFIGURAÇÕES DE EXIBIÇÃO E TEMPO DE JOGO
 # ------------------------------------------------------------
 FPS = 60
+
 TIMER_PARTY = 60
+
 
 FIELD_MARGIN_TOP = 20
 FIELD_MARGIN_BOTTOM = 20

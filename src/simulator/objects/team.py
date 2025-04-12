@@ -3,11 +3,19 @@ from simulator.objects.robot import Robot
 from ui.interface_config import *
 import pygame 
 
+#Classe para encapsular as posições
+class Position:
+    def __init__(self, GoalKeeperPosition , FirstAtackPosition, SecondAtackPosition):
+        self.GoalKeeperP = np.array(GoalKeeperPosition)
+        self.Atk1P      = np.array(FirstAtackPosition)
+        self.Atk2P      = np.array(SecondAtackPosition)
+
+# Classe para encapsular os times como uma unidade
 class Team:
     '''
         Classe criada para organizar os robôs dentro de um time só.
     '''
-    def __init__(self, positions, team_name, initial_angle=0):
+    def __init__(self, positions:Position, team_name, initial_angle=0):
         self.team_name = team_name
         self.initial_angle = initial_angle
         self.positions = positions 
@@ -32,27 +40,69 @@ class Team:
 
         imagesRobot = self.ally_images if team_name == BLUE_TEAM else self.enemies_images
 
-        # Criação dos robôs
-        ids = [0, 1, 2]  # GOALKEEPER, ATACKER1, ATACKER2
-        self.robots = []
-        for i in range(3):
-            x, y = self.positions[i][1]
-            role = self.positions[i][0]
-            image = imagesRobot[i]
-            robot = Robot(x, y, self.team_name, role, ids[i], image, initial_angle=self.initial_angle)
-            self.robots.append(robot)
+        #Objetos individuais dos robôs que pertencem ao time 
+        self.goalkeeaper    = Robot(
+                                    x=positions.GoalKeeperP[0],
+                                    y=positions.GoalKeeperP[1],
+                                    team=self.team_name,
+                                    role = GOALKEEPER,
+                                    id = 0,
+                                    image = imagesRobot[0],
+                                    initial_angle= initial_angle 
+        )
 
-        # Acesso direto para organização
-        self.goalkeeaper, self.atacker1, self.atacker2 = self.robots
+        self.atacker1       = Robot(
+                                    x=positions.Atk1P[0],
+                                    y=positions.Atk1P[1],
+                                    team=self.team_name,
+                                    role = ATACKER1,
+                                    id = 1,
+                                    image = imagesRobot[1],
+                                    initial_angle= initial_angle 
+        )
 
-    def reset_positions(self, positions):
+        self.atacker2       = Robot(
+                                    x=positions.Atk2P[0],
+                                    y=positions.Atk2P[1],
+                                    team=self.team_name,
+                                    role = ATACKER2,
+                                    id = 2,
+                                    image = imagesRobot[2],
+                                    initial_angle= initial_angle  
+        )
+
+        #Lista com os robôs para situações que sejam mais fáceis
+        self.robots = [self.goalkeeaper, self.atacker1, self.atacker2]
+
+    def reset_positions(self):
+        '''
+            Método responsável por colocar novamente os robôs na posição inicial
+        '''
         print("[DEBUG]: Resetando posição dos robôs")
-        for robot, (_, pos) in zip(self.robots, positions):
+        for robot in self.robots:
             robot.reset()
-            robot.set_position(pos[0], pos[1])
 
+    # Função para setar a nova posição
+    def set_positions(self, positions:Position):
+        '''
+            Passo um objeto de posições com as posições dos robôs do time
+        '''
+        self.goalkeeaper.set_position(positions.GoalKeeperP[0],positions.GoalKeeperP[1])
+        self.atacker1.set_position(positions.Atk1P[0],positions.Atk1P[1])
+        self.atacker2.set_position(positions.Atk2P[0],positions.Atk2P[1])
 
 # Configurações dos times
-# Converte as coordenadas relativas para pixels
-blue_team_positions = [[role, pos] for role, pos in RELATIVE_POSITIONS[:3]]
-red_team_positions = [[role, pos] for role, pos in RELATIVE_POSITIONS[3:]]
+
+# ======== Valores padrões para as posições dos times para utilizar na classe Team
+blue_team_positions = Position(
+                                MID_GOALAREA_A,                 #Posição do goleiro 
+                                ATK1_POSITION_SITUATION1_ALLY,  #Posição do ATK1
+                                ATK2_POSITION_SITUATION2_ALLY   #Posição do ATK2
+                                )
+
+#Posição do time inimigo
+red_team_positions = Position(
+                                MID_GOALAREA_E,                 #Posição do goleiro
+                                ATK1_POSITION_SITUATION1_ENEMY, #Posição do ATK1
+                                ATK2_POSITION_SITUATION2_ENEMY  #Posição do ATK2
+                                )

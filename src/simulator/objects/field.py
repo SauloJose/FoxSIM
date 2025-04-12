@@ -63,24 +63,25 @@ class Field:
         
         dim_vertice = DIM_VERTICES
         thickness   = THICKNESS 
+
         # Objetos de colisão (linhas e áreas do campo)
         self.collision_object = CollisionGroup([
-            self.line_to_thin_rectangle(Q1A1v, Q1A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(Q1A2v, Q2A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
-            self.line_to_thin_rectangle(Q2A1v, Q2A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
-            self.line_to_thin_rectangle(Q2A2v, GEI1v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
-            self.line_to_thin_rectangle(GEI1v, GEI2v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
-            self.line_to_thin_rectangle(GEI2v, GEI3v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(GEI3v, GEI4v, 1, reference=self, type_object=STRUCTURE_OBJECTS), 
-            self.line_to_thin_rectangle(GEI4v, Q3A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(Q3A1v, Q3A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(Q3A2v, Q4A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(Q4A1v, Q4A2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(Q4A2v, GAI3v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(GAI3v, GAI4v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(GAI4v, GAI1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(GAI1v, GAI2v, 1, reference=self, type_object=STRUCTURE_OBJECTS),
-            self.line_to_thin_rectangle(GAI2v, Q1A1v, 1, reference=self, type_object=STRUCTURE_OBJECTS),  #Adicionando os pontos de colisão 
+            self.line_to_thin_rectangle(Q1A1v, Q1A2v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q1A2v, Q2A1v, thickness, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(Q2A1v, Q2A2v, thickness, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(Q2A2v, GEI1v, thickness, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(GEI1v, GEI2v, thickness, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(GEI2v, GEI3v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GEI3v, GEI4v, thickness, reference=self, type_object=STRUCTURE_OBJECTS), 
+            self.line_to_thin_rectangle(GEI4v, Q3A1v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q3A1v, Q3A2v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q3A2v, Q4A1v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q4A1v, Q4A2v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(Q4A2v, GAI3v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI3v, GAI4v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI4v, GAI1v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI1v, GAI2v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),
+            self.line_to_thin_rectangle(GAI2v, Q1A1v, thickness, reference=self, type_object=STRUCTURE_OBJECTS),  #Adicionando os pontos de colisão 
             CollisionCircle(Q1A1v[0],Q1A1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
             CollisionCircle(Q1A2v[0],Q1A2v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),
             CollisionCircle(Q2A1v[0],Q2A1v[1],dim_vertice,type_object=STRUCTURE_OBJECTS, reference=self),

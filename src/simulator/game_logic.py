@@ -2,56 +2,72 @@ from simulator.collision.collision import *
 from simulator.objects.field import Field
 from simulator.objects.ball import Ball 
 from simulator.objects.robot import Robot 
+from simulator.objects.team import Team
+from simulator.rules.rules  import *
+from ui.interface   import Interface
 import numpy as np
 
+class Physics:
+    '''
+        Engine de física responsável por atualizar o estado da simulação.
+        Gerencia o movimento dos robôs e da bola, e resolve colisões via SAT.
+    '''
+    def __init__(self, allies: Team, enemies:Team, ball: Ball, dt: float, field: Field, screen):
+        # Objetos principais da simulação
+        self.team_ally = allies                 # Salvando time aliado
+        self.team_enemy = enemies               # Salvando time inimigo
+        self.allies = self.team_ally .robots    # Robôs aliados
+        self.enemies = self.team_enemy.robots   # Robôs adversários
+        self.ball = ball                        # Bola da partida
+        self.dt = dt                            # Intervalo de tempo da simulação
+        self.field = field                      # Campo com limites e obstáculos
+        self.screen = screen                    # Tela para debug visual (caso necessário)
 
-def update_game_state(allies: list[Robot],enemies: list[Robot], ball: Ball, dt: float, field: Field,screen):
-    """
-    Atualiza o estado do jogo com base no tempo dt.
-    Inclui atualização de posição, movimentação, detecção e resposta de colisões via SAT.
-    """
-    # ========================= Detectar e resolver colisões ======================
-    # === 1. Junta os objetos móveis (robôs + bola)
-    moving_objects = [ball] + allies+enemies
+        # Objetos móveis que serão atualizados a cada ciclo
+        self.moving_objects = [self.ball] + self.allies + self.enemies
 
-    # ==== Juntando objetos de colisão
-    all_collision_objects = [obj.collision_object for obj in moving_objects]
-    all_collision_objects.append(field.collision_object)
+        # Lista de todos objetos de colisão do sistema (móveis + estrutura do campo)
+        self.all_collision_objects = [obj.collision_object for obj in self.moving_objects]
+        self.all_collision_objects.append(self.field.collision_object)
 
-    # === 4. Detecta e resolve colisões
-    collision_manager = CollisionManagerSAT(cell_size=CELL_SIZE,screen=screen,dt=dt)
+        # Gerenciador de colisões (com Spatial Hashing e SAT)
+        self.collision_manager = CollisionManagerSAT(cell_size=CELL_SIZE, screen=self.screen, dt=self.dt)
+
+        #Parte para a atualização de controle dos robôs
+
+
+        
+    def update(self):
+        '''
+            Atualiza o estado físico da simulação a cada frame:
+            - Detecta e resolve colisões.
+            - Atualiza posições da bola e dos robôs.
+        '''
+        self.check_collisions()
+        self.update_ball()
+        self.update_bots()
     
-    collision_manager.detect_and_resolve(
-        all_collision_objects
-    )
+    def check_collisions(self):
+        '''
+            Detecta e resolve colisões entre todos os objetos.
+        '''
+        self.collision_manager.detect_and_resolve(self.all_collision_objects)
 
-    # ================== Atualizo as posições =====================================
-    ball.update_position(dt)
-    # === 2. Atualiza os robôs (lógica de movimentação e decisão)
-    '''
-        Adicionar as inteligências para controlar os robôs e tomar as decisões
-    '''
-    #Controlando aliados
-    for robot in allies:
-        # Seta velocidades no robô
-        robot.set_wheel_speeds(20, 15)
+    def update_bots(self):
+        '''
+            Atualiza os robôs aliados e inimigos com base nas velocidades das rodas.
+        '''
+        for robot in self.allies:
+            # Seta velocidades (temporário - controle real virá de IA)
+            robot.set_wheel_speeds(20, 15)
+            robot.move(self.dt)
 
-        # Move com controle diferencial
-        robot.move(dt)
+        for robot in self.enemies:
+            # Inimigos parados por enquanto
+            robot.set_wheel_speeds(0, 0)
 
-    #Controlando inimigos
-    for robot in enemies:
-        # Seta velocidades no robô
-        robot.set_wheel_speeds(-20, -25)
-
-        # Move com controle diferencial
-        robot.move(dt)
-
-    # ================== Aplicar regras do jogo ====================================
-    '''
-        Aplicar as Regras da partida.
-    '''
-
-
-    # ==================== Enviar o FLAG que irá informar o que aconteceu no jogo
-    return NO_POINT_YET
+    def update_ball(self):
+        '''
+            Atualizo a posição da bola na interface.
+        '''
+        self.ball.update_position(self.dt)

@@ -281,8 +281,19 @@ class Robot:
         :param x: Nova posição X.
         :param y: Nova posição Y.
         """
-        self.x = x
-        self.y = y
+        #nova posição do robô
+        self.position = np.array([x, y], dtype=float)    
+
+        #Zero variáveis dinâmicas do robô
+        self.angle      = self.initial_theta  #Ângulo theta com a horizontal
+        self.v_l        = self.initial_vl         
+        self.v_r        = self.initial_vr          
+        self.direction  = self.initial_direction  
+        self.v          = self.initial_v          
+        self.omega      = self.initial_omega   
+        self.velocity   = np.zeros(2, dtype=float)
+        self.angular_velocity = self.initial_angular_velocity
+
         self.sync_collision_object()
 
     def stop(self):
