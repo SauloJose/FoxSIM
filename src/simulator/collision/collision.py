@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 from ui.interface_config import *
 from collections import defaultdict
 from utils.helpers import normalize
+from shapely.geometry import Polygon, LineString
+
 import pygame 
 
 
@@ -1257,18 +1259,18 @@ class CollisionManagerSAT:
             else:
                 collision_point = obj2.position.copy()
         elif {type1, type2} == {ROBOT_OBJECT}:
-            # Robô-Robô → ponto composto (média entre os dois pontos mais próximos)
-            corners1 = obj1.collision_object.get_corners()
-            corners2 = obj2.collision_object.get_corners()
-            min_dist = float('inf')
-            pts = []
-            for c1 in corners1:
-                for c2 in corners2:
-                    dist = np.linalg.norm(c1 - c2)
-                    if dist < min_dist:
-                        min_dist = dist
-                        pts = [c1, c2]
-            collision_point = np.mean(pts, axis=0)
+            # Robô-Robô → ponto mais próximo entre as bordas dos retângulos
+            poly1 = Polygon(obj1.collision_object.get_corners())
+            poly2 = Polygon(obj2.collision_object.get_corners())
+
+            line1 = poly1.exterior
+            line2 = poly2.exterior
+
+            # Ponto mais próximo entre os contornos
+            p1, p2 = line1.interpolate(line1.project(line2.centroid)).coords[0], \
+                    line2.interpolate(line2.project(line1.centroid)).coords[0]
+
+            collision_point = (np.array(p1) + np.array(p2)) / 2
         else:
             collision_point = (obj1.position + obj2.position) / 2
 

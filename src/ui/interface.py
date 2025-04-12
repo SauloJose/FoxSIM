@@ -219,8 +219,8 @@ class Interface:
         # Interface (último plano por cima de tudo)
 
         # Posiciona o placar acima do campo
-        blue_label = self.fonts["Timer_small"].render("Team A", True, (0, 0, 255))
-        red_label = self.fonts["Timer_small"].render("Team B", True, (255, 0, 0))
+        blue_label = self.fonts["Timer_small"].render("Time A", True, (0, 0, 255))
+        red_label = self.fonts["Timer_small"].render("Time B", True, (255, 0, 0))
 
         # Placar numérico logo abaixo
         blue_score_surface = self.fonts["Timer"].render(str(self.score[0]), True, (0, 0, 255))

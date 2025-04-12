@@ -12,6 +12,12 @@ from simulator.objects.timer import HighPrecisionTimer
 from ui.interface import Interface
 from ui.interface_config import *
 
+#from utils.helpers import * 
+
+# =======================
+#Instalando dependÊncias necessárias
+#install_requirements()
+
 # === Inicialização ===
 pygame.init()
 screen = pygame.display.set_mode((WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))

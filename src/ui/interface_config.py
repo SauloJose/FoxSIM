@@ -133,7 +133,7 @@ COEFFICIENT_RESTITUTION_ROBOT_FIELD = 0.001
 COEFICIENT_FRICTION_ROBOT_FIELD = 0.9
 COEFICIENT_FRICTION_ROBOT_ROBOT = 0.01
 COEFICIENT_FRICTION_BALL_FIELD = 0.0001
-COEFICIENT_FRICTION_BALL_ROBOT = 0.3
+COEFICIENT_FRICTION_BALL_ROBOT = 0.9
 
 # Máximo impulso do simulador.
 MAX_IMPULSE = 10000 #(cm/s)*kg
@@ -158,7 +158,7 @@ GRID_COLOR = (255, 0, 0)
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DE EXIBIÇÃO E TEMPO DE JOGO
 # ------------------------------------------------------------
-FPS = 144
+FPS = 60
 TIMER_PARTY = 60
 
 FIELD_MARGIN_TOP = 20
