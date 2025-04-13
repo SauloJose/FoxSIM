@@ -78,7 +78,6 @@ class Team:
         '''
             Método responsável por colocar novamente os robôs na posição inicial
         '''
-        print("[DEBUG]: Resetando posição dos robôs")
         for robot in self.robots:
             robot.reset()
 

@@ -36,17 +36,24 @@ class Physics:
         #Parte para a atualização de controle dos robôs
 
 
-        
+    # ===============================================================
+
     def update(self):
         '''
             Atualiza o estado físico da simulação a cada frame:
             - Detecta e resolve colisões.
             - Atualiza posições da bola e dos robôs.
         '''
+        #Verifica colisões e física
         self.check_collisions()
+
+        #Atualiza posição da bola
         self.update_ball()
+
+        #Atualiza posição dos robôs
         self.update_bots()
     
+    # ===============================================================
     def check_collisions(self):
         '''
             Detecta e resolve colisões entre todos os objetos.

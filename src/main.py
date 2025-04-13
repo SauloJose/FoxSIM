@@ -19,8 +19,7 @@ from ui.interface_config import *
 
 # =======================
 #Instalando dependÊncias necessárias
-#install_requirements()
-
+#
 # === Inicialização ===
 pygame.init()
 screen = pygame.display.set_mode((WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))
@@ -45,10 +44,10 @@ red_team = Team(red_team_positions, RED_TEAM, initial_angle=180)
 # Gerando clock do jogo
 clock = pygame.time.Clock()
 timer = HighPrecisionTimer(TIMER_PARTY)
-dt = clock.tick(FPS) / 1000.0
+
     
 #Gerando motor físico para atualizar a simulação
-Physics_Engine = Physics(blue_team,red_team,ball,dt,field,screen)
+Physics_Engine = Physics(allies=blue_team,enemies=red_team,ball=ball,dt=1.0/FPS,field=field,screen=screen)
 
 # === Estados do Jogo ===
 game_started = False
@@ -60,14 +59,16 @@ is_game_paused = False
 # Gerando Arbitro para entender o jogo
 arbitrator = Arbitrator(ball, field, blue_team,red_team,interface,timer)
 
-
 #Método para resetar configurações
 def reset_simulation(timer:HighPrecisionTimer):
-    timer.stop()
-    timer = HighPrecisionTimer(TIMER_PARTY)
+    timer.reset()
+    timer.duration = TIMER_PARTY
+
     ball.reset_position()
     blue_team.reset_positions()
     red_team.reset_positions()
+    interface.score = [0,0]
+
 
 
 
@@ -75,6 +76,7 @@ def reset_simulation(timer:HighPrecisionTimer):
 print("\n[Simulador] ======== simulação PRONTA para iniciar ========")
 # === Loop Principal ===
 while running:
+    dt = clock.tick(FPS) / 1000.0
     # --- Eventos ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -120,18 +122,18 @@ while running:
         # --- Atualização do Jogo ---
         if game_started:
             # Atualizando o dt para contabilizar a modificação dos clocks ou bugs
-            dt = clock.tick(FPS) / 1000.0
+            Physics_Engine.dt = dt 
+            Physics_Engine.collision_manager.dt = dt 
 
             #Atualizo a física do jogo e as posições dos robôs
             Physics_Engine.update()
 
             # O arbitro analisa a situação do game
-            situation = arbitrator.analyzer()
-
-            if situation == 1:
-                print("Tempo esgotado! Fim da partida.")
+            if arbitrator.analyzer() == Decisions.FINISH:
                 game_started = False
                 reset_simulation(timer)
+
+
 
 
     # --- Renderização ---

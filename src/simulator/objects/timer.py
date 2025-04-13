@@ -1,5 +1,6 @@
 import time
 
+
 class HighPrecisionTimer:
     def __init__(self, duration):
         """
@@ -15,12 +16,19 @@ class HighPrecisionTimer:
 
     def start(self):
         """Inicia o timer do zero."""
+        self.reset()
         self.start_time = time.time()
         self.running = True
+
+        
+    def reset(self):
+        """Reseta o timer para o estado inicial, sem criar uma nova instância."""
+        self.start_time = None
+        self.running = False
         self.paused = False
         self.pause_start = None
         self.total_paused_time = 0
-
+        
     def pause(self):
         """Pausa o timer."""
         if self.running and not self.paused:

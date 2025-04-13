@@ -64,7 +64,7 @@ class Arbitrator:
         self.timer = timer
 
         #Áreas do campo
-        self.enemy_goaL = self.field.goal_area_enemy
+        self.enemy_goal = self.field.goal_area_enemy
         self.ally_goal  = self.field.goal_area_ally
 
         # Área do goleiro
@@ -73,7 +73,7 @@ class Arbitrator:
 
         # Posições dos goleiros:
         self.pos_gk_enemy = self.field.MED_GK_ENEMY
-        self.por_gk_ally = self.field.MED_GK_ALLY
+        self.pos_gk_ally = self.field.MED_GK_ALLY
 
         #Posições para cobranças de penaulti
         self.penalty_ally_pos = self.field.virtual_points['PE2v']
@@ -82,7 +82,7 @@ class Arbitrator:
         #Pontuação
         self.ally_pontuation  = 0 
         self.enemy_pontuation = 0
-        self.pontuation = np.array([0,0],dtype=int)
+        self.pontuation = self.interface.score
 
         #Tempo de cada partida
         self.TIME_OF_A_PARTY = TIMER_PARTY   #Segundos
@@ -91,50 +91,72 @@ class Arbitrator:
     def analyzer(self):
         """
         Método principal chamado a cada frame da simulação.
-        Ele verifica se houve gol, falta, ou se a partida terminou.
+        Ele verifica eventos do jogo (gol, falta, fim de tempo) e define a decisão do árbitro.
         """
-        #Verifica se teve gol
-        if self._is_goal():
-            self._reset_initial_positions()
-            self._reset_timer()
-            return 0
+        # Limpa a decisão anterior
+        self.current_decision = None
 
-        if self._is_party_end():
-            return 1
-        
-        '''if self._check_goalkeeper_foul():
+        # Verifica gol primeiro
+        goal_result = self._is_goal()
+        if goal_result is not None:
+            self._handle_goal(goal_result)
+
+        # Verifica falta de goleiro (em desenvolvimento)
+        if self._check_goalkeeper_foul():
             self._handle_penalty()
 
+        # Verifica se a partida acabou
         if self._is_party_end():
-            self._who_is_winner()
-            self.pontuation[:] = 0
-            self.interface.update_score(0)  # Zera o placar visual
-            self._reset_positions()
-            self.timer.start()  # Começa nova partida'''
+            print("[Arbitro]: Partida acabou")
+            self._handle_end_of_match()
+
+        return self.get_and_clear_decision()
+
+
+    def get_and_clear_decision(self):
+        '''
+            Consulta segura do árbitro
+        '''
+        decision = self.current_decision
+        self.current_decision = None
+        return decision
 
     def _reset_timer(self):
         '''
             Reseta o temporizador da partida para contar novamente
         '''
-        self.timer.stop()
-        self.timer = HighPrecisionTimer(TIMER_PARTY)
+        self.timer.reset()
+        
 
     def _is_goal(self):
         """
         Verifica se a bola entrou em um dos gols.
-        Atualiza o placar e a interface se necessário.
+        Retorna 'ALLY' ou 'ENEMY' se houve gol, ou None se não houve.
         """
-        if self.ball.is_inside_goal(self.enemy_goaL):
-            "[Arbitro]: Gol do time A"
-            self.pontuation[0] += 1
-            self.interface.update_score(1)  # Atualiza placar dos aliados
-            return True
+        if self.ball.is_inside_goal(self.enemy_goal):
+            return 'ALLY'
         elif self.ball.is_inside_goal(self.ally_goal):
-            "[Arbitro]: Gol do time B"
-            self.pontuation[1] += 1
-            self.interface.update_score(2)  # Atualiza placar dos inimigos
-            return True
-        return False
+            return 'ENEMY'
+        return None
+    
+    def _handle_goal(self, side: str):
+        '''
+            Atribui a pontuação do gol e continua o jogo
+        '''
+        if side == 'ALLY':
+            print("[Arbitro]: Gol do time A!")
+            self.ally_pontuation  += 1 
+            self.interface.update_score(1)
+            self.current_decision = Decisions.ALLY_GOAL
+        elif side == 'ENEMY':
+            print("[Arbitro]: Gol do time B!")
+            self.enemy_pontuation += 1
+            self.interface.update_score(2)
+            self.current_decision = Decisions.ENEMY_GOAL
+
+        self._reset_initial_positions()
+        
+
 
     def _reset_initial_positions(self):
         """
@@ -148,6 +170,7 @@ class Arbitrator:
         self.enemies.reset_positions()
         self.allies.reset_positions()
 
+
     def _is_party_end(self):
         """
         Verifica se o tempo da partida acabou.
@@ -158,10 +181,10 @@ class Arbitrator:
         """
         Exibe o vencedor com base no placar atual ao final da partida.
         """
-        if self.pontuation[0] > self.pontuation[1]:
-            print("Vitória dos aliados!")
-        elif self.pontuation[1] > self.pontuation[0]:
-            print("Vitória dos inimigos!")
+        if self.ally_pontuation > self.enemy_pontuation:
+            print("Vitória do Time A!")
+        elif self.ally_pontuation < self.enemy_pontuation:
+            print("Vitória do Time B!")
         else:
             print("Empate!")
 
@@ -170,14 +193,34 @@ class Arbitrator:
         Verifica se algum robô inimigo entrou na área do goleiro aliado.
         Pode ser usado para marcar penalidades.
         """
-        pass 
+        return False 
+
+
+    def _handle_end_of_match(self):
+        '''
+        Tarefa para final da partida
+        '''
+        self._who_is_winner()
+        self.current_decision = Decisions.FINISH
+
+        # Zera pontuações
+        self.ally_pontuation = 0
+        self.enemy_pontuation = 0
+        self.interface.score = [self.ally_pontuation,self.enemy_pontuation]
+
+        # Reseta posições iniciais
+        self._reset_initial_positions()
+
+        # Reseta o timer
+        self._reset_timer()
 
     def _handle_penalty(self):
-        """
-        Executa as penalidades aplicáveis, como reset da bola
-        em ponto de pênalti e parada de todos os robôs.
-        """
-        pass
+        '''
+        O que ele irá fazer em caso de penalti
+        '''
+        print("[Arbitro]: Penalidade marcada!")
+        self.current_decision = Decisions.PENALTY_ENEMY  # ou PENALTY_ALLY
+        # Posiciona bola no ponto de penalidade, trava bots etc.
 
     def _finish_game(self):
         '''
