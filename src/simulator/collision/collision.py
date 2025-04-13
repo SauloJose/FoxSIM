@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 from ui.interface_config import *
 from collections import defaultdict
 from utils.helpers import normalize
-from shapely.geometry import Polygon, LineString
-
+from shapely.geometry import Polygon, LineString, Point
+import math
 import pygame 
 
 
@@ -1030,6 +1030,76 @@ class CollisionManagerSAT:
         #Apenas para debug virtual
         self.screen = screen
 
+        #Cache para os pontos de contato
+        self.contact_points_cache  = {}
+        self.collision_pairs_cache = set()
+
+
+    def detect_and_resolve(self, objects):
+        """
+        Detecta e resolve colisões entre os objetos passados, considerando apenas os tipos relevantes.
+        :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
+        """
+        self.clear()
+
+        #1. Verifica se são objetos de colisão apenas e passa todos para o grid
+        for obj in objects:
+            if hasattr(obj, "reference"):
+                self.add_object(obj)
+
+        #Verifica se o par já foi checado anteriormente.
+        self.collision_pairs_cache.clear()
+
+        # Fase de detecção
+        collisions = []
+        #2. Verifica colisões no grid
+        for obj in objects:
+            if obj.type_object != MOVING_OBJECTS:
+                continue 
+               
+            nearby = self._get_nearby_objects(obj)
+
+            #Verifica colisões com os vizinhos.
+            for other in nearby:
+                if obj is other or not hasattr(other,"reference"):
+                    continue 
+
+                pair_key = self._get_pair_key(obj, other)
+                if pair_key in self.collision_pairs_cache:
+                    continue
+                
+                #Adiciona para tratar
+                self.collision_pairs_cache.add(pair_key)
+                
+                has_collision, mtv = obj.check_collision(other)
+                if has_collision and np.linalg.norm(mtv) > 1e-6:
+                    collisions.append((obj, other,mtv))
+
+        # Fase de resolução com pontos de contato
+        for obj1, obj2, mtv in collisions:
+            #Apenas calcula, por enquanto, os pontos de contato para objetos que não são do campo
+            if obj1.reference.type_object != FIELD_OBJECT and obj2.reference.type_object != FIELD_OBJECT:
+                contact_point = self.calculate_contact_point(obj1, obj2)
+            else:
+                contact_point = None 
+                
+            # Armazena para possível uso em debug/visualização
+            pair_key = self._get_pair_key(obj1, obj2)
+            self.contact_points_cache[pair_key] = contact_point
+            
+            if obj2.type_object == STRUCTURE_OBJECTS:
+                self.resolve_collision_with_field(obj1, obj2, mtv)
+            else:
+                self.resolve_moving_collision(obj1, obj2, mtv, contact_point)
+
+    def _get_pair_key(self, obj1, obj2):
+        ''' Retorna uma chave única para o par de objetos'''
+        return tuple(sorted((id(obj1),id(obj2))))
+    
+    def get_cached_contact_points(self,obj1, obj2):
+        key = (id(obj1), id(obj2)) if id(obj1) < id(obj2) else (id(obj2), id(obj1))
+        return self.contact_points_cache.get(key, None)
+
     def clear(self):
         """ Limpa o grid de detecção de colisões. """
         self.grid.clear()
@@ -1143,78 +1213,9 @@ class CollisionManagerSAT:
         t1 = (-b - discriminant)/(2*a)
         t2 = (-b + discriminant)/(2*a)
         return (0 <= t1 <= 1) or (0 <= t2 <= 1)
-
-
-
-
-
-    def detect_and_resolve(self, objects):
-        """
-        Detecta e resolve colisões entre os objetos passados, considerando apenas os tipos relevantes.
-        :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
-        """
-        self.clear()
-        #print("\n[COLISSION]: Novo detect e resolve acionado =================\n")
-        #1. Verifica se são objetos de colisão apenas e passa todos para o grid
-        for obj in objects:
-            if hasattr(obj, "reference"):
-                self.add_object(obj)
-
-        #Verifica se o par já foi checado anteriormente.
-        checked_pairs = set()
-
-        #2. Verifica colisões no grid
-        for obj in objects:
-            if obj.type_object != MOVING_OBJECTS:
-                continue 
-            
-            
-            nearby = self._get_nearby_objects(obj)
-
-            #if obj.reference.type_object == BALL_OBJECT:
-            #    print(f"\n[DEBUG]: Objeto analisado é a bola")
-            #    print("Objetos na vizinhança:", [obj.reference.type_object for obj in nearby])
-            #elif obj.reference.type_object == ROBOT_OBJECT:
-            #    print(f"\n[DEBUG]: Objeto analisado é o Robô {obj.reference.role} do time {obj.reference.team} com id {obj.reference.id_robot}")
-            #    print("Objetos na vizinhança:",[obj.reference.type_object for obj in nearby])
-
-
-            #Verifica colisões com os vizinhos.
-            for other in nearby:
-                if obj is other or not hasattr(other,"reference"):
-                    continue 
-
-                #cria o par ordenado de IDs para evitar dupla verificação
-                pair = (min(id(obj), id(other)),max(id(obj),id(other)))
-                
-                if pair in checked_pairs:
-                    continue
-                
-                #Adiciona para tratar
-                checked_pairs.add(pair)
-
-                other_type = other.type_object 
-
-                # MOVING x STRUCTURE:
-                if other_type == STRUCTURE_OBJECTS:
-                    hasCollision, mtv = obj.check_collision(other)
-
-                    if hasCollision and np.linalg.norm(mtv) > 1e-6:
-                        dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
-                        moddist = np.linalg.norm(dist)
-                        self.draw_mtv(obj,mtv,color=(255,0,0))
-                        self.resolve_collision_with_field(obj, other, mtv)
+    
                     
-                # MOVING x MOVING
-                if other_type == MOVING_OBJECTS:
-                    hasCollision, mtv = obj.check_collision(other)
-                    if hasCollision and np.linalg.norm(mtv) > 1e-6:
-                        dist = np.array([obj.x,obj.y]) - np.array([other.x,other.y])
-                        moddist = np.linalg.norm(dist)
-                        self.draw_mtv(obj,mtv,color=(255,0,0))
-                        self.resolve_moving_collision(obj, other, mtv)
-                    
-    def resolve_moving_collision(self, obj1, obj2, mtv):
+    def resolve_moving_collision(self, obj1, obj2, mtv, contact_points = None):
         """
         Resolve colisão entre dois objetos móveis com conservação de momento linear.
         :param obj1, obj2: objetos com massa, velocidade e posição.
@@ -1231,13 +1232,18 @@ class CollisionManagerSAT:
         # Proteção: MTV nulo ou objetos sem massa válida
         mtv_norm = np.linalg.norm(mtv)
         if mtv_norm < 1e-6 or obj1.mass <= 0 or obj2.mass <= 0:
-            print("MTV nulo — colisão ignorada.")
-            return
+            return  #silenciosamente ignora colisões inválidas
         
-            # Corrige direção da MTV
-        if np.dot(mtv, obj1.position - obj2.position) < 0:
+        # Corrige direção da MTV
+        pos_diff = obj1.position - obj2.position
+        if np.dot(mtv, pos_diff) < 0:
             mtv = -mtv
+            mtv_norm = np.linalg.norm(mtv)
 
+        # Limine mínimo para evitar micro-colisões
+        if mtv_norm < 0.001:
+            return 
+        
         # Normalizada do vetor de separação (direção da colisão)
         normal = mtv / mtv_norm
 
@@ -1258,6 +1264,7 @@ class CollisionManagerSAT:
                 collision_point = obj1.position.copy()
             else:
                 collision_point = obj2.position.copy()
+
         elif {type1, type2} == {ROBOT_OBJECT}:
             # Robô-Robô → ponto mais próximo entre as bordas dos retângulos
             poly1 = Polygon(obj1.collision_object.get_corners())
@@ -1336,15 +1343,6 @@ class CollisionManagerSAT:
         obj1.apply_impulse(+friction_impulse, collision_point)
         obj2.apply_impulse(-friction_impulse, collision_point)
 
-        # Efeito Magnus (apenas se um dos objetos for bola)
-        for obj in (obj1, obj2):
-            if hasattr(obj, 'type_object') and obj.type_object == BALL_OBJECT:
-                magnus_strength = 0.005  # fator ajustável
-                omega = obj.angular_velocity
-                v = obj.velocity
-                if np.linalg.norm(v) > 0 and abs(omega) > 0:
-                    magnus_force = magnus_strength * omega * np.array([-v[1], v[0]])
-                    obj.apply_force(magnus_force)
 
     def line_segment_intersect(self, p1, p2, q1, q2):
         def ccw(a, b, c):
@@ -1442,3 +1440,69 @@ class CollisionManagerSAT:
         obj.angular_velocity *= (1 - 0.5 * self.dt * 60)
 
 
+    # Método interessante para detectar os pontos de colisão
+    def calculate_contact_point(self, obj1, obj2):
+        """
+        Calcula o ponto de contato mais preciso entre dois objetos.
+        
+        Args:
+            obj1: Primeiro objeto de colisão
+            obj2: Segundo objeto de colisão
+            mtv: Vetor mínimo de translação
+            
+        Returns:
+            np.array: Ponto de contato [x, y] no espaço do jogo
+        """
+        #Puxo os objetos donos dos objetos de colisão
+        obj1 = obj1.reference
+        obj2 = obj2.reference 
+
+        # Caso 1: Colisão entre bola e robô
+        if {obj1.type_object, obj2.type_object} == {BALL_OBJECT, ROBOT_OBJECT}:
+            ball = obj1 if obj1.type_object == BALL_OBJECT else obj2
+            robot = obj2 if obj1.type_object == BALL_OBJECT else obj1
+            
+            # Para bola-robô, o ponto é o mais próximo no robô à bola
+            robot_corners = robot.collision_object.get_corners()
+            robot_poly = Polygon(robot_corners)
+            ball_point = Point(ball.position)
+            
+            # Projeta o centro da bola no contorno do robô
+            nearest_point = robot_poly.exterior.interpolate(
+                robot_poly.exterior.project(ball_point))
+            
+            return np.array(nearest_point.coords[0])
+
+        # Caso 2: Colisão robô-robô
+        elif obj1.type_object == ROBOT_OBJECT and obj2.type_object == ROBOT_OBJECT:
+            # Usa o ponto médio entre os pontos mais próximos
+            poly1 = Polygon(obj1.collision_object.get_corners())
+            poly2 = Polygon(obj2.collision_object.get_corners())
+            
+            p1 = poly1.exterior.interpolate(poly1.exterior.project(poly2.centroid))
+            p2 = poly2.exterior.interpolate(poly2.exterior.project(poly1.centroid))
+            
+            return (np.array(p1.coords[0]) + np.array(p2.coords[0])) / 2
+
+        # Caso 3: Colisão genérica (ponto médio da área de sobreposição)
+        else:
+            try:
+                # Tenta calcular a área de sobreposição
+                poly1 = Polygon(obj1.collision_object.get_corners())
+                poly2 = Polygon(obj2.collision_object.get_corners())
+                overlap = poly1.intersection(poly2)
+                
+                if not overlap.is_empty:
+                    return np.array([overlap.centroid.x, overlap.centroid.y])
+            except:
+                pass
+            
+            # Fallback: ponto médio entre os centros
+            return (obj1.position + obj2.position) / 2
+        
+    # Função para desenhar os pontos de colisão
+    def draw_contact_points(self, screen):
+        """Método para debug: desenha pontos de contato na tela"""
+        for point in self.contact_points_cache.values():
+            pos = virtual_to_screen(point)
+            pygame.draw.circle(screen, (255, 0, 0), pos, 5)

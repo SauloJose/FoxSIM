@@ -22,14 +22,14 @@ from ui.interface_config import *
 #
 # === Inicialização ===
 pygame.init()
-screen = pygame.display.set_mode((WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))
+screen = pygame.display.set_mode((int(WINDOWS_FIELD_WIDTH_PX), int(WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX)))
 
 # === Instanciação de Objetos ===
 print("[Sistema]: ======== Criando objetos ======= \n")
 interface = Interface(screen)
 
 #Gerando objetos da simulação
-field = Field(FIELD_INTERNAL_WIDTH_IN_PX*SCALE_PX_TO_CM, FIELD_INTERNAL_HEIGHT_IN_PX*SCALE_PX_TO_CM, FIELD_COLOR)
+field = Field(FIELD_INTERNAL_WIDTH_IN_PX, FIELD_INTERNAL_HEIGHT_IN_PX, FIELD_COLOR)
 
 print(f"\n[Sistema]: Criando a bola nas posições ({XVBALL_INIT},{YVBALL_INIT} e {BALL_RADIUS_CM})")
 ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM, color=BALL_COLOR)
@@ -68,8 +68,6 @@ def reset_simulation(timer:HighPrecisionTimer):
     blue_team.reset_positions()
     red_team.reset_positions()
     interface.score = [0,0]
-
-
 
 
 #Método para 
@@ -132,9 +130,6 @@ while running:
             if arbitrator.analyzer() == Decisions.FINISH:
                 game_started = False
                 reset_simulation(timer)
-
-
-
 
     # --- Renderização ---
     interface.get_states(draw_collision_objects=draw_collision_objects, running=game_started, is_game_paused=is_game_paused, draw_grid_collision = draw_grid_collision)

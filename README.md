@@ -25,9 +25,7 @@ robot-soccer-simulation/
 │
 ├── src/
 │   ├── main.py                         # Arquivo principal da simulação
-│   ├── assets/
-│   │   └── field.png                   # Imagem do campo de jogo
-│   │
+│   ├── assets/                         # Arquivos png para o simulador
 │   ├── simulator/
 │   │   ├── game_logic.py               # Lógica principal do jogo
 │   │   ├── rules/
@@ -51,7 +49,7 @@ robot-soccer-simulation/
 │   ├── ui/                   
 │   │   ├── interface_config.py         # Dados configuráveis do simulador
 │   │   ├── interface.py                # Arquivo da organização da interface e desenho
-│   │   └──  scoreboard                 # Lógica do scoreboard do jogo
+│   │   └──  scoreboard.                 # Lógica do scoreboard do jogo
 │   │   
 │   │
 │   └── utils/
@@ -153,23 +151,7 @@ Demais editáveis
 
 ## Objetivos e Implementações Futuras
 
-1. **Inteligência Artificial Avançada**:
-   - Implementar algoritmos de IA para controle dos robôs, como:
-     - Estratégias de ataque e defesa.
-     - Planejamento de trajetória.
-     - Coordenação em equipe.
-
-2. **Detecção de Gols**:
-   - Adicionar lógica para verificar se a bola entrou na área do gol e identificar qual time marcou.
-
-3. **Áreas de Goleiros**:
-   - Implementar áreas de colisão específicas para os goleiros, restringindo seus movimentos.
-
-4. **Simulação Física Melhorada**:
-   - Adicionar efeitos como atrito e rotação da bola.
-
-5. **Gráficos Melhorados**:
-   - Substituir os elementos gráficos básicos por sprites mais detalhados.
+[ ]
 
 ---
 

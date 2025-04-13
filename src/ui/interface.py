@@ -12,7 +12,7 @@ class Interface:
         pygame.display.set_caption(f"FoxSIM v{VERSION} - Simulador de futebol de robôs - por: Saulo José")
 
         self.field_image = pygame.image.load("src/assets/field.png")
-        self.field_image = pygame.transform.scale(self.field_image, (WINDOWS_FIELD_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX))
+        self.field_image = pygame.transform.scale(self.field_image, (int(WINDOWS_FIELD_WIDTH_PX), int(WINDOWS_FIELD_HEIGHT_PX)))
 
         #Setando ícone
         icone = pygame.image.load("src/assets/logo_minus.png")  # use o caminho da sua imagem

@@ -33,6 +33,7 @@ class Ball:
         self.mass = BALL_MASS 
         self.inertia = 0.5 *self.mass*self.radius**2 #Disco sólido
         self.angular_velocity =0.0  #rad/s
+        self.size = np.array([2*self.radius, 2*self.radius])
 
         # Agentes físicos
         self.force = np.zeros(2,dtype=float)

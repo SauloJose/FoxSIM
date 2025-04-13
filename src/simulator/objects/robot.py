@@ -43,6 +43,7 @@ class Robot:
         # propriedades dinâmicas aplicadas no robô
         self.mass = ROBOT_MASS
         self.inertia = (1/12) * self.mass * (self.width**2 + self.height**2) #retângulo
+        self.size = np.array([self.width, self.height])
 
         # Inicialização de variáveis físicas
         self.force = np.zeros(2, dtype=float)
@@ -225,12 +226,29 @@ class Robot:
         self.torque += torque 
 
     #Aplica impulso (usado em colisões)
-    def apply_impulse(self, impulse,contact_point = None):
+    def apply_impulse(self, impulse, contact_point=None):
+        """
+        Aplica um impulso ao robô, modificando sua velocidade linear e angular.
+        
+        Args:
+            impulse: Vetor impulso [ix, iy] em kg*cm/s
+            contact_point: Ponto de contato onde o impulso é aplicado (em cm)
+                        Se None, assume centro de massa
+        """
+        # Atualiza velocidade linear
         self.physical_velocity += impulse / self.mass
+        
+        # Calcula torque apenas se o ponto de contato for especificado
         if contact_point is not None:
-            r = contact_point -np.array([self.x, self.y])
-            torque_impulse = np.cross(r, impulse)
-            self.angular_velocity += torque_impulse/self.inertia
+            # Vetor do centro de massa ao ponto de contato
+            r = np.array(contact_point) - np.array([self.x, self.y])
+            
+            # Cálculo CORRETO do torque usando produto vetorial 2D
+            # τ = r × impulse = r_x * impulse_y - r_y * impulse_x
+            torque_impulse = r[0] * impulse[1] - r[1] * impulse[0]
+            
+            # Atualiza velocidade angular
+            self.angular_velocity += torque_impulse / self.inertia
 
     def inertia_rectangle(self):
         self.inertia = (1/12)*self.mass*(self.width**2+self.height**2)
@@ -269,6 +287,8 @@ class Robot:
         self.position = np.array([self.initial_x, self.initial_y], dtype=float)    
         self.velocity   = np.zeros(2, dtype=float)
         self.angular_velocity = self.initial_angular_velocity
+        self.force          =np.zeros(2)
+        self.torque         = 0.0
 
         # Imagem para o Pygame
         self.image = self.initial_image 

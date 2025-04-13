@@ -11,14 +11,14 @@
 import numpy as np
 
 #VERSÃO ATUAL DO CÓDIGO
-VERSION = 0.74
+VERSION = 0.745
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DA JANELA
 # ------------------------------------------------------------
-WINDOW_WIDTH = 645                         # Largura da janela (px)
-WINDOW_HEIGHT = 600                        # Altura da janela (px)
-ORIGIN_SYSTEM_PX = np.array([67, 452])     # Origem do sistema de coordenadas (px)
+WINDOW_WIDTH        = 645                         # Largura da janela (px)
+WINDOW_HEIGHT       = 600                        # Altura da janela (px)
+ORIGIN_SYSTEM_PX    = np.array([67, 452])     # Origem do sistema de coordenadas (px)
 
 # ------------------------------------------------------------
 # ESCALAS E DIMENSÕES DO CAMPO (REAL E EM PIXELS)
@@ -39,19 +39,20 @@ REAL_FIELD_INTERNAL_WIDTH_CM = int(150)
 REAL_FIELD_INTERNAL_HEIGHT_CM = int(130)
 
 #ESCALA DE CONVERSÃO DE PX PARA CM
-SCALE_PX_TO_CM = REAL_FIELD_INTERNAL_WIDTH_CM / FIELD_INTERNAL_WIDTH_IN_PX
+SCALE_PX_TO_CM = REAL_FIELD_INTERNAL_WIDTH_CM / (FIELD_INTERNAL_WIDTH_IN_PX)
 
 # ------------------------------------------------------------
 # FUNÇÕES DE CONVERSÃO DE COORDENADAS
 # ------------------------------------------------------------
+
 def virtual_to_screen(pos_cm):
-    x_px = int((pos_cm[0] / SCALE_PX_TO_CM) + ORIGIN_SYSTEM_PX[0])
+    x_px = int((pos_cm[0] / SCALE_PX_TO_CM)+ ORIGIN_SYSTEM_PX[0])
     y_px = int((-pos_cm[1] / SCALE_PX_TO_CM) + ORIGIN_SYSTEM_PX[1])
     return np.array([x_px, y_px])
 
 def screen_to_virtual(pos_px):
-    x_cm = (pos_px[0] - ORIGIN_SYSTEM_PX[0]) * SCALE_PX_TO_CM
-    y_cm = -(pos_px[1] - ORIGIN_SYSTEM_PX[1]) * SCALE_PX_TO_CM
+    x_cm = (pos_px[0] - ORIGIN_SYSTEM_PX[0]) *SCALE_PX_TO_CM
+    y_cm = -(pos_px[1] - ORIGIN_SYSTEM_PX[1]) *SCALE_PX_TO_CM
     return np.array([x_cm, y_cm])
 
 def virtual_direction_to_screen(vector_cm):
@@ -73,25 +74,25 @@ PADDING_BALL_OK_CM = 3.5
 PADDING_BALL_OK_PX = int(PADDING_BALL_OK_CM / SCALE_PX_TO_CM)
 
 #IDENTIFICADOR DA PONTUAÇÃO
-SCOREBOARD_HEIGHT_PX = 50
-SIDEBAR_WIDTH_PX = 400
-CONFIG_HEIGHT_PX = 160
+SCOREBOARD_HEIGHT_PX    = 50
+SIDEBAR_WIDTH_PX        = 400
+CONFIG_HEIGHT_PX        = 160
 
 #BUTÃO
-BUTTON_WIDTH = 120
-BUTTON_HEIGHT = 50
-BUTTON_SPACING = 10
+BUTTON_WIDTH    = 120
+BUTTON_HEIGHT   = 50
+BUTTON_SPACING  = 10
 
 #CORES
-BACKGROUND_COLOR = (0, 0, 0)
-FIELD_COLOR = (144, 238, 144)
-LINE_COLOR = (255, 255, 255)
-TEAM_BLUE_COLOR = (0, 0, 255)
-TEAM_RED_COLOR = (255, 0, 0)
-SCOREBOARD_COLOR = (50, 50, 50)
-SIDEBAR_COLOR_1 = (100, 100, 100)
-SIDEBAR_COLOR_2 = (150, 150, 150)
-CONFIG_COLOR = (30, 30, 30)
+BACKGROUND_COLOR    = (0, 0, 0)
+FIELD_COLOR         = (144, 238, 144)
+LINE_COLOR          = (255, 255, 255)
+TEAM_BLUE_COLOR     = (0, 0, 255)
+TEAM_RED_COLOR      = (255, 0, 0)
+SCOREBOARD_COLOR    = (50, 50, 50)
+SIDEBAR_COLOR_1     = (100, 100, 100)
+SIDEBAR_COLOR_2     = (150, 150, 150)
+CONFIG_COLOR        = (30, 30, 30)
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DOS GOLS
@@ -110,7 +111,7 @@ XVBALL_INIT, YVBALL_INIT = screen_to_virtual([XBALL_INIT, YBALL_INIT])
 # DADOS FÍSICOS DO ROBÔ E BOLA
 # ------------------------------------------------------------
 #ROBÔ
-ROBOT_MASS = 0.7
+ROBOT_MASS = 1
 ROBOT_SIZE_CM = 8.0
 ROBOT_WHEELS_RADIUS_CM = 4.0
 ROBOT_DISTANCE_WHEELS_CM = 8.0
@@ -118,55 +119,55 @@ ROBOT_DISTANCE_WHEELS_TO_CENTER_CM = ROBOT_DISTANCE_WHEELS_CM / 2
 ROBOT_MAX_SPEED = 10
 
 #BOLA
-BALL_MASS = 0.045
-BALL_RADIUS_CM = 2.135
-BALL_COLOR = (255, 165, 0)
+BALL_MASS           = 0.045
+BALL_RADIUS_CM      = 2.135
+BALL_COLOR          = (255, 165, 0)
 
 
 #COEFICIENTES DE RESTITUIÇÃO
-COEFFICIENT_RESTITUTION_BALL_ROBOT = 0.95
-COEFFICIENT_RESTITUTION_BALL_FIELD = 0.8
+COEFFICIENT_RESTITUTION_BALL_ROBOT  = 0.95
+COEFFICIENT_RESTITUTION_BALL_FIELD  = 0.8
 COEFFICIENT_RESTITUTION_ROBOT_ROBOT = 0.6
 COEFFICIENT_RESTITUTION_ROBOT_FIELD = 0.001
 
 #COEFICIENTES DE ATRITO
 COEFICIENT_FRICTION_ROBOT_FIELD = 0.9
 COEFICIENT_FRICTION_ROBOT_ROBOT = 0.01
-COEFICIENT_FRICTION_BALL_FIELD = 0.0001
-COEFICIENT_FRICTION_BALL_ROBOT = 0.9
+COEFICIENT_FRICTION_BALL_FIELD  = 0.0001
+COEFICIENT_FRICTION_BALL_ROBOT  = 0.9
 
 # Máximo impulso do simulador.
 MAX_IMPULSE = 10000 #(cm/s)*kg
 
 
 # Limitadores
-MAX_FRAME_VELOCITY = 1           #CM/FRAME
-DIM_VERTICES = 1.5
-THICKNESS   = 1
+MAX_FRAME_VELOCITY  = 1           #CM/FRAME
+DIM_VERTICES        = 1.5
+THICKNESS           = 1
 # ------------------------------------------------------------
 # GRID PARA DETECÇÃO DE COLISÕES (SPATIAL HASHING)
 # ------------------------------------------------------------
-ROBOT_AREA = ROBOT_SIZE_CM * ROBOT_SIZE_CM
-CELL_AREA = 4 * ROBOT_AREA
-CELL_SIZE = int(np.sqrt(CELL_AREA))
+ROBOT_AREA  = ROBOT_SIZE_CM * ROBOT_SIZE_CM
+CELL_AREA   = 4 * ROBOT_AREA
+CELL_SIZE   = int(np.sqrt(CELL_AREA))
 
-GRID_ROWS = FIELD_INTERNAL_HEIGHT_IN_PX // CELL_SIZE
-GRID_COLS = FIELD_INTERNAL_WIDTH_IN_PX // CELL_SIZE
-QUANT_CELLS_GRID = (GRID_COLS, GRID_ROWS)
-GRID_COLOR = (255, 0, 0)
+GRID_ROWS           = FIELD_INTERNAL_HEIGHT_IN_PX // CELL_SIZE
+GRID_COLS           = FIELD_INTERNAL_WIDTH_IN_PX // CELL_SIZE
+QUANT_CELLS_GRID    = (GRID_COLS, GRID_ROWS)
+GRID_COLOR          = (255, 0, 0)
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DE EXIBIÇÃO E TEMPO DE JOGO
 # ------------------------------------------------------------
-FPS = 60
+FPS = 100
 
 # Tempo da partida em segundos
-TIMER_PARTY = 10
+TIMER_PARTY = 60
 
-FIELD_MARGIN_TOP = 20
+FIELD_MARGIN_TOP    = 20
 FIELD_MARGIN_BOTTOM = 20
-FIELD_MARGIN_LEFT = 20
-FIELD_MARGIN_RIGHT = 20
+FIELD_MARGIN_LEFT   = 20
+FIELD_MARGIN_RIGHT  = 20
 
 # ------------------------------------------------------------
 # COORDENADAS VIRTUAIS DOS PONTOS DE REFERÊNCIA
