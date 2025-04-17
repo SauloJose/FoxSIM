@@ -1,9 +1,9 @@
 from ui.pages.objects.pageObjects import *
 
 
-class VSEntryDataPage(BasicPage):
+class VSOtimizationPage(BasicPage):
     def __init__(self):
-        super().__init__("Sistema de Visão: Entrada de dados", QIcon("src/assets/USB.png"))
+        super().__init__("Sistema de Visão: Otimização", QIcon("src/assets/control-panel.png"))
 
         
         # Adicionando um texto e botão como exemplo

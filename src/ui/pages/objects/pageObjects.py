@@ -4,26 +4,26 @@ import pygame
 import cv2
 from PIL import Image
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, 
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory
+    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,QSizePolicy, 
+    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QLineEdit
 )
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QImage, QPainter,QPixmap
 
 #Classe básica para as paginas
 class BasicPage(QWidget):
-    '''
-        Classe básica para representar as páginas do sistema
-    '''
     def __init__(self, page_name: str, icon: QIcon = None):
         super().__init__()
+
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setStyleSheet("background-color: white;")
 
         # Layout principal da página
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Indicador de página no topo
+        # Cabeçalho (indicator)
         indicator = QFrame()
         indicator.setFixedHeight(60)
         indicator.setStyleSheet("background-color: white; border-bottom: 2px solid #cccccc;")
@@ -32,26 +32,36 @@ class BasicPage(QWidget):
         indicator_layout.setContentsMargins(10, 0, 0, 0)
         indicator_layout.setSpacing(10)
 
-        # Ícone opcional
         if icon:
             icon_label = QLabel()
             icon_label.setPixmap(icon.pixmap(40, 40))
             indicator_layout.addWidget(icon_label)
 
-        # Nome da página
         label = QLabel(page_name)
         label.setStyleSheet("font-weight: bold; font-size: 18px;")
         indicator_layout.addWidget(label)
         indicator_layout.addStretch()
 
-        # Adiciona o indicador no layout principal
         main_layout.addWidget(indicator)
 
-        # Área em branco para herança/uso posterior
-        self.content_layout = QVBoxLayout()
+        # Widget de conteúdo: herdeiros da classe vão adicionar aqui
+        self.content_widget = QWidget()
+        self.content_widget.setStyleSheet("background-color: white;")
+
+        self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(10, 10, 10, 10)
-        self.content_layout.addStretch()  # Apenas ocupa espaço, pode ser sobrescrito
-        main_layout.addLayout(self.content_layout)
+        self.content_layout.setSpacing(10)
+
+        main_layout.addWidget(self.content_widget)
+
+    def add_widget(self, widget):
+        self.content_layout.addWidget(widget)
+
+    def add_layout(self, layout):
+        container = QWidget()
+        container.setLayout(layout)
+        self.content_layout.addWidget(container)
+
 
 
 #Classes básicas de Widgets para utilizar na página básica
