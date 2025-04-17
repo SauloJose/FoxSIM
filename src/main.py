@@ -1,4 +1,5 @@
 import pygame
+import pygame_gui 
 import numpy as np
 
 from simulator.objects.team import *
@@ -14,15 +15,18 @@ from simulator.rules.rules  import *
 from ui.interface import Interface
 from ui.interface_config import *
 
-
-#from utils.helpers import * 
+from ui.mainWindow.MainWindows import *
 
 # =======================
 #Instalando dependÊncias necessárias
 #
+
 # === Inicialização ===
 pygame.init()
+
+#Inicializando areas da interface
 screen = pygame.display.set_mode((int(WINDOWS_FIELD_WIDTH_PX), int(WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX)))
+manager = pygame_gui.UIManager((WINDOWS_FIELD_WIDTH_PX + SIDEBAR_WIDTH_PX, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX))
 
 # === Instanciação de Objetos ===
 print("[Sistema]: ======== Criando objetos ======= \n")
@@ -144,3 +148,4 @@ while running:
     # -- Atualização do Display ---
     pygame.display.flip()
 pygame.quit()
+
