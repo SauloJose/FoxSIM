@@ -17,14 +17,17 @@ class SimulationViewPage(BasicPage):
 
         # Frame ESQUERDA
         left_widget = QFrame()
-        left_widget.setStyleSheet("background-color: #cce5ff; border: 2px solid #3399ff;")
-        left_widget.setMinimumSize(645, 613)
+        left_widget.setMinimumSize(645, 413)
         left_layout = QVBoxLayout(left_widget)
-        left_label = QLabel("Área Esquerda (Ex: Visualização)")
-        left_label.setStyleSheet("font-size: 16px; font-weight: bold;")
-        left_layout.addWidget(left_label)
+
+        viewer = BasicViewer(width = 645, height=413)
+        left_layout.setAlignment(Qt.AlignCenter)
+        left_layout.addWidget(viewer)
+        viewer.show_image(QImage("src/assets/field.png"))
+
         top_hlayout.addWidget(left_widget, stretch=3)
 
+        
         # Frame DIREITA
         right_widget = QFrame()
         right_widget.setStyleSheet("background-color: #ffe6cc; border: 2px solid #ff9900;")
@@ -49,3 +52,7 @@ class SimulationViewPage(BasicPage):
         main_vlayout.addWidget(bottom_widget)
 
         self.add_layout(main_vlayout)
+
+    #Métodos que serão utilizados dentro dessa página
+    def update(self):
+        pass 
