@@ -3,7 +3,7 @@ import pygame
 import numpy as np
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, 
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory
+    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QSlider
 )
 
 from PyQt5.QtCore import Qt, QTimer,QSize
@@ -34,16 +34,13 @@ class MainWindow(QMainWindow):
         #Informações básicas da maior janela
         self.setWindowTitle('SyFox - Sistema de Controle e Visão para VSSS ')
         self.setWindowIcon(QIcon("src/assets/logo_minus.png"))
+        self.setMinimumSize(1600, 900)
 
         self.showMaximized()
 
-        self.setFixedSize(self.size())
-
-
-        self.create_menu_bar()
+        self.create_menu_bar()  
 
         self.create_menu_navegate()
-
 
 
     def create_menu_bar(self):

@@ -5,10 +5,10 @@ import cv2
 from PIL import Image
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,QSizePolicy, 
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QLineEdit
+    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QLineEdit,QSlider
 )
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt5.QtGui import QIcon, QImage, QPainter,QPixmap
+from PyQt5.QtGui import QIcon, QImage, QPainter,QPixmap,QFont,QColor,QPalette
 
 #Classe básica para as paginas
 class BasicPage(QWidget):
@@ -75,6 +75,7 @@ class BasicViewer(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         layout.addWidget(self.label)
 
     def show_image(self, image):
