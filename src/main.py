@@ -8,7 +8,7 @@ from simulator.objects.field import Field
 from simulator.objects.robot import Robot
 
 from simulator.game_logic import *
-from simulator.objects.timer import HighPrecisionTimer
+from simulator.objects.timer import Stopwatch
 
 from simulator.rules.rules  import *
 
@@ -47,7 +47,7 @@ red_team = Team(red_team_positions, RED_TEAM, initial_angle=180)
 
 # Gerando clock do jogo
 clock = pygame.time.Clock()
-timer = HighPrecisionTimer(TIMER_PARTY)
+timer = Stopwatch(TIMER_PARTY) #Gerando cronometro 
 
     
 #Gerando motor físico para atualizar a simulação
@@ -64,7 +64,7 @@ is_game_paused = False
 arbitrator = Arbitrator(ball, field, blue_team,red_team,interface,timer)
 
 #Método para resetar configurações
-def reset_simulation(timer:HighPrecisionTimer):
+def reset_simulation(timer:Stopwatch):
     timer.reset()
     timer.duration = TIMER_PARTY
 

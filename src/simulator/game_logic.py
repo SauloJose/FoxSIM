@@ -64,11 +64,9 @@ class Physics:
         '''
             Atualiza os robôs aliados e inimigos com base nas velocidades das rodas.
         '''
-        for robot in self.allies:
-            # Seta velocidades (temporário - controle real virá de IA)
-            robot.set_wheel_speeds(20, 20)
-            robot.move(self.dt)
 
+        
+        
         for robot in self.enemies:
             # Inimigos parados por enquanto
             robot.set_wheel_speeds(0, 0)

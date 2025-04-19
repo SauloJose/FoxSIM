@@ -25,6 +25,7 @@ robot-soccer-simulation/
 │
 ├── src/
 │   ├── main.py                         # Arquivo principal da simulação
+│   ├── testInterface.py                # Arquivo com configurações para testar nova interface do sistema
 │   ├── assets/                         # Arquivos png para o simulador
 │   ├── simulator/
 │   │   ├── game_logic.py               # Lógica principal do jogo
@@ -46,7 +47,9 @@ robot-soccer-simulation/
 │   │   │   ├── timer.py                # Classe HighPrecisionTimer (controle de tempo)
 │   │   │   └── OBJECTS_README.md       # Documentação dos objetos do jogo
 │   │
-│   ├── ui/                   
+│   ├── ui/
+│   │   ├── mainWindow/                 # Janela principal da aplicação
+│   │   ├── pages/                      # Páginas da aplicação
 │   │   ├── interface_config.py         # Dados configuráveis do simulador
 │   │   ├── interface.py                # Arquivo da organização da interface e desenho
 │   │   └──  scoreboard.                 # Lógica do scoreboard do jogo
@@ -146,12 +149,16 @@ Demais editáveis
   - Restituição
 - Controle de visualização do debug
 
+Numa versão futura as configuraçõe serão via interface.
 ---
 
 
 ## Objetivos e Implementações Futuras
 
-[ ]
+[ ] Integrar com PyQt o sistema completo numa interface única
+[ ] Integrar com OpenGL
+[ ] Integração de sistemas de visão e comunicação
+[ ] Implementação de IA com bibliotecas adequadas
 
 ---
 
@@ -161,6 +168,7 @@ Demais editáveis
 - **Bibliotecas**:
   - `pygame`: Para renderização gráfica e controle de eventos.
   - `numpy`: Para cálculos matemáticos e vetoriais.
+  - `PyQt5`: Para a interface numérica 
 
 ### Instalação das Dependências
 Execute o seguinte comando para instalar as dependências:

@@ -54,7 +54,7 @@ class Arbitrator:
         Classe que representa o árbitro da partida, que irá garantir as regras
         da partida
     '''
-    def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team, interface: Interface, timer: HighPrecisionTimer):
+    def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team, interface: Interface, timer: Stopwatch):
         # Referências para objetos principais da simulação
         self.ball = ball 
         self.field = field 
