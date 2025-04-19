@@ -190,11 +190,11 @@ pip install -r requirements.txt
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/robot-soccer-simulation.git
+   git clone https://github.com/seu-usuario/FOXSIM.git
    ```
 2. Navegue até o diretório do projeto:
    ```bash
-   cd robot-soccer-simulation
+   cd FOXSIM
    ```
 3. Execute o simulador:
    ```bash
