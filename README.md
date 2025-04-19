@@ -155,10 +155,18 @@ Numa versão futura as configuraçõe serão via interface.
 
 ## Objetivos e Implementações Futuras
 
-[ ] Integrar com PyQt o sistema completo numa interface única
-[ ] Integrar com OpenGL
-[ ] Integração de sistemas de visão e comunicação
-[ ] Implementação de IA com bibliotecas adequadas
+
+## Objetivos e Implementações Futuras
+
+Este projeto está em constante desenvolvimento e novas funcionalidades serão integradas em fases futuras. Abaixo, os principais objetivos planejados:
+
+- [ ] Integrar o sistema completo com PyQt5 em uma interface gráfica única
+- [ ] Migrar o sistema de renderização para OpenGL via PyQt para melhorar desempenho
+- [ ] Realizar a integração entre os sistemas de visão computacional e comunicação com os robôs
+- [ ] Implementar uma camada de inteligência artificial para tomada de decisão com bibliotecas como scikit-learn, TensorFlow ou similares
+- [ ] Criar ambiente de simulação totalmente acoplado à interface (sem dependência de janelas externas)
+- [ ] Adicionar controle PID realista aos robôs simulados
+- [ ] Permitir testes de estratégias com múltiplas partidas simuladas em lote
 
 ---
 
