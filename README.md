@@ -21,7 +21,7 @@ O **Robot Soccer Simulation (FoxSIM)** é um simulador de futebol de robôs dese
 Abaixo está a estrutura de arquivos do projeto:
 
 ```
-robot-soccer-simulation/
+FoxSIM/
 │
 ├── src/
 │   ├── main.py                         # Arquivo principal da simulação
@@ -190,11 +190,11 @@ pip install -r requirements.txt
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/FOXSIM.git
+   git clone https://github.com/seu-usuario/FoxSIM.git
    ```
 2. Navegue até o diretório do projeto:
    ```bash
-   cd FOXSIM
+   cd FoxSIM
    ```
 3. Execute o simulador:
    ```bash

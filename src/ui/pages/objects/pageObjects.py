@@ -124,35 +124,6 @@ class CameraViewer(BasicViewer):
 
 
 
-#Renderizador para objetos utilizando o Pygame
-class PygameRenderThread(QThread):
-    frame_ready = pyqtSignal(np.ndarray)
 
-    def __init__(self, width, height):
-        super().__init__()
-        self.width = width
-        self.height = height
-        self.running = False
-
-    def run(self):
-        pygame.init()
-        surface = pygame.Surface((self.width, self.height))
-        clock = pygame.time.Clock()
-        self.running = True
-
-        while self.running:
-            surface.fill((255, 255, 255))
-            pygame.draw.circle(surface, (255, 0, 0), (self.width//2, self.height//2), 50)
-
-            buffer = pygame.surfarray.array3d(surface)
-            buffer = np.transpose(buffer, (1, 0, 2))
-            self.frame_ready.emit(buffer)
-
-            clock.tick(30)  # 30 FPS
-
-    def stop(self):
-        self.running = False
-        self.quit()
-        self.wait()
 
 
