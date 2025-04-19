@@ -4,11 +4,14 @@ import pygame
 import cv2
 from PIL import Image
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,QSizePolicy, 
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QLineEdit,QSlider
+    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,QSizePolicy, QOpenGLWidget,
+    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QLineEdit,QSlider,QGraphicsView
 )
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QImage, QPainter,QPixmap,QFont,QColor,QPalette
+
+from OpenGL.GL import *
+from PIL import Image
 
 #Classe básica para as paginas
 class BasicPage(QWidget):
@@ -65,7 +68,7 @@ class BasicPage(QWidget):
 
 
 #Classes básicas de Widgets para utilizar na página básica
-class BasicViewer(QWidget):
+class BasicViewer(QGraphicsView):
     def __init__(self, width=400, height=300):
         super().__init__()
         self.setFixedSize(width, height)
@@ -121,9 +124,6 @@ class CameraViewer(BasicViewer):
     def update_from_frame(self, image):
         """Chamado por alguma thread externa quando uma nova imagem estiver pronta."""
         self.show_image(image)
-
-
-
 
 
 
