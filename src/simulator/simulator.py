@@ -17,6 +17,9 @@ class Simulator:
     '''
     def __init__(self, screen: GL2DWidget):
         # === Inicializando variáveis do simulador para realizar o necessário
+        # == Screen (Superfície que será utilizada para renderizar)
+        self.screen = screen 
+    
         # == Flags
         # Variáveis de estado da simulação
         self.running                = False 
@@ -28,7 +31,30 @@ class Simulator:
         self.draw_grid_collision    = False 
 
         # Variáveis que vem da interface do simulador
+        self.ball_init_pos = np.array([0,0],dtype=float)
+
+
+        # Timer do simulador utilizando o Core do PyQt
+        self.timer = QElapsedTimer()
+        self.timer.start()
+        self.last_time = 0.0
+
+        # === Parâmetros físicos do simulador
+        # Robô:
+
+
+
+        # Bola: 
+
+
+        # Coeficientes de atrito e restituição:
+
+
+
+        #Tempo de partida
         
+
+
         # == Inicializando variáveis dos objetos da simulação
         self.allies:    Team  = None 
         self.enemies:   Team  = None 
@@ -40,25 +66,59 @@ class Simulator:
         self.get_variables_simulation() 
         
         # === Cria os objetos do simulador
-        self.create_objects()
+        self.create_objects()   
+
+        # === Criando um cronometro
+        cronometer = Stopwatch(60)
 
         # === Cria a Engine de física do simulador
         self.Physics_Engine = Physics(allies=self.allies,enemies=self.enemies,ball=self.ball,dt=1.0/FPS,field=self.field,screen=self.screen)
-
+        
+        # === Cria o Árbitro do jogo
+        self.arbitrator = Arbitrator(self.ball, self.field, self.allies, self.enemies, screen, cronometer)
+        
         # === Puxa o endreço do widget para ele
         
+    def start(self):
+        '''
+            Inicializa a simulação
+        '''
 
+    def stop(self):
+        '''
+            Finaliza a simulação
+        '''
+
+    
     def update(self):
-        #Atualiza 
-        pass
+        '''
+            Atualiza situação da simulação
+        '''
+        # Atualiza 
+        self.Physics_Engine.update()
+
+        # O Árbitro analisa a situação do game
+        if self.arbitrator.analyzer() == Decisions.FINISH:
+            self.simulation_started = False 
+            self.reset_simulation()
 
 
-    def draw(self,surface):
+    def draw(self):
         '''
             Método para desenhar os objetos na superfície, dada as circunstâncias
         '''
-        for obj in self.objetos:
-            obj.draw(surface)   
+        # Desenha o campo na screen
+
+
+        # Desenha robôs da simulação
+
+
+        # Desenha bola da simulação 
+
+
+        # Desenhos opicionais de depuração através de Flags
+
+        pass 
 
     
     def get_variables_simulation(self):
@@ -72,15 +132,29 @@ class Simulator:
         '''
             Construindo os objetos da simulação para tratar as variáveis corretamente
         '''
-        pass
+        ## Crio robôs da simulação
+
+
+        ## Crio times da simulação 
+        # Time aliado
+
+        # Time inimigo
+
+        ## Crio objeto Bola da simulação
+
+
+        ## Crio objeto do campo na simulação
+
+
 
     def reset_simulation(self, timer: Stopwatch):
         '''
-            Resetando a simulação
+            Reposiciona objetos para reiniciar simulação
         '''
         pass
 
     def pause_simulation(self):
         '''
-            Pausa a simulação
+            Pausa a simulação através da flag
         '''
+        pass 
