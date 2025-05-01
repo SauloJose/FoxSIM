@@ -127,6 +127,14 @@ while running:
             Physics_Engine.dt = dt 
             Physics_Engine.collision_manager.dt = dt 
 
+            # Aplico o controle nos robôs
+            for bot in blue_team.robots:
+                bot.set_wheel_speeds(20,20)
+            
+            for bot in red_team.robots:
+                bot.set_wheel_speeds(10,15)
+
+
             #Atualizo a física do jogo e as posições dos robôs
             Physics_Engine.update()
 

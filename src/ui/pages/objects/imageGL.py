@@ -3,6 +3,7 @@ from PIL.Image import Transpose
 import os 
 import numpy as np 
 
+
 class Image:
     """Classe estilo Pygame para desenho de imagens no GL2DWidget"""
     def __init__(self, filepath=None, default_scale=1.0):
@@ -12,7 +13,6 @@ class Image:
         self._current_scale = default_scale
         self._flip_x = False
         self._flip_y = False
-        self.texture_id = None
         
         if filepath:
             self.load(filepath)
@@ -28,6 +28,7 @@ class Image:
                 
             self._source = PILImage.open(filepath).convert("RGBA")
             self._filepath = filepath
+
             return True
         except Exception as e:
             print(f"Erro ao carregar imagem: {e}")
@@ -72,6 +73,7 @@ class Image:
         new_img._current_scale = self._current_scale
         new_img._flip_x = self._flip_x
         new_img._flip_y = self._flip_y
+        new_img.texture_id = None 
         return new_img
 
     def rotate(self, angle):
@@ -148,37 +150,41 @@ class Image:
         if not self._source:
             return None
 
-        img = self._source.copy()
-        
-        # Aplica escala
-        if self._current_scale != 1.0:
-            new_size = (int(img.width * self._current_scale), 
-                       int(img.height * self._current_scale))
-            img = img.resize(new_size, PILImage.LANCZOS)
-        
-        # Aplica rotação
-        if self._current_angle != 0:
-            img = img.rotate(-self._current_angle, resample=PILImage.BICUBIC, expand=True)
-        
-        # Aplica flip
-        if self._flip_x or self._flip_y:
-            if self._flip_x and self._flip_y:
-                transpose = Transpose.TRANSPOSE
-            elif self._flip_x:
-                transpose = Transpose.FLIP_LEFT_RIGHT
-            else:
-                transpose = Transpose.FLIP_TOP_BOTTOM
-            img = img.transpose(transpose)
-        
-        # Prepara para OpenGL (flip vertical)
-        img = img.transpose(Transpose.FLIP_TOP_BOTTOM)
-        return {
-            'data': img.tobytes("raw", "RGBA", 0, -1),
-            'size': img.size,
-            'angle': self._current_angle,
-            'scale': self._current_scale,
-            'flip': (self._flip_x, self._flip_y)
-        }
+        try:
+            img = self._source.copy()
+            
+            # Aplica rotação
+            if self._current_angle != 0:
+                img = img.rotate(-self._current_angle, resample=PILImage.BICUBIC, expand=True)
+            
+            # Aplica escala
+            if self._current_scale != 1.0:
+                new_size = (int(img.width * self._current_scale), 
+                        int(img.height * self._current_scale))
+                img = img.resize(new_size, PILImage.LANCZOS)
+            
+            # Aplica flip
+            if self._flip_x or self._flip_y:
+                if self._flip_x and self._flip_y:
+                    transpose = Transpose.TRANSPOSE
+                elif self._flip_x:
+                    transpose = Transpose.FLIP_LEFT_RIGHT
+                else:
+                    transpose = Transpose.FLIP_TOP_BOTTOM
+                img = img.transpose(transpose)
+            
+            # Prepara para OpenGL (flip vertical)
+            img = img.transpose(Transpose.FLIP_TOP_BOTTOM)
+            return {
+                'data': img.tobytes("raw", "RGBA", 0, -1),
+                'size': img.size,
+                'angle': self._current_angle,
+                'scale': self._current_scale,
+                'flip': (self._flip_x, self._flip_y)
+            }
+        except Exception as e:
+            print(f"Erro ao preparar imagem para OpenGL: {e}")
+            return None 
     
     def __repr__(self):
         return f"Image('{self._filepath}', size={self.size}, angle={self._current_angle}, scale={self._current_scale})"

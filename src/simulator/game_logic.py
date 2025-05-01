@@ -26,6 +26,9 @@ class Physics:
         # Objetos móveis que serão atualizados a cada ciclo
         self.moving_objects = [self.ball] + self.allies + self.enemies
 
+        #Lista de todos os robôs
+        self.bots = self.allies + self.enemies 
+
         # Lista de todos objetos de colisão do sistema (móveis + estrutura do campo)
         self.all_collision_objects = [obj.collision_object for obj in self.moving_objects]
         self.all_collision_objects.append(self.field.collision_object)
@@ -64,12 +67,12 @@ class Physics:
         '''
             Atualiza os robôs aliados e inimigos com base nas velocidades das rodas.
         '''
+        #Atualiza posição dos robôs
+        for bot in self.bots:
+            bot.move(self.dt)
 
-        
-        
-        for robot in self.enemies:
-            # Inimigos parados por enquanto
-            robot.set_wheel_speeds(0, 0)
+
+
 
     def update_ball(self):
         '''
