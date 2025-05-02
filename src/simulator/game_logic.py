@@ -72,8 +72,6 @@ class Physics:
             bot.move(self.dt)
 
 
-
-
     def update_ball(self):
         '''
             Atualizo a posição da bola na interface.

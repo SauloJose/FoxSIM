@@ -9,7 +9,7 @@ from ui.interface_config import (
     SCALE_PX_TO_CM,
 )
 from simulator.collision.collision import *
-
+from simulator.intelligence.controll import *
 
 class Robot:
     '''
@@ -70,7 +70,6 @@ class Robot:
         self.v = 0.0
         self.omega = 0.0
 
-
         # Colisão
         self.collision_object = CollisionRectangle(
             self.x, self.y, self.width, self.height, 
@@ -89,6 +88,20 @@ class Robot:
         self.initial_y          = self.y
         self.initial_angular_velocity = self.angular_velocity
 
+        # Controlador PID para o robô
+        self.kp = 2.0
+        self.ki = 0.1
+        self.kd = 0.2
+
+        # Objetos de controle PID do robô
+        # PID para 
+        self.pid_linear = PIDController(self.kp,self.ki,self.kd)
+
+        # PID para
+        self.pid_angular = PIDController(self.kp,self.ki,self.kd)
+
+        # PID para
+        self.pid_orientation = PIDController(self.kp,self.ki,self.kd)
 
     @property
     def position(self):
@@ -117,7 +130,63 @@ class Robot:
     def y(self, value):
         self.position[1] = value
         self.collision_object.y =value
-    
+
+    # Método para enviar os valores de KP, Kd e Ki
+    def set_controll_const(self,kp,kd,ki):
+        # Atualizando constantes
+        self.kp = kp 
+        self.kd = kd 
+        self.ki = ki 
+        
+        # Atualizando controladores PID
+        self.pid_linear = PIDController(self.kp,self.ki,self.kd)
+        self.pid_heading = PIDController(self.kp,self.ki,self.kd)
+        self.pid_orientation = PIDController(self.kp,self.ki,self.kd)
+
+
+    def go_to_point(self, target_pos, target_angle, dt):
+        pos_error = target_pos - self.position
+        distance = np.linalg.norm(pos_error)
+
+        angle_to_target = np.arctan2(pos_error[1], pos_error[0])
+
+        # Erros se for de frente ou de ré
+        error_front = self.normalize_angle(angle_to_target - self.angle)
+        error_back = self.normalize_angle(angle_to_target + np.pi - self.angle)
+
+        # Decidir direção com menor esforço angular
+        if abs(error_back) < abs(error_front):
+            forward = False
+            heading_error = error_back
+            distance *= -1  # vai de ré
+        else:
+            forward = True
+            heading_error = error_front
+
+        # Ângulo final desejado (considerando reverso também)
+        angle_error = self.normalize_angle(target_angle - self.angle)
+
+        # Controladores
+        v = self.pid_linear.compute(distance, dt)
+        w = self.pid_angular.compute(heading_error + angle_error, dt)
+
+        # Velocidades das rodas
+        v_l = v - (w * self.distance_wheels / 2)
+        v_r = v + (w * self.distance_wheels / 2)
+
+        return v_l, v_r
+
+
+    def normalize_angle(self, angle):
+        """
+        Normaliza ângulos para o intervalo [-π, π]
+        """
+        while angle > math.pi:
+            angle -= 2 * math.pi
+        while angle < -math.pi:
+            angle += 2 * math.pi
+        return angle
+
     #setando velocidade das rodas
     def set_wheel_speeds(self, v_l, v_r):
         """Define as velocidades das rodas esquerda e direita (em cm/s)."""

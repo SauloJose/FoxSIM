@@ -586,64 +586,91 @@ class CollisionRectangle(CollisionObject):
         """
         Verifica colisão entre este retângulo (rotacionado) e um círculo.
         Retorna [True, mtv] ou [False, None].
+        
+        Melhorias implementadas:
+        1. Tratamento mais robusto de casos extremos
+        2. Cálculo mais preciso do MTV
+        3. Melhor estabilidade numérica
+        4. Suporte a colisões em alta velocidade
+        5. Correção de edge cases
         """
+        # 1. Obter dados básicos do círculo
         cx, cy = circle.x, circle.y
         radius = circle.radius
-
-        # Transforma o centro do círculo para o espaço local do retângulo
+        
+        # 2. Transformar o centro do círculo para o espaço local do retângulo
         dx = cx - self.x
         dy = cy - self.y
         angle_rad = -np.radians(self.angle)
-
+        
         cos_a = np.cos(angle_rad)
         sin_a = np.sin(angle_rad)
         local_x = cos_a * dx - sin_a * dy
         local_y = sin_a * dx + cos_a * dy
-
-        # Limita o ponto ao retângulo (em seu espaço local)
+        
+        # 3. Encontrar o ponto mais próximo no retângulo (em espaço local)
         half_w = self.width / 2
         half_h = self.height / 2
-
+        
+        # Clamp para dentro do retângulo
         closest_x = max(-half_w, min(local_x, half_w))
         closest_y = max(-half_h, min(local_y, half_h))
-
-        # Distância do centro da bola ao ponto mais próximo do retângulo
+        
+        # 4. Calcular vetor de distância
         dist_x = local_x - closest_x
         dist_y = local_y - closest_y
         dist_sq = dist_x**2 + dist_y**2
-
-        if dist_sq > radius**2:
-            return [False, None]
-
-        # Colisão detectada — calcula MTV
-        dist = np.sqrt(dist_sq)
-        if dist != 0:
-            # MTV no espaço local
-            penetration = radius - dist
-            mtv_local = np.array([dist_x, dist_y]) / dist * penetration
-            if dist < 1e-2:
-                mtv_local *=1.5 #Empurrão extra em tangenciamentos quase exatos
-        else:
-            # Caso especial: centro da bola está exatamente no canto — empurra radialmente
-            # Exemplo: empurra para a direita
-            direction_local = np.array([local_x, local_y])
-            if np.linalg.norm(direction_local) != 0:
-                mtv_local = (direction_local / np.linalg.norm(direction_local))*radius
-            else:
-                mtv_local = np.array([1.0, 0.0]) * radius
-
-        # Converte MTV de volta ao espaço global
-        mtv_global = np.array([
-            cos_a * mtv_local[0] + -sin_a * mtv_local[1],
-            sin_a * mtv_local[0] +  cos_a * mtv_local[1],
-        ])
-
-        #Cortanto o MTV caso seja numericamente estável
-        if np.linalg.norm(mtv_global) <1e-3:
+        
+        # 5. Verificação inicial de colisão
+        if dist_sq > radius**2 + 1e-6:  # Pequena margem para estabilidade numérica
             return [False, None]
         
+        # 6. Tratamento especial para colisão exata no canto
+        if dist_sq < 1e-12:  # Centro exatamente no canto
+            # Encontrar o canto mais próximo (pode ser múltiplo em caso de empate)
+            corner_x = half_w if local_x > 0 else -half_w
+            corner_y = half_h if local_y > 0 else -half_h
+            
+            # Criar vetor de empurrão radial
+            push_x = local_x - corner_x
+            push_y = local_y - corner_y
+            push_dist = max(np.sqrt(push_x**2 + push_y**2), 1e-6)
+            
+            mtv_local = np.array([push_x, push_y]) * (radius / push_dist)
+        else:
+            # 7. Caso normal: calcular MTV
+            dist = np.sqrt(dist_sq)
+            penetration = radius - dist
+            
+            # Evitar divisão por zero e normalizar
+            if dist > 1e-6:
+                mtv_local = np.array([dist_x, dist_y]) * (penetration / dist)
+            else:
+                mtv_local = np.array([radius, 0])  # Fallback seguro
+                
+            # 8. Ajuste para casos de tangência (maior empurrão)
+            if dist < radius * 0.1:  # Quando muito próximo
+                mtv_local *= 1.5
+        
+        # 9. Converter MTV de volta para o espaço global
+        mtv_global = np.array([
+            cos_a * mtv_local[0] - sin_a * mtv_local[1],
+            sin_a * mtv_local[0] + cos_a * mtv_local[1]
+        ])
+        
+        # 10. Ajuste final do MTV
+        mtv_norm = np.linalg.norm(mtv_global)
+        
+        # Verificação de validade do MTV
+        if mtv_norm < 1e-3 or not np.all(np.isfinite(mtv_global)):
+            return [False, None]
+        
+        # Normalizar e garantir magnitude mínima
+        min_mtv = radius * 0.01  # 1% do raio como mínimo
+        if mtv_norm < min_mtv:
+            mtv_global = mtv_global / mtv_norm * min_mtv
+        
         return [True, mtv_global]
-
 
 
     def get_closest_point_on_rectangle(self, point, corners):
@@ -913,6 +940,8 @@ class CollisionGroup(CollisionObject):
             - [True, mtv]:  Se ocorreu alguma colisão.
             - [False, None]: Se não teve nenhuma colisão
         """
+        self._generate_aabb() #Atualiza AABB antes de verificar
+
         if isinstance(other, CollisionGroup):
             return self._check_collision_with_group(other)
 
@@ -1034,6 +1063,10 @@ class CollisionManagerSAT:
         self.contact_points_cache  = {}
         self.collision_pairs_cache = set()
 
+        # Adicionar o detector de colisão contínua
+        self.ccd = ContinuousCollisionDetector()
+        self.ccd_threshold = 50.0 #Velocidade mínima para usar CDD (em)
+
 
     def detect_and_resolve(self, objects):
         """
@@ -1041,14 +1074,13 @@ class CollisionManagerSAT:
         :param objects: Lista de objetos com .collision_object, .velocity, .mass, etc.
         """
         self.clear()
+        self.collision_pairs_cache.clear()
 
         #1. Verifica se são objetos de colisão apenas e passa todos para o grid
         for obj in objects:
             if hasattr(obj, "reference"):
                 self.add_object(obj)
 
-        #Verifica se o par já foi checado anteriormente.
-        self.collision_pairs_cache.clear()
 
         # Fase de detecção
         collisions = []
@@ -1071,9 +1103,24 @@ class CollisionManagerSAT:
                 #Adiciona para tratar
                 self.collision_pairs_cache.add(pair_key)
                 
-                has_collision, mtv = obj.check_collision(other)
-                if has_collision and np.linalg.norm(mtv) > 1e-6:
-                    collisions.append((obj, other,mtv))
+                # Aplica CCD apenas se a bola estiver envolvida
+                is_ball_involved = (
+                    (obj.reference.type_object == BALL_OBJECT) or 
+                    (other.reference.type_object == BALL_OBJECT)
+                )
+
+                if is_ball_involved and (
+                    np.linalg.norm(obj.reference.velocity) > self.ccd_threshold or
+                    np.linalg.norm(other.reference.velocity) > self.ccd_threshold
+                ):
+                    ccd_collision, t, normal = self.ccd.check_continuous_collision(obj, other, self.dt)
+                    if ccd_collision:
+                        mtv = normal * (1.0 - t) * np.linalg.norm(obj.reference.velocity) * self.dt
+                        collisions.append((obj, other, mtv))
+                else:
+                    has_collision, mtv = obj.check_collision(other)
+                    if has_collision and np.linalg.norm(mtv) > 1e-6:
+                        collisions.append((obj, other, mtv))
 
         # Fase de resolução com pontos de contato
         for obj1, obj2, mtv in collisions:
@@ -1287,9 +1334,14 @@ class CollisionManagerSAT:
         r2 = collision_point - obj2.position
 
         # Velocidade rotacional nos pontos de contato (v = ω × r)
-        v_rot1 = getattr(obj1, 'angular_velocity', 0.0) * np.array([-r1[1], r1[0]])
-        v_rot2 = getattr(obj2, 'angular_velocity', 0.0) * np.array([-r2[1], r2[0]])
-
+        v_rot1 = np.array([
+            -obj1.angular_velocity * r1[1],
+            obj1.angular_velocity * r1[0]
+        ])
+        v_rot2 = np.array([
+            -obj2.angular_velocity * r1[1],
+            obj2.angular_velocity * r1[0]
+        ])
         # Velocidade total nos pontos de contato (linear + rotacional)
         v1_total = obj1.velocity + v_rot1
         v2_total = obj2.velocity + v_rot2
@@ -1336,6 +1388,7 @@ class CollisionManagerSAT:
         tangent = np.array([-normal[1], normal[0]])
         tangent /= np.linalg.norm(tangent)
         v_rel_tangent = np.dot(v_rel, tangent)
+
         jt = -v_rel_tangent / denom
         jt = np.clip(jt, -abs(impulse_mag) * friction, abs(impulse_mag) * friction)
         friction_impulse = jt * tangent
@@ -1506,3 +1559,122 @@ class CollisionManagerSAT:
         for point in self.contact_points_cache.values():
             pos = virtual_to_screen(point)
             pygame.draw.circle(screen, (255, 0, 0), pos, 5)
+
+
+
+class ContinuousCollisionDetector:
+    def __init__(self):
+        self.normal_cache = {}  # Cache para normais
+    
+    def get_edge_normal(self, p1, p2):
+        cache_key = (tuple(p1), tuple(p2))
+        if cache_key in self.normal_cache:
+            return self.normal_cache[cache_key]
+        
+        edge_vector = p2 - p1
+        normal = np.array([-edge_vector[1], edge_vector[0]])
+        norm = np.linalg.norm(normal)
+        
+        if norm > 1e-6:
+            normal = normal / norm
+        
+        self.normal_cache[cache_key] = normal
+        return normal
+    
+    def ray_segment_intersect(self, ro, rd, p1, p2):
+        """Testa interseção entre raio e segmento com tratamento de raio"""
+        v1 = ro - p1
+        v2 = p2 - p1
+        v3 = np.array([-rd[1], rd[0]])
+        
+        dot = np.dot(v2, v3)
+        if abs(dot) < 1e-6:
+            return False, None
+        
+        t1 = np.cross(v2, v1) / dot
+        t2 = np.dot(v1, v3) / dot
+        
+        if t1 >= 0 and 0 <= t2 <= 1:
+            return True, t1
+        
+        return False, None
+    
+    def check_robot_ball_ccd(self, robot, ball, dt):
+        """CCD específico para retângulo (robô) e bola"""
+        # Acessa os objetos de referência corretamente
+        robot_ref = robot.reference
+        ball_ref = ball.reference
+        
+        # Calcula movimento previsto
+        start_pos = ball_ref.position
+        end_pos = ball_ref.position + ball_ref.velocity * dt
+        movement = end_pos - start_pos
+        
+        # Testa contra todas as arestas do robô
+        rect_corners = robot.get_corners()
+        t_first = float('inf')
+        collision_normal = None
+        
+        for i in range(4):
+            edge_p1 = rect_corners[i]
+            edge_p2 = rect_corners[(i+1)%4]
+            
+            # Testa interseção considerando o raio da bola
+            hit, t = self._swept_circle_edge_test(
+                start_pos, ball.radius,
+                movement, edge_p1, edge_p2
+            )
+            
+            if hit and t < t_first:
+                t_first = t
+                collision_normal = self.get_edge_normal(edge_p1, edge_p2)
+        
+        if t_first <= 1.0:
+            return True, t_first, collision_normal
+        
+        return False, None, None
+    
+    def _swept_circle_edge_test(self, circle_pos, radius, movement, edge_p1, edge_p2):
+        """Testa interseção entre círculo em movimento e aresta"""
+        # Implementação mais precisa considerando o raio
+        edge_vec = edge_p2 - edge_p1
+        edge_len = np.linalg.norm(edge_vec)
+        edge_dir = edge_vec / edge_len if edge_len > 0 else np.zeros(2)
+        
+        # Calcula ponto mais próximo na aresta
+        to_circle = circle_pos - edge_p1
+        projection = np.dot(to_circle, edge_dir)
+        projection = max(0, min(edge_len, projection))
+        closest = edge_p1 + projection * edge_dir
+        
+        # Vetor do ponto mais próximo ao círculo
+        to_center = circle_pos - closest
+        dist_sq = np.dot(to_center, to_center)
+        
+        # Se já está colidindo no frame atual
+        if dist_sq <= radius**2:
+            return True, 0.0
+        
+        # Se está se movendo para longe
+        if np.dot(movement, to_center) >= 0:
+            return False, None
+        
+        # Testa interseção com cápsula (aresta + raio)
+        return self.ray_segment_intersect(
+            circle_pos, movement,
+            closest + to_center/np.sqrt(dist_sq)*radius,
+            closest + to_center/np.sqrt(dist_sq)*radius
+        )
+    
+    def check_continuous_collision(self, objA, objB, dt):
+        """Verificação genérica de CCD"""
+        # Caso robô-bola
+        if isinstance(objA, CollisionRectangle) and isinstance(objB, CollisionCircle):
+            return self.check_robot_ball_ccd(objA, objB, dt)
+        # Caso bola-robô (inverte a ordem)
+        elif isinstance(objA, CollisionCircle) and isinstance(objB, CollisionRectangle):
+            collided, t, normal = self.check_robot_ball_ccd(objB, objA, dt)
+            return collided, t, -normal if normal is not None else None
+        
+        # Adicione outros casos aqui (bola-bola, robô-robô)
+        return False, None, None

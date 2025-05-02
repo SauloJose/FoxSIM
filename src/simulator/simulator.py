@@ -89,7 +89,6 @@ class Simulator:
             Finaliza a simulação
         '''
 
-    
     def update(self):
         '''
             Atualiza situação da simulação

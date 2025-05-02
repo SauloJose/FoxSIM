@@ -18,6 +18,7 @@ class DrawCall:
     end_x: Optional[float] = None
     end_y: Optional[float] = None
     radius: Optional[float] = None
+    fill: bool = False  # Novo parâmetro para controle de preenchimento
 
     def __post_init__(self):
         # Se scale_x ou scale_y não foram fornecidos, usa o valor de scale

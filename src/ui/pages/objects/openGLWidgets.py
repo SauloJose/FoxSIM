@@ -5,11 +5,11 @@ from PyQt5.QtGui import *
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU  import *
-import OpenGL 
-
-from PIL import Image as PILImage
+from OpenGL import GL 
 from ui.pages.objects.imageGL import *
 from ui.pages.objects.backbuffer2D import *
+
+
 
 class TextureCache:
     def __init__(self, max_size_mb=50):
@@ -88,19 +88,23 @@ class GL2DWidget(QOpenGLWidget):
                 width (int): Largura opcional do widget.
                 height (int): Altura opcional do widget.
         '''
-        # AGORA chamamos o construtor da classe pai
+        print("[GL2DWidtet] chamando método de inicialização")
         super().__init__(parent)
 
+
+        # Configuração robusta do formato OpenGL
         fmt = QSurfaceFormat()
         fmt.setVersion(3, 3)
-        fmt.setProfile(QSurfaceFormat.CompatibilityProfile)
-        fmt.setRenderableType(QSurfaceFormat.OpenGL)
+        fmt.setProfile(QSurfaceFormat.CoreProfile)
+        fmt.setDepthBufferSize(24)
+        fmt.setStencilBufferSize(8)
+        fmt.setSamples(4)  # MSAA
         fmt.setSwapBehavior(QSurfaceFormat.DoubleBuffer)
-        QSurfaceFormat.setDefaultFormat(fmt)  # <- ESSENCIAL
-        self.setFormat(fmt)
+        fmt.setOption(QSurfaceFormat.DebugContext)  # Para depuração
+        self.setFormat(fmt)  # Deve ser chamado ANTES de show()
 
-
-        self.texture_cache = TextureCache(max_size_mb=50)
+        #Variáveis de estado
+        self._is_initialized = False 
         
         # Definição de tamanhos com base no widget pai ou valores padrões
         self.view_width = max(1, width) if width is not None else 800
@@ -109,67 +113,64 @@ class GL2DWidget(QOpenGLWidget):
 
         # back_buffer do Widget
         self.back_buffer = BackBuffer2D()
-
-        # GL resources
-        self.fbo = None 
-        self.texture = None 
-        self.rbo = None 
-        self._use_fbo = True 
-        self._is_initialized = False 
+        self.texture_cache = TextureCache(max_size_mb=50)
 
         # Interação
         self.click_position = None 
 
     def initializeGL(self):
-        print("[GL2DWidget]: Iniciando o GL")
+        super().initializeGL()
+        
+        if not self.isValid():
+            print("Contexto OpenGL inválido")
+            return
+
+        self.makeCurrent()
         try:
-            self.makeCurrent()
-
-            ctx = QOpenGLContext.currentContext()
-            if not self.isValid() or not ctx:
-                print("initializeGL: contexto ainda não está disponível.")
-                QTimer.singleShot(100, self.initializeGL)
-                return
-
-            print("OpenGL version:", glGetString(GL_VERSION).decode())
-            print("GLSL version:", glGetString(GL_SHADING_LANGUAGE_VERSION).decode())
-
-            extensions = []
-            try:
-                num_ext = glGetIntegerv(GL_NUM_EXTENSIONS)
-                for i in range(num_ext):
-                    ext = glGetStringi(GL_EXTENSIONS, i)
-                    if ext:
-                        extensions.append(ext.decode())
-                print("Extensions:", extensions[:10])
-            except Exception as e:
-                print(f"[Aviso] Não foi possível obter extensões via glGetStringi: {e}")
-
-            glClearColor(0.2, 0.2, 0.2, 1.0)
+        # Configuração mínima e universal
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-            self._is_initialized = True
-            self.initialized.emit()
-
-            QTimer.singleShot(0, self._setup_framebuffer)  # executa no próximo ciclo do event loop
-
             
+            # Configuração viewport básica
+            glViewport(0, 0, self.width(), self.height())
+            
+            # Marca como inicializado
+            self._is_initialized = True
+            print("OpenGL inicializado em modo de compatibilidade universal")
+                
         except Exception as e:
-            print(f"Erro ao inicializar OpenGL: {e}")
-            self._check_gl_error("initializeGL")
-            QTimer.singleShot(1000, self.initializeGL)  # Tenta novamente
+            print(f"Erro na inicialização: {str(e)}")
+            self._fallback_gl21()
         finally:
+            self.initialized.emit()
             self.doneCurrent()
 
-    def _fbo_ok(self):
-        ''' Verifica o estado do fbo'''
-        if not self.fbo or not glIsFramebuffer(self.fbo):
-            return False
-        glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
-        status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        return status == GL_FRAMEBUFFER_COMPLETE
+    def _fallback_gl21(self):
+        self.makeCurrent()
+        try:
+            print("Ativando modo de compatibilidade OpenGL 2.1")
+            
+            # Configurações básicas
+            glDisable(GL_DEPTH_TEST)
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            
+            # Configura viewport e projeção
+            glViewport(0, 0, self.width(), self.height())
+            glMatrixMode(GL_PROJECTION)
+            glLoadIdentity()
+            glOrtho(0, self.width(), self.height(), 0, -1, 1)
+            glMatrixMode(GL_MODELVIEW)
+            glLoadIdentity()
+            
+            # Estado do widget
+            self._is_initialized = True
+
+        except Exception as e:
+            print(f"Erro no fallback GL2.1: {str(e)}")
+            self._is_initialized = False
+        finally:
+            self.doneCurrent()
 
     def check_gl_ready(self):
         """Verifica se o contexto OpenGL foi inicializado corretamente."""
@@ -180,130 +181,35 @@ class GL2DWidget(QOpenGLWidget):
             print(f"OpenGL versão: {version}")
         except Exception as e:
             print(f"Erro ao verificar OpenGL: {e}")
-            self.show_error("Falha ao inicializar contexto OpenGL.")
 
-    # Atualize o _setup_framebuffer
-    def _setup_framebuffer(self, retries=3):
-        print("[GL2DWidget]: Setup do framebuffer;")
+    def resizeGL(self, w, h):
+        if not self._is_initialized:
+            return 
         if not self.isValid() or not QOpenGLContext.currentContext():
-            print("FBO: contexto inválido")
+            print("[resizeGL]: contexto inválido.")
             return
 
-        # Verificação explícita das funções GL
-        if not all(map(bool, [glGenFramebuffers, glBindFramebuffer, glGenTextures])):
-            print("Funções GL ainda não estão disponíveis. Aguardando novo ciclo.")
-            QTimer.singleShot(100, lambda: self._setup_framebuffer(retries - 1))
-            return
-
-        if retries <= 0:
-            print("Falha crítica ao configurar FBO após múltiplas tentativas")
+        if self.view_width == w and self.view_height == h:
             return
 
         self.makeCurrent()
         try:
-            # Limpeza segura
-            self._cleanup_gl_resources()
-
-            # Dimensões seguras
-            w = max(1,self.view_width)
-            h = max(1, self.view_height)
-
-            # Cria FBO
-            self.fbo = glGenFramebuffers(1)
-            glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
-            
-            # Cria texture attachment
-            self.texture = glGenTextures(1)
-            glBindTexture(GL_TEXTURE_2D, self.texture)
-            glTexImage2D(
-                GL_TEXTURE_2D, 0, GL_RGBA, 
-                w,h,
-                0, GL_RGBA, GL_UNSIGNED_BYTE, None  
-            )
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-            glFramebufferTexture2D(
-                GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                GL_TEXTURE_2D, self.texture, 0
-            )
-            
-            # Cria renderbuffer de profundidade
-            self.rbo = glGenRenderbuffers(1)
-            glBindRenderbuffer(GL_RENDERBUFFER, self.rbo)
-            glRenderbufferStorage(
-                GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
-                w,h
-            )
-            glFramebufferRenderbuffer(
-                GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                GL_RENDERBUFFER, self.rbo
-            )
-            
-            # Verificação completa do FBO
-            status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-            if status != GL_FRAMEBUFFER_COMPLETE:
-                raise RuntimeError(f"FBO incompleto, status: 0x{status:X}")
-                
-            print("FBO configurado com sucesso")
-            
-        except Exception as e:
-            print(f"Erro ao configurar FBO (tentativa {4-retries}/3): {e}")
-            self._cleanup_gl_resources()
-            QTimer.singleShot(1000, lambda: self._setup_framebuffer(retries-1))
-        finally:
-            try:
-                glBindFramebuffer(GL_FRAMEBUFFER, 0)
-            except Exception as e:
-                print(f"Erro ao desassociar framebuffer: {e}")
-            self.doneCurrent()
-
-            
-    def resizeGL(self, w, h):
-        """
-        Chamado automaticamente quando o widget é redimensionado.
-        Atualiza o viewport, a projeção ortográfica e o framebuffer (FBO).
-        """
-        if not self.isValid() or not QOpenGLContext.currentContext():
-            print("resizeGL: contexto inválido.")
-            return
-    
-        self.makeCurrent()  # Torna o contexto atual para operações OpenGL
-
-        try:
-            # Atualiza as dimensões da janela
             self.view_width = w
             self.view_height = h
 
-            # Viewport e projeção ortográfica estilo pygame
-            glViewport(0,0,w,h)
-
+            glViewport(0, 0, w, h)
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            glOrtho(0, w, h, 0, -1, 1)  # (left, right, bottom, top, near, far)
+            glOrtho(0, w, h, 0, -1, 1)
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
 
-            # Recia FBO com novo tamanho
-            if self._is_initialized:
-                self._setup_framebuffer()
-
         except Exception as e:
-            print(f"Erro em resizeGL: {e}")
+            print(f"[resizeGL]: Erro em resizeGL: {e}")
             self._check_gl_error("resizeGL")
         finally:
             self.doneCurrent()
 
-    def _check_gl_functions(self):
-        """Verifica se as funções necessárias estão disponíveis"""
-        required_funcs = {
-            'Framebuffers': bool(glGenFramebuffers),
-            'Renderbuffers': bool(glGenRenderbuffers),
-            'Textures': bool(glGenTextures)
-        }
-        
-        missing = [name for name, available in required_funcs.items() if not available]
-        if missing:
-            raise RuntimeError(f"Funções OpenGL indisponíveis: {', '.join(missing)}")
-        
     def _check_gl_error(self, context):
         if not QOpenGLContext.currentContext():
             print(f"[{context}] Sem contexto GL ativo para checar erro.")
@@ -315,161 +221,145 @@ class GL2DWidget(QOpenGLWidget):
             if error == 1282:
                 print("Erro 1282: operação inválida — provavelmente por framebuffer incompleto ou função inválida.")
 
-    ## == Método principal de desenho utilizando o open GL
-    def paintGL(self):
-        """
-        Método principal de desenho utilizando o OpenGL. Realiza o processo de renderização,
-        desenhando o conteúdo do FBO no buffer de exibição.
-        """
-        if not self._fbo_ok():
-            print("paintGL: FBO não está válido")
+
+    def _cleanup_gl_resources(self):
+        if not self.isValid():
             return
 
+        self.makeCurrent()
+        try:
+            # Limpa apenas texturas (se houver outras alocações GL, mantenha)
+            if hasattr(self, 'texture') and self.texture and glIsTexture(self.texture):
+                glDeleteTextures([self.texture])
+                self.texture = None
+            
+            # Limpa o cache de texturas (se usado)
+            if hasattr(self, 'texture_cache'):
+                self.texture_cache.cache.clear()
+                self.texture_cache.current_size = 0
+
+        except Exception as e:
+            print(f"Erro ao limpar recursos GL: {str(e)}")
+        finally:
+            self.doneCurrent()
+
+    ## == Método principal de desenho utilizando o OpenGL
+    def paintGL(self):
+        if not self._is_initialized:
+            return
+
+        self.makeCurrent()
+        try:
+            # Limpa o buffer com cor preta
+            glClearColor(0.0, 0.0, 0.0, 1.0)
+            glClear(GL_COLOR_BUFFER_BIT)
+            
+            # Configuração de projeção ortogonal simples
+            glMatrixMode(GL_PROJECTION)
+            glLoadIdentity()
+            glOrtho(0, self.width(), self.height(), 0, -1, 1)
+            
+            glMatrixMode(GL_MODELVIEW)
+            glLoadIdentity()
+            
+            # Renderiza todas as primitivas
+            for call in sorted(self.back_buffer.get_calls(), key=lambda x: x.layer):
+                try:
+                    self._process_draw_call(call)
+                except Exception as e:
+                    print(f"Erro ao renderizar: {str(e)}")
+                    continue
+                    
+        except Exception as e:
+            print(f"ERRO FATAL no paintGL: {str(e)}")
+        finally:
+            self.back_buffer.clear()
+            self.doneCurrent()
+
+    def render_to_back_buffer(self):
+        if not self._is_initialized:
+            print("[render_to_back_buffer]: Widget ainda não inicializado.")
+            return
+
+        if not hasattr(self, 'back_buffer'):
+            print("[render_to_back_buffer]: Back buffer não inicializado.")
+            return
+        
         self.makeCurrent()
         try:
             w = max(1, self.view_width)
             h = max(1, self.view_height)
 
-            # Limpa o buffer principal
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, self.fbo)
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER,0)
+            # Usa framebuffer padrão (0)
+            glBindFramebuffer(GL_FRAMEBUFFER, 0)
+            glViewport(0, 0, w, h)
 
-            glBlitFramebuffer(0, 0, w, h,
-                          0, 0, w, h,
-                          GL_COLOR_BUFFER_BIT, GL_NEAREST)
-
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, 0)
-
-            glFlush()
-
-
-        except Exception as e:
-            print(f"Erro fatal em paintGL: {str(e)}")
-            self._is_initialized = False 
-        
-        finally:
-            self.back_buffer.clear()  # Limpa as chamadas após desenhar
-            self.doneCurrent()
-
-
-    def render_to_back_buffer(self):
-        '''
-        Desenha todas as draw_calls acumuladas no FBO (backbuffer).
-        O conteúdo só será exibido após um flip() (update → paintGL).  
-          '''
-        if not self._is_initialized:
-            print("render_to_back_buffer: Widget ainda não inicializado.")
-            return
-                
-        self.makeCurrent()
-
-        try: 
-            if not self._fbo_ok():
-                print("Erro: framebuffer inválido ou não inicializado.")
-                return
-
-            # Use dimensões seguras
-            w = max(1, self.view_width)
-            h = max(1, self.view_height)
-
-            # Desenha tudo no FBO (Back buffer)
-            glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
-            glViewport(0, 0, w,h)
-
-            # Limpa o buffer
             glClearColor(0.2, 0.2, 0.2, 1.0)
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-            # Ordena todas as chamadas por camada
             sorted_calls = sorted(self.back_buffer.get_calls(), key=lambda call: call.layer)
             for call in sorted_calls:
                 try:
                     self._process_draw_call(call)
                 except Exception as e:
-                    print(f"[Erro] ao processar chamada de desenho: {e}")
-                
+                    print(f"[Erro][render_to_back_buffer]: Erro ao processar chamada de desenho: {e}")
+
         except Exception as e:
-            print(f"[Erro] durante render_to_back_buffer: {e}")
+            print(f"[GL Error][render_to_back_buffer]: Erro durante render_to_back_buffer: {e}")
             self._check_gl_error("render_to_back_buffer")
-            
         finally:
-            try:
-                glBindFramebuffer(GL_FRAMEBUFFER, 0)
-            except Exception as e:
-                print(f"[Erro] ao disvincular FBO: {e}")
             self.doneCurrent()
 
 
     def _process_draw_call(self, call):
-        """ Processa uma unica draw call de forma segura"""
+        """ Processa uma única draw call de forma segura """
         try:
             if call.draw_type == BackBuffer2D.DRAW_IMAGE:
                 if call.obj:
                     self._render_image(call.obj, call.x, call.y, call.scale, call.angle, call.alpha)
                 else:
-                    print("[Aviso] DRAW_IMAGE com objeto nulo.")
+                    print("[Aviso][_process_draw_call]: DRAW_IMAGE com objeto nulo.")
 
             elif call.draw_type == BackBuffer2D.DRAW_PRIMITIVE:
                 if call.obj == "rect":
                     self._render_rect(call.x, call.y, call.scale_x, call.scale_y, call.color)
-                            
+                elif call.obj == "rect_vbo":
+                    self._render_rect_vbo(call.x, call.y, call.scale_x, call.scale_y, call.color, fill=call.fill)
                 elif call.obj == "line":
                     self._render_line(call.x, call.y, call.end_x, call.end_y, call.color)
-                            
+                                
                 elif call.obj == "circle":
                     self._render_circle(call.x, call.y, call.radius, call.color)
-                            
+                                
                 elif call.obj == "polygon":
                     self._render_polygon(call.points, call.color)
-                            
+                                
                 elif call.obj == "arrow":
                     self._render_arrow(call.x, call.y, call.end_x, call.end_y, call.color)
                 else:
-                    print(f"[Aviso]: Objeto de primitiva desconhecido: {call.obj}")
+                    print(f"[Aviso][_process_draw_call]: Objeto de primitiva desconhecido: {call.obj}")
 
             elif call.draw_type == BackBuffer2D.DRAW_TEXT:
                 if isinstance(call.obj, str):
                     self._render_text(call.x, call.y, call.obj, call.color)
                 else:
-                    print("[Aviso]: DRAW_TEXT com objeto não textual.")
+                    print("[Aviso][_process_draw_call]: DRAW_TEXT com objeto não textual.")
             
             else:
-                print(f"[Aviso] Tipo de draw_call desconhecido: {call.draw_type}")
+                print(f"[Aviso][_process_draw_call]: Tipo de draw_call desconhecido: {call.draw_type}")
         except Exception as e:
-            print(f"[Erro] Erro ao processar draw call: {str(e)}")
+            print(f"[Erro][_process_draw_call]: Erro ao processar draw call: {str(e)}")
 
-    def _cleanup_gl_resources(self):
-        """Libera todos os recursos GL de forma segura"""
-        self.makeCurrent()
-        try:
-            if self.texture and glIsTexture(self.texture):
-                glDeleteTextures([self.texture])
-            self.texture = None
-            
-            if self.rbo and glIsRenderbuffer(self.rbo):
-                glDeleteRenderbuffers([self.rbo])
-            self.rbo = None
-            
-            if self.fbo and glIsFramebuffer(self.fbo):
-                glDeleteFramebuffers([self.fbo])
-            self.fbo = None
-            
-            # Limpa cache de texturas
-            for cache_type in self.texture_cache.values():
-                for entry in cache_type.values():
-                    if len(entry) > 0 and glIsTexture(entry[0]):
-                        glDeleteTextures([entry[0]])
-            
-            self.texture_cache = {'text': {}, 'images': {}}
-            self.texture_cache_size = 0
-            
-        except Exception as e:
-            print(f"Erro ao liberar recursos GL: {e}")
-        finally:
-            self.doneCurrent()
 
+    def _ensure_context(self):
+        """ Garante que temos um contexto GL válido e ativo"""
+        if not self.isValid():
+            return False 
+        
+        if not QOpenGLContext.currentContext():
+            self.makeCurrent()
+        return True 
+    
     def update_widget(self):
         '''
             Método para forçar a atualização do widget
@@ -487,23 +377,34 @@ class GL2DWidget(QOpenGLWidget):
         self.update_widget()
 
     ## ==== Classes básicas de render para desenhos primitivos
+    # Substitua o método _safe_gl_render por:
     def _safe_gl_render(self, render_func, *args):
-        """Wrapper seguro para funções de renderização"""
+        """Wrapper seguro para funções de renderização (Core Profile compatible)"""
         if not self._is_initialized or not QOpenGLContext.currentContext():
             return
         
         self.makeCurrent()
-        glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_LINE_BIT)
         try:
+            # Save relevant state
+            blend_enabled = glIsEnabled(GL_BLEND)
+            blend_src = glGetIntegerv(GL_BLEND_SRC_RGB)
+            blend_dst = glGetIntegerv(GL_BLEND_DST_RGB)
+            
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            
+            # Usar VAOs e VBOs em vez do modo imediato
             render_func(*args)
+            
         except Exception as e:
             print(f"Erro na renderização: {e}")
+            self._check_gl_error("_safe_gl_render")
         finally:
-            glPopAttrib()
-            self.doneCurrent() 
-
+            # Restore state
+            if not blend_enabled:
+                glDisable(GL_BLEND)
+            glBlendFunc(blend_src, blend_dst)
+            self.doneCurrent()
 
 
     def _render_rect(self, x, y, w, h, color, thickness=1, fill=False):
@@ -525,7 +426,6 @@ class GL2DWidget(QOpenGLWidget):
             glPopMatrix()
         
         self._safe_gl_render(_draw)
-
 
     def _render_line(self, x1, y1, x2, y2, color, thickness=1):
         '''
@@ -675,16 +575,47 @@ class GL2DWidget(QOpenGLWidget):
         self._safe_gl_render(_draw)
 
     def _render_direct(self):
+        if not self._is_initialized:
+            return
+
+        self.makeCurrent()
         try:
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            # Configuração básica do viewport e matrizes
             glViewport(0, 0, self.width(), self.height())
             
-            # Sua lógica de renderização aqui
-            for call in sorted(self.back_buffer.get_calls(), key=lambda x: x.layer):
-                self._process_draw_call(call)
+            # Só configura matrizes se não for Core Profile
+            if not self.gl33:
+                glMatrixMode(GL_PROJECTION)
+                glLoadIdentity()
+                glOrtho(0, self.width(), self.height(), 0, -1, 1)
                 
+                glMatrixMode(GL_MODELVIEW)
+                glLoadIdentity()
+            
+            # Limpar buffers
+            glClearColor(0.2, 0.2, 0.2, 1.0)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            
+            # Habilitar recursos necessários
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            
+            # Processar draw calls
+            sorted_calls = sorted(self.back_buffer.get_calls(), key=lambda x: x.layer)
+            for call in sorted_calls:
+                try:
+                    self._process_draw_call(call)
+                except Exception as e:
+                    print(f"[_render_direct] Erro ao processar draw call: {e}")
+                    continue
+            
+            glFlush()
+            
         except Exception as e:
-            print(f"Erro na renderização direta: {e}")
+            print(f"[_render_direct] Erro crítico: {e}")
+            self._check_gl_error("_render_direct")
+        finally:
+            self.doneCurrent()
             
     #Renderizando imagem
     def _render_image(self, image_obj: Image, x: float, y: float, 
@@ -708,44 +639,42 @@ class GL2DWidget(QOpenGLWidget):
             cache_key = self._generate_image_cache_key(image_obj)
             
             # Tentativa de obtenção do cache
-            texture = self.texture_cache.get(cache_key)
+            texture_id = self.texture_cache.get(cache_key)
             
             # Cache miss - criação da textura
-            if not texture:
-                if (prepared := image_obj._prepare_for_gl()):  # Operador walrus (Python 3.8+)
-                    if (texture := self._create_gl_texture(prepared)):
-                        self.texture_cache.add(cache_key, texture['id'], texture['size'])
-                else:
-                    return  # Falha na preparação da imagem
-
-            # Renderização do quad texturizado
-            if texture:
-                # Cálculo de dimensões otimizado
-                w = image_obj.width * scale
-                h = image_obj.height * scale
+            if texture_id is None:
+                if not (prepared := image_obj._prepare_for_gl()):
+                    return  # Falha na preparação
                 
-                # Configuração de estados OpenGL
-                glEnable(GL_TEXTURE_2D)
-                glBindTexture(GL_TEXTURE_2D, texture['id'])
-                glColor4f(1.0, 1.0, 1.0, alpha)
+                # Cria nova textura e adiciona ao cache
+                texture_data = self._create_gl_texture(prepared)
+                if not texture_data:
+                    return  # Falha na criação
                 
-                # Transformações geométricas
-                glPushMatrix()
-                glTranslatef(x, y, 0)
-                glRotatef(angle, 0, 0, 1)  # Rotação em torno do centro
-                
-                # Renderização do quad
-                glBegin(GL_QUADS)
-                glTexCoord2f(0, 0); glVertex2f(-w/2, -h/2)  # Canto inferior esquerdo
-                glTexCoord2f(1, 0); glVertex2f(w/2, -h/2)   # Canto inferior direito
-                glTexCoord2f(1, 1); glVertex2f(w/2, h/2)    # Canto superior direito
-                glTexCoord2f(0, 1); glVertex2f(-w/2, h/2)   # Canto superior esquerdo
-                glEnd()
-                
-                glPopMatrix()
-                
-                # Limpeza de estados
-                glDisable(GL_TEXTURE_2D)
+                texture_id = texture_data['id']
+                self.texture_cache.add(cache_key, texture_id, texture_data['size'])
+            
+            # Renderização otimizada
+            w = image_obj.width * scale
+            h = image_obj.height * scale
+            
+            glEnable(GL_TEXTURE_2D)
+            glBindTexture(GL_TEXTURE_2D, texture_id)
+            glColor4f(1.0, 1.0, 1.0, alpha)
+            
+            glPushMatrix()
+            glTranslatef(x, y, 0)
+            glRotatef(angle, 0, 0, 1)
+            
+            glBegin(GL_QUADS)
+            glTexCoord2f(0, 0); glVertex2f(-w/2, -h/2)
+            glTexCoord2f(1, 0); glVertex2f(w/2, -h/2)
+            glTexCoord2f(1, 1); glVertex2f(w/2, h/2)
+            glTexCoord2f(0, 1); glVertex2f(-w/2, h/2)
+            glEnd()
+            
+            glPopMatrix()
+            glDisable(GL_TEXTURE_2D)
 
         # Execução segura no contexto OpenGL
         self._safe_gl_render(_draw)
@@ -864,26 +793,12 @@ class GL2DWidget(QOpenGLWidget):
 
         self.makeCurrent()
         try:
-            # 1. Limpeza de Framebuffers e Renderbuffers
-            if hasattr(self, 'fbo') and self.fbo and glIsFramebuffer(self.fbo):
-                glDeleteFramebuffers([self.fbo])
-                self.fbo = None
-
-            if hasattr(self, 'rbo') and self.rbo and glIsRenderbuffer(self.rbo):
-                glDeleteRenderbuffers([self.rbo])
-                self.rbo = None
 
             # 2. Limpeza do sistema de cache unificado
             if hasattr(self, 'texture_cache'):
-                # Método mais eficiente para limpar todas as texturas
-                all_textures = [entry['id'] for entry in self.texture_cache.cache.values()]
-                if all_textures:
-                    glDeleteTextures(all_textures)
-                
-                # Reset completo do cache
+                # Limpa todas as texturas do cache
                 self.texture_cache.cache.clear()
                 self.texture_cache.current_size = 0
-                self.texture_cache.access_counter = 0
 
             # 3. Limpeza adicional de recursos (se necessário)
             if hasattr(self, 'back_buffer'):

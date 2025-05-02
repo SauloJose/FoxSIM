@@ -22,7 +22,7 @@ class BackBuffer2D:
         return self.draw_calls.copy() #Retorna cópia para evitar modificações externas
     
     # == Métodos públicos de desenho
-    def draw_rect(self, x, y, w, h, color=(1.0, 1.0, 1.0, 1.0), layer=LAYER_DEBUG):
+    def draw_rect(self, x, y, w, h, color=(1.0, 1.0, 1.0, 1.0), layer=LAYER_DEBUG, fill = False):
         self.add_draw_call(
             draw_type=self.DRAW_PRIMITIVE,
             obj="rect",
@@ -31,7 +31,22 @@ class BackBuffer2D:
             scale_x=w,
             scale_y=h,
             color=color,
-            layer=layer
+            layer=layer,
+            fill = fill 
+        )
+
+    # Adicione este método para suporte a VBOs
+    def draw_rect_vbo(self, x, y, w, h, color=(1.0, 1.0, 1.0, 1.0), layer=LAYER_DEBUG, fill=False):
+        self.add_draw_call(
+            draw_type=self.DRAW_PRIMITIVE,
+            obj="rect_vbo",
+            x=x,
+            y=y,
+            scale_x=w,
+            scale_y=h,
+            color=color,
+            layer=layer,
+            fill=fill
         )
 
     def draw_line(self, x1, y1, x2, y2, color=(1.0, 1.0, 1.0, 1.0), layer=LAYER_DEBUG):
@@ -110,7 +125,7 @@ class BackBuffer2D:
                      scale: float = 1.0, scale_x: float = None, scale_y: float = None,
                      alpha: float = 1.0, layer: int = 0, color: tuple = None,
                      points: list = None, end_x: float = None, end_y: float = None,
-                     radius: float = None):
+                     radius: float = None, fill: bool = False):
         
         # Validação básica dos parâmetros
         if not isinstance(layer, int) or layer < 0:
@@ -143,5 +158,6 @@ class BackBuffer2D:
             end_y=end_y,
             radius=radius,
             scale_x=scale_x,
-            scale_y=scale_y
+            scale_y=scale_y,
+            fill = fill
         ))

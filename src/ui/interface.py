@@ -41,7 +41,7 @@ class Interface:
         # Fontes utilizadas na interface (incluindo algumas gamificadas)
         self.fonts = {
                 "Arial": pygame.font.SysFont("Arial", 30),
-                "Arial_small": pygame.font.SysFont("Fixedsys", 15),
+                "Arial_small": pygame.font.SysFont("fixed", 11),
                 "Menu": pygame.font.SysFont("Comic Sans MS", 20),
                 "Timer": pygame.font.SysFont("OCR A Extended", 36),  # Fonte gamificada
                 "Timer_small": pygame.font.SysFont("OCR A Extended", 18),  # Fonte gamificada
