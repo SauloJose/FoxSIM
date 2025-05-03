@@ -45,6 +45,9 @@ blue_team = Team(blue_team_positions,BLUE_TEAM, initial_angle=0)
 print("\n[Sistema]: Criando robôs do time vermelho")
 red_team = Team(red_team_positions, RED_TEAM, initial_angle=180)
 
+#Pointeiro para todos os rob"os
+bots = blue_team.robots + red_team.robots
+
 # Gerando clock do jogo
 clock = pygame.time.Clock()
 timer = Stopwatch(TIMER_PARTY) #Gerando cronometro 
@@ -59,6 +62,9 @@ draw_collision_objects = False
 draw_grid_collision = False
 running = True
 is_game_paused = False 
+
+# Variável para guardar o robô selecionado
+selected_robot = None
 
 # Gerando Arbitro para entender o jogo
 arbitrator = Arbitrator(ball, field, blue_team,red_team,interface,timer)
@@ -83,13 +89,17 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        # --------------------- Teclado ---------------------
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_d:
                 print("[Simulador]: Alternando exibição dos objetos de colisão")
                 draw_collision_objects = not draw_collision_objects
+            
             if event.key == pygame.K_i: #Exibir grade de colisões
                 print("[Simulator] Exibindo grade de colisão")
                 draw_grid_collision = not draw_grid_collision
+            
             if event.key == pygame.K_p:
                 is_game_paused = not is_game_paused
                 if is_game_paused: 
@@ -100,15 +110,37 @@ while running:
                     timer.resume()
                     print('[Simulador]: Simulador retornou da pausa')
 
+        # ---------------------- Mouse Down ----------------------
         elif event.type == pygame.MOUSEBUTTONDOWN:
             x, y = pygame.mouse.get_pos()
-            # Move a bola se o jogo estiver pausado e clique estiver dentro do campo
-            
-            if (BALL_INIT_MIN_X+PADDING_BALL_OK_PX) <= x <= (BALL_INIT_MAX_X-PADDING_BALL_OK_PX) and (BALL_INIT_MIN_Y+PADDING_BALL_OK_PX) <= y <= (BALL_INIT_MAX_Y-PADDING_BALL_OK_PX):
-                ball.x, ball.y = screen_to_virtual([x, y]) 
-                ball.collision_object.x = ball.x
-                ball.collision_object.y = ball.y
-                ball.velocity = np.array([0,0],dtype=float)
+            sx, sy = screen_to_virtual([x, y])
+            point = CollisionPoint(sx, sy, type_object=STRUCTURE_OBJECTS, reference=field)
+
+            # Verifica clique em robôs (somente se pausado)
+            if is_game_paused:
+                selected_robot = None
+                for bot in bots:
+                    bot._is_selected = False
+                    is_inside, _ = bot.collision_object.check_point_inside(point)
+                    if is_inside:
+                        bot._is_selected = True
+                        selected_robot = bot
+                        break
+
+                # Se não clicou em robô, move bola
+                if selected_robot is None:
+                    is_inside, _ = field.RectUtil.check_point_inside(point)
+                    if is_inside:
+                        ball.x, ball.y = sx, sy
+                        ball.collision_object.x, ball.collision_object.y = sx, sy
+                        ball.velocity = np.zeros(2, dtype=float)
+                
+                # Clicou num robô e clicou
+                if event.button == 3:
+                    if selected_robot:
+                        selected_robot.rotate(15)
+
+            # ---------------- Verifica colisões com os botões na interface -------
             # Botões de interface
             if interface.start_button.collidepoint(x, y):
                 if not is_game_paused: 
@@ -118,6 +150,23 @@ while running:
                 if not is_game_paused: 
                     game_started = False
                     reset_simulation(timer)
+
+        # -------------------------- Mouse Move --------------------------
+        elif event.type == pygame.MOUSEMOTION:
+            if selected_robot and is_game_paused:
+                x, y = pygame.mouse.get_pos()
+                sx, sy = screen_to_virtual([x, y])
+                buttons = pygame.mouse.get_pressed()
+
+                if buttons[0]:  # Botão esquerdo pressionado → mover
+                    selected_robot.new_position(sx, sy)
+                
+
+        # -------------------------- Mouse Up --------------------------
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if selected_robot:
+                selected_robot._is_selected = False
+                selected_robot = None
 
     # --- Tratamento da simulação ---
     if not is_game_paused:

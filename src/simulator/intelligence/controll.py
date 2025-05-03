@@ -63,3 +63,6 @@ class PIDController:
         '''
         self.integral = 0.0
         self.prev_error = 0.0 
+
+
+# Estratégias de controle por arvore das decisões para cada robô

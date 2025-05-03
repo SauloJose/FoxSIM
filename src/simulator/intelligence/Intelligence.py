@@ -1,4 +1,10 @@
+"""
+ Implementação de uma rede neural avançada para controlar o estado dos players.
+"""
+
 import numpy as np
+
+
 
 
 #Classe de neurônio

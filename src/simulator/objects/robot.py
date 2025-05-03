@@ -103,6 +103,10 @@ class Robot:
         # PID para
         self.pid_orientation = PIDController(self.kp,self.ki,self.kd)
 
+
+        # Métodos para interatibilidade com a interface do simulador
+        self._is_selected = False 
+
     @property
     def position(self):
         return self._position
@@ -385,6 +389,17 @@ class Robot:
 
         self.sync_collision_object()
 
+    def new_position(self, x,y):
+        """
+        Define a posição do robô sem retornar a inicial, apenas muda o x e y
+        :param x: Nova posição X.
+        :param y: Nova posição Y.
+        """
+        #nova posição do robô
+        self.position = np.array([x, y], dtype=float)    
+
+        self.sync_collision_object()
+
     def stop(self):
         """
         Para o robô (define a velocidade como zero).
@@ -416,7 +431,7 @@ class Robot:
         angle = np.degrees(self.angle)
 
         # Rotaciona a imagem do robô conforme o ângulo atual
-        rotated_image = pygame.transform.rotate(self.image, angle)  # negativo pois y do Pygame cresce para baixo
+        rotated_image = pygame.transform.rotate(self.initial_image, angle)  # negativo pois y do Pygame cresce para baixo
 
         # Converte coordenadas virtuais para coordenadas de tela
         center = virtual_to_screen([self.x, self.y])
