@@ -1,7 +1,9 @@
 import numpy as np
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtGui import QSurfaceFormat, QPainter, QColor, QFont, QFontMetrics, QImage
+from PyQt6.QtOpenGL import QOpenGLContext
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU  import *
@@ -99,14 +101,14 @@ class GL2DWidget(QOpenGLWidget):
         fmt.setDepthBufferSize(24)
         fmt.setStencilBufferSize(8)
         fmt.setSamples(4)  # MSAA
-        fmt.setSwapBehavior(QSurfaceFormat.DoubleBuffer)
-        fmt.setOption(QSurfaceFormat.DebugContext)  # Para depuração
+        fmt.setSwapBehavior(QSurfaceFormat.SwapBehavior.DoubleBuffer)
+        fmt.setOption(QSurfaceFormat.FormatOption.DebugContext)  # Para depuração
         self.setFormat(fmt)  # Deve ser chamado ANTES de show()
 
         #Variáveis de estado
         self._is_initialized = False 
         
-        # Definição de tamanhos com base no widget pai ou valores padrões
+        # Definição de tamanhos com base no widget pai or valores padrões
         self.view_width = max(1, width) if width is not None else 800
         self.view_height = max(1, height) if height is not None else 600
         self.setMinimumSize(self.view_width, self.view_height)
@@ -219,7 +221,7 @@ class GL2DWidget(QOpenGLWidget):
         if error != GL_NO_ERROR:
             print(f"OpenGL erro em {context}: {error}")
             if error == 1282:
-                print("Erro 1282: operação inválida — provavelmente por framebuffer incompleto ou função inválida.")
+                print("Erro 1282: operação inválida — provavelmente por framebuffer incompleto or função inválida.")
 
 
     def _cleanup_gl_resources(self):
@@ -408,7 +410,7 @@ class GL2DWidget(QOpenGLWidget):
 
 
     def _render_rect(self, x, y, w, h, color, thickness=1, fill=False):
-        """Desenha um retângulo, com a opção de preenchimento ou apenas a borda."""
+        """Desenha um retângulo, com a opção de preenchimento or apenas a borda."""
         def _draw():
             glPushMatrix()
             glColor4f(*color)
@@ -485,12 +487,12 @@ class GL2DWidget(QOpenGLWidget):
 
     def _render_text(self, x, y, text, color):
         # Verificação inicial consolidada
-        if not text or not color or len(color)<4:
+        if not text or not color or len(color) < 4:
             return
 
         def _draw():
             # Geração de chave de cache mais robusta
-            cache_key = f"text_{hash(text)}_{hash(color.tobytes())}"
+            cache_key = f"text_{hash(text)}_{hash(tuple(color))}"
             
             texture = self.texture_cache.get(cache_key)
             if not texture:
@@ -507,17 +509,17 @@ class GL2DWidget(QOpenGLWidget):
     # Criando texturas de texto
     def _create_text_texture(self, text, color):
         """Cria textura para texto de forma otimizada"""
-        font = QFont("Arial", 14, QFont.Bold)
+        font = QFont("Arial", 14, QFont.Weight.Bold)
         metrics = QFontMetrics(font)
         margin = 2
         size = metrics.size(0, text)
         
-        image = QImage(size.width() + margin*2, size.height() + margin*2, 
-                    QImage.Format_ARGB32)
-        image.fill(Qt.transparent)
+        image = QImage(size.width() + margin * 2, size.height() + margin * 2, 
+                       QImage.Format.Format_ARGB32)
+        image.fill(Qt.GlobalColor.transparent)
         
         painter = QPainter(image)
-        painter.setRenderHint(QPainter.TextAntialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         painter.setPen(QColor.fromRgbF(*color))
         painter.setFont(font)
         painter.drawText(margin, margin + metrics.ascent(), text)
@@ -526,7 +528,7 @@ class GL2DWidget(QOpenGLWidget):
         texture_id = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, texture_id)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(),
-                    0, GL_BGRA, GL_UNSIGNED_BYTE, image.bits())
+                     0, GL_BGRA, GL_UNSIGNED_BYTE, image.bits())
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         
         return {
@@ -701,12 +703,6 @@ class GL2DWidget(QOpenGLWidget):
     def _create_gl_texture(self, image_data):
         """
         Cria uma textura OpenGL a partir de dados de imagem preparados
-        Args:
-            image_data: Dict com:
-                - 'data': bytes da imagem (formato RGBA)
-                - 'size': (width, height)
-        Returns:
-            Dict com textura criada ou None em caso de erro
         """
         if not image_data or 'data' not in image_data or 'size' not in image_data:
             return None
@@ -717,7 +713,7 @@ class GL2DWidget(QOpenGLWidget):
             
             glBindTexture(GL_TEXTURE_2D, texture_id)
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-                        0, GL_RGBA, GL_UNSIGNED_BYTE, image_data['data'])
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, image_data['data'])
             
             # Configurações padrão para filtragem
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
@@ -729,7 +725,7 @@ class GL2DWidget(QOpenGLWidget):
                 'id': texture_id,
                 'width': width,
                 'height': height,
-                'size': width * height * 4  # 4 bytes por pixel (RGBA)
+                'size': width * height * 4
             }
             
         except Exception as e:
@@ -749,7 +745,7 @@ class GL2DWidget(QOpenGLWidget):
         if not image_obj or not image_obj.is_valid():
             return "invalid_0"
 
-        # Usamos o caminho do arquivo ou dados do fallback como base
+        # Usamos o caminho do arquivo or dados do fallback como base
         content_id = image_obj._filepath or f"fallback_{id(image_obj._source)}"
         
         # Hash das transformações atuais (com precisão controlada)

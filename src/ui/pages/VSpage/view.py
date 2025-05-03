@@ -1,4 +1,8 @@
-from ui.mainWindow.MainWindows import *
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel
+from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import Qt
+
+from ui.pages.objects.pageObjects import *
 
 class VSVisionPage(BasicPage):
     def __init__(self):
@@ -20,6 +24,7 @@ class VSVisionPage(BasicPage):
         left_layout = QVBoxLayout(left_widget)
         left_label = QLabel("Área Esquerda (Ex: Visualização)")
         left_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        left_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         left_layout.addWidget(left_label)
         top_hlayout.addWidget(left_widget, stretch=3)
 
@@ -31,6 +36,7 @@ class VSVisionPage(BasicPage):
         right_layout = QVBoxLayout(right_widget)
         right_label = QLabel("Área Direita (Ex: Controles)")
         right_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        right_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_layout.addWidget(right_label)
         top_hlayout.addWidget(right_widget, stretch=1)
 
@@ -41,6 +47,7 @@ class VSVisionPage(BasicPage):
         bottom_layout = QVBoxLayout(bottom_widget)
         bottom_label = QLabel("Área Inferior (Ex: Logs, Console)")
         bottom_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        bottom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         bottom_layout.addWidget(bottom_label)
 
         # Montar layout geral

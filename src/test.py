@@ -1,8 +1,8 @@
 import sys
 import numpy as np
-from PyQt5.QtGui import QSurfaceFormat
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QMessageBox
-from PyQt5.QtCore import *
+from PyQt6.QtGui import QSurfaceFormat
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QMessageBox
+from PyQt6.QtCore import QTimer, QTime
 from ui.pages.objects.imageGL import Image
 from ui.pages.objects.openGLWidgets import GL2DWidget
 from OpenGL.GL import *

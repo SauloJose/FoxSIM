@@ -3,12 +3,13 @@ import numpy as np
 import pygame
 import cv2
 from PIL import Image
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,QSizePolicy, QOpenGLWidget,
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QLineEdit,QSlider,QGraphicsView
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QSizePolicy,
+    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QLineEdit, QSlider, QGraphicsView
 )
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt5.QtGui import QIcon, QImage, QPainter,QPixmap,QFont,QColor,QPalette
+from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
+from PyQt6.QtGui import QIcon, QImage, QPainter, QPixmap, QFont, QColor, QPalette
+from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 
 from OpenGL.GL import *
 from PIL import Image
@@ -18,7 +19,7 @@ class BasicPage(QWidget):
     def __init__(self, page_name: str, icon: QIcon = None):
         super().__init__()
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setStyleSheet("background-color: white;")
 
         # Layout principal da página
@@ -73,7 +74,7 @@ class BasicViewer(QGraphicsView):
         super().__init__()
         self.setFixedSize(width, height)
         self.label = QLabel()
-        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setFixedSize(width, height)
 
         layout = QVBoxLayout(self)

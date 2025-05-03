@@ -1,5 +1,8 @@
 from ui.pages.objects.pageObjects import *
 from ui.pages.objects.styles import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import *
+from PyQt6.QtCore import *
 
 
 #Classe da página principal
@@ -25,10 +28,10 @@ class SimulationViewPage(BasicPage):
 
         # === ESQUERDA ===
         self.left_widget = QFrame()
-        self.left_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.left_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.left_layout = QVBoxLayout(self.left_widget)
-        self.left_widget.setFixedWidth(int(1.2*645+100))
-        self.left_widget.setFixedHeight(int(1.2*415+140))
+        self.left_widget.setFixedWidth(int(1.2*645))
+        self.left_widget.setFixedHeight(int(1.2*415))
         self.left_layout.setContentsMargins(0,0,0,0)
         self.left_layout.setSpacing(0)
 
@@ -37,7 +40,7 @@ class SimulationViewPage(BasicPage):
         self.scoreboard.setStyleSheet("background-color: #f0f0f0;")
         self.scoreboard.setMinimumHeight(80)
         self.scoreObjs = QHBoxLayout(self.scoreboard)
-        self.scoreObjs.setAlignment(Qt.AlignCenter)
+        self.scoreObjs.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.scoreObjs.setContentsMargins(0,0,0,0)
 
         self.score_widget_a = ScoreWidget("Time A", "blue")
@@ -53,11 +56,11 @@ class SimulationViewPage(BasicPage):
         self.viewer_widget = QFrame()
         self.viewer_widget.setContentsMargins(0,0,0,0)
         self.viewer_layout = QVBoxLayout(self.viewer_widget)
-        self.viewer_layout.setAlignment(Qt.AlignCenter)
+        self.viewer_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.viewer = BasicViewer(width=int(1.2 * 645), height=int(1.2 * 413))
-        self.viewer.show_image(QImage("src/assets/field2.png"))
-        self.viewer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.viewer = BasicViewer(width=int(645), height=int(413))
+        self.viewer.show_image(QImage("src/assets/field.png"))
+        self.viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         self.viewer_layout.addWidget(self.viewer)
         self.viewer_layout.setContentsMargins(0,0,0,0)
@@ -72,7 +75,7 @@ class SimulationViewPage(BasicPage):
         self.right_widget = QFrame()
         self.right_widget.setStyleSheet("background-color: #f0f0f0;")
         self.right_layout = QVBoxLayout(self.right_widget)
-        self.right_layout.setAlignment(Qt.AlignCenter)
+        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.right_layout.setContentsMargins(10,10,10,10)
 
         self.info_label = QLabel("Gráficos")
@@ -92,7 +95,7 @@ class SimulationViewPage(BasicPage):
         self.left_frame = QFrame()
         self.left_frame.setFixedWidth(300)
         self.left_layout = QVBoxLayout(self.left_frame)
-        self.left_layout.setAlignment(Qt.AlignCenter)
+        self.left_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.label1 = QLabel("Clique para iniciar a simulação")
         self.buttonStart = QPushButton("Iniciar")
@@ -114,7 +117,7 @@ class SimulationViewPage(BasicPage):
         self.center_frame.setObjectName("CenterFrame")
 
         self.center_layout = QVBoxLayout(self.center_frame)
-        self.center_layout.setAlignment(Qt.AlignCenter)
+        self.center_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.center_frame.setContentsMargins(0, 0, 0, 0)
         self.center_frame.setFixedWidth(300)
 
@@ -133,15 +136,15 @@ class SimulationViewPage(BasicPage):
         # === DIREITA ===
         self.right_frame = QFrame()
         self.right_layout = QVBoxLayout(self.right_frame)
-        self.right_layout.setAlignment(Qt.AlignTop)
+        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.slider_speed = QSlider(Qt.Horizontal)
+        self.slider_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_speed.setMinimum(1)
         self.slider_speed.setMaximum(10)
         self.slider_speed.setValue(5)
 
         self.time_display = QLabel("Tempo: 0s")
-        self.time_display.setAlignment(Qt.AlignCenter)
+        self.time_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.buttonPause = QPushButton("Pausar")
         self.buttonPause.setStyleSheet(StyleButtonStart)
@@ -166,18 +169,18 @@ class ScoreWidget(QWidget):
     def __init__(self, team_name, color):
         super().__init__()
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(0)
 
         self.team_label = QLabel(team_name)
         self.team_label.setFont(QFont('Arial', 10))
         self.team_label.setStyleSheet(f"color: {color};")
-        self.team_label.setAlignment(Qt.AlignCenter)
+        self.team_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.score_label = QLabel("0")
-        self.score_label.setFont(QFont('Arial', 28, QFont.Bold))
+        self.score_label.setFont(QFont('Arial', 28, QFont.Weight.Bold))
         self.score_label.setStyleSheet(f"color: {color};")
-        self.score_label.setAlignment(Qt.AlignCenter)
+        self.score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(self.team_label)
         layout.addWidget(self.score_label)
@@ -190,10 +193,10 @@ class TimerWidget(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.timer_label = QLabel("01:00")
-        self.timer_label.setAlignment(Qt.AlignCenter)
+        self.timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Fonte garantida com tamanho grande
         font = QFont("Courier New")  # mais confiável
@@ -222,13 +225,13 @@ class StatusDisplay(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        self.setContentsMargins(0,0,0,0)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setObjectName("StatusDisplay")  # Para o seletor CSS
             
         # === Fontes ===
-        title_font = QFont("Segoe UI", 10, QFont.Bold)
-        status_font = QFont("Arial",8)
+        title_font = QFont("Segoe UI", 10, QFont.Weight.Bold)
+        status_font = QFont("Arial", 8)
 
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(10, 10, 10, 10)
@@ -251,11 +254,6 @@ class StatusDisplay(QFrame):
 
         self.running_label = QLabel()
         self.running_label.setFont(status_font)
-
-        self.layout.addWidget(self.paused_label)
-        self.layout.addWidget(self.collision_label)
-        self.layout.addWidget(self.grid_label)
-        self.layout.addWidget(self.running_label)
 
         self.layout.addWidget(self.paused_label)
         self.layout.addWidget(self.collision_label)

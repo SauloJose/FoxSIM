@@ -1,32 +1,31 @@
 import sys
 import pygame
 import numpy as np
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, 
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QStyle,QStyleFactory,QSlider
-)
+from PyQt6.QtWidgets import *
 
-from PyQt5.QtCore import Qt, QTimer,QSize
-from PyQt5.QtGui import QIcon, QImage, QPainter
+from PyQt6.QtCore import *
+from PyQt6.QtGui import *
+
+from ui.pages.objects.pageObjects import *
 
 #Puxando as páginas da aplicação do simulador
-from ui.pages.simPage.viewPage import *
-from ui.pages.simPage.paramSimu import *
-from ui.pages.simPage.configRobots import *
+from ui.pages.simPage.viewPage import SimulationViewPage  # Certifique-se de que a classe está corretamente importada
+from ui.pages.simPage.paramSimu import ParamSimuPage
+from ui.pages.simPage.configRobots import ConfigRobotsPage
 
-from ui.pages.comPage.comRobots import *
-from ui.pages.comPage.comSys    import *
+from ui.pages.comPage.comRobots import COMrobotPage
+from ui.pages.comPage.comSys import COMSysPage
 
-from ui.pages.ControlPage.neural      import *
-from ui.pages.ControlPage.strategy      import *
+from ui.pages.ControlPage.neural import CTneuralPage
+from ui.pages.ControlPage.strategy import CTstrategyPage
 
-from ui.pages.logPage.logsPage          import *
+from ui.pages.logPage.logsPage import LogPage
 
-from ui.pages.VSpage.view           import *
-from ui.pages.VSpage.configs.calibration     import *
-from ui.pages.VSpage.configs.colors          import *
-from ui.pages.VSpage.configs.entry          import *
-from ui.pages.VSpage.configs.otm            import *
+from ui.pages.VSpage.view import VSVisionPage
+from ui.pages.VSpage.configs.calibration import VSCalibrationPage
+from ui.pages.VSpage.configs.colors import VSselectColor
+from ui.pages.VSpage.configs.entry import VSEntryDataPage
+from ui.pages.VSpage.configs.otm import VSOtimizationPage
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -59,7 +58,7 @@ class MainWindow(QMainWindow):
     
     def create_menu_navegate(self):
         '''Cria menu de navegação da aplicação'''
-        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Criação do menu de navegação (árvore) no lado esquerdo
         self.tree_widget = QTreeWidget()
@@ -85,7 +84,7 @@ class MainWindow(QMainWindow):
         """)
 
         # Centraliza o texto do cabeçalho (opcional)
-        header.setDefaultAlignment(Qt.AlignCenter)
+        header.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Estilo
         QApplication.setStyle(QStyleFactory.create('Fusion'))
@@ -198,18 +197,18 @@ class MainWindow(QMainWindow):
 
     def add_pages_to_stack(self):
         self.stack.addWidget(SimulationViewPage())      # index 0 -> Simulador > Visualização
-        self.stack.addWidget(ConfigRobotsPage())    # index 1 -> Simulador > Configuração de Robôs
-        self.stack.addWidget(ParamSimuPage())    # index 2 -> Simulador > Parâmetros Gerais
-        self.stack.addWidget(VSVisionPage())      # index 3 -> Sistema de Visão > Visualização
-        self.stack.addWidget(VSEntryDataPage())    # index 4 -> Sistema de Visão > Câmera
-        self.stack.addWidget(VSCalibrationPage())    # index 5 -> Sistema de Visão > Calibração
-        self.stack.addWidget(VSOtimizationPage())      # index 6 -> Sistema de Visão > Otimização
-        self.stack.addWidget(VSselectColor())    # index 7 -> Sistema de Visão > Identificação de Cores
-        self.stack.addWidget(CTneuralPage())    # index 8 -> Controle > Redes Neurais
-        self.stack.addWidget(CTstrategyPage())      # index 9 -> Controle > Estratégias de Controle
-        self.stack.addWidget(COMrobotPage())    # index 10 -> Comunicação > Entre Robôs
-        self.stack.addWidget(COMSysPage())    # index 11 -> Comunicação > Entre Sistemas
-        self.stack.addWidget(LogPage())      # index 12 -> Monitoramento > Configuração de Gráficos
+        self.stack.addWidget(ConfigRobotsPage())        # index 1 -> Simulador > Configuração de Robôs
+        self.stack.addWidget(ParamSimuPage())           # index 2 -> Simulador > Parâmetros Gerais
+        self.stack.addWidget(VSVisionPage())            # index 3 -> Sistema de Visão > Visualização
+        self.stack.addWidget(VSEntryDataPage())         # index 4 -> Sistema de Visão > Entrada de dados
+        self.stack.addWidget(VSCalibrationPage())       # index 5 -> Sistema de Visão > Calibração
+        self.stack.addWidget(VSOtimizationPage())       # index 6 -> Sistema de Visão > Otimização
+        self.stack.addWidget(VSselectColor())           # index 7 -> Sistema de Visão > Identificação de Cores
+        self.stack.addWidget(CTneuralPage())            # index 8 -> Controle > Redes Neurais
+        self.stack.addWidget(CTstrategyPage())          # index 9 -> Controle > Estratégias de Controle
+        self.stack.addWidget(COMrobotPage())            # index 10 -> Comunicação > Entre Robôs
+        self.stack.addWidget(COMSysPage())              # index 11 -> Comunicação > Entre Sistemas
+        self.stack.addWidget(LogPage())                 # index 12 -> Monitoramento > LOGs
 
     def on_item_clicked(self, item, column):
         texts = []
@@ -228,4 +227,4 @@ if __name__ == '__main__':
     app.setWindowIcon(QIcon("src/assets/logo_minus.png"))
     window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
