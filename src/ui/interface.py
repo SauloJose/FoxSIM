@@ -268,11 +268,21 @@ class Interface:
             f"RODANDO: {'SIM' if self.running else 'NÃO'}",
         ]
 
+        # Calcula dinamicamente a largura e altura do label
+        max_width = max(self.fonts["Arial_small"].size(line)[0] for line in text) + 20  # 10px de padding em cada lado
+        total_height = len(text) * 20 + 20  # 20px por linha + 10px de padding em cima e embaixo
+
+        # Ajusta o tamanho do retângulo
+        self.exibition_label.width = max_width
+        self.exibition_label.height = total_height
+
+        # Centraliza verticalmente o texto no label
+        y = self.exibition_label.top + 10
+
+        # Desenha o retângulo do label
         pygame.draw.rect(screen, (0, 0, 0), self.exibition_label, width=1)
 
-        total_height = len(text) * 20
-        y = self.exibition_label.centery - total_height // 2
-
+        # Cores para os status
         ok_color = (0, 200, 0)  # Verde
         no_color = (200, 0, 0)  # Vermelho
         default_color = (0, 0, 0)
@@ -283,12 +293,13 @@ class Interface:
             "NÃO": no_color
         }
 
+        # Renderiza o texto no label
         for i, line in enumerate(text):
             parts = line.split(": ")
             if len(parts) < 2:
                 # Linha sem status (ex: título ou decorativa), renderiza como texto normal
                 line_surf = self.fonts["Arial_small"].render(line, True, default_color)
-                line_y = self.exibition_label.top + 10 + i * 20
+                line_y = y + i * 20
                 screen.blit(line_surf, (self.exibition_label.left + 10, line_y))
                 continue
 
@@ -300,7 +311,7 @@ class Interface:
 
             label_x = self.exibition_label.left + 10
             status_x = label_x + label_surf.get_width() + 5
-            line_y = self.exibition_label.top + 10 + i * 20
+            line_y = y + i * 20
 
             screen.blit(label_surf, (label_x, line_y))
             screen.blit(status_surf, (status_x, line_y))
