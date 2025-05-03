@@ -433,6 +433,26 @@ class Robot:
         # Rotaciona a imagem do robô conforme o ângulo atual
         rotated_image = pygame.transform.rotate(self.initial_image, angle)  # negativo pois y do Pygame cresce para baixo
 
+        # Se o robô estiver selecionado, clareia apenas as cores da imagem
+        if self._is_selected:
+            # Cria uma cópia da imagem rotacionada
+            selected_image = rotated_image.copy()
+            width, height = selected_image.get_size()
+
+            # Bloqueia a superfície para manipulação direta dos pixels
+            selected_image.lock()
+            for x in range(width):
+                for y in range(height):
+                    r, g, b, a = selected_image.get_at((x, y))  # Obtém a cor do pixel
+                    if a > 0:  # Apenas pixels visíveis
+                        # Clareia as cores (mantendo a transparência)
+                        r = min(r + 100, 255)
+                        g = min(g + 100, 255)
+                        b = min(b + 100, 255)
+                        selected_image.set_at((x, y), (r, g, b, a))
+            selected_image.unlock()
+
+            rotated_image = selected_image
         # Converte coordenadas virtuais para coordenadas de tela
         center = virtual_to_screen([self.x, self.y])
 

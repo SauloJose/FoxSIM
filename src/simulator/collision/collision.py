@@ -1396,6 +1396,21 @@ class CollisionManagerSAT:
         obj1.apply_impulse(+friction_impulse, collision_point)
         obj2.apply_impulse(-friction_impulse, collision_point)
 
+        # Limita velocidades para evitar instabilidades numéricas
+        MAX_VELOCITY = 100.0  # Limite de velocidade linear
+        MAX_ANGULAR_VELOCITY = 10.0  # Limite de velocidade angular
+
+        # Limita a velocidade linear (magnitude do vetor)
+        velocity_magnitude = np.linalg.norm(obj1.velocity)
+        if velocity_magnitude > MAX_VELOCITY:
+            obj1.velocity = (obj1.velocity / velocity_magnitude) * MAX_VELOCITY
+
+        velocity_magnitude = np.linalg.norm(obj2.velocity)
+        if velocity_magnitude > MAX_VELOCITY:
+            obj2.velocity = (obj2.velocity / velocity_magnitude) * MAX_VELOCITY
+
+        obj1.angular_velocity = np.clip(obj1.angular_velocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
+        obj2.angular_velocity = np.clip(obj2.angular_velocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
 
     def line_segment_intersect(self, p1, p2, q1, q2):
         def ccw(a, b, c):
@@ -1476,7 +1491,9 @@ class CollisionManagerSAT:
             rn = np.cross(r, normal)
             denom = obj_inv_mass + (rn ** 2) * obj_inv_inertia
             j = -(1 + restitution) * vel_normal / denom
+
             j = np.clip(j, -100, 100)
+
             impulse = j * normal
             obj.apply_impulse(impulse, point)
 
@@ -1487,6 +1504,16 @@ class CollisionManagerSAT:
             jt = np.clip(jt, -abs(j) * friction, abs(j) * friction)
             friction_impulse = jt * tangent
             obj.apply_impulse(friction_impulse, point)
+            
+        # Limita velocidades para evitar instabilidades numéricas
+        MAX_VELOCITY = 200.0  # Limite de velocidade linear
+        MAX_ANGULAR_VELOCITY = 10.0  # Limite de velocidade angular
+
+        velocity_magnitude = np.linalg.norm(obj.velocity)
+        if velocity_magnitude > MAX_VELOCITY:
+            obj.velocity = (obj.velocity / velocity_magnitude) * MAX_VELOCITY
+
+        obj.angular_velocity = np.clip(obj.angular_velocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
 
         # Damping
         obj.velocity *= (1 - 0.02 * self.dt * 60)  # Aproximadamente 2% por frame a 60fps
