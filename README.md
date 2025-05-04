@@ -1,7 +1,3 @@
-Aqui está o README atualizado com as novas informações sobre as futuras implementações:
-
----
-
 # ⚽ **FoxSIM - Simulador de Futebol de Robôs**
 
 Bem-vindo ao **FoxSIM**, um simulador de futebol de robôs 2D projetado para experimentação com física realista, controle autônomo e algoritmos de inteligência artificial. Este projeto é ideal para fins educacionais, pesquisa e desenvolvimento de estratégias para times de robôs em partidas simuladas.
