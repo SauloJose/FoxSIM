@@ -1,14 +1,10 @@
 import sys
 import numpy as np
-import pygame
 import cv2
 from PIL import Image
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QSizePolicy,
-    QLabel, QPushButton, QHBoxLayout, QSplitter, QStackedWidget, QFrame, QLineEdit, QSlider, QGraphicsView
-)
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon, QImage, QPainter, QPixmap, QFont, QColor, QPalette
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
+from PyQt6.QtGui import *
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 
 from OpenGL.GL import *
