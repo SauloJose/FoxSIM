@@ -175,3 +175,12 @@ class VSCalibrationPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere recursos de câmera ou threads se houver
+        if hasattr(self, '_camera_cap') and self._camera_cap is not None:
+            try:
+                self._camera_cap.release()
+            except Exception:
+                pass
+            self._camera_cap = None

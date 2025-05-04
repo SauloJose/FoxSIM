@@ -162,6 +162,12 @@ class SimulationViewPage(BasicPage):
 
         return self.bottom_frame
 
+    def destroy(self):
+        # Libere recursos de threads, viewers, etc.
+        if hasattr(self, 'viewer') and hasattr(self.viewer, 'destroy'):
+            self.viewer.destroy()
+        # Libere outros recursos se necessário
+
 
 #Classe para os Widgets
 
@@ -188,6 +194,9 @@ class ScoreWidget(QWidget):
 
     def set_score(self, value):
         self.score_label.setText(str(value))
+
+    def destroy(self):
+        pass
 
 class TimerWidget(QWidget):
     def __init__(self):
@@ -219,6 +228,9 @@ class TimerWidget(QWidget):
         seconds = max(0, min(seconds, 59))  # garante que segundos estejam entre 0 e 59
         formatted_time = f"{minutes:02}:{seconds:02}"
         self.timer_label.setText(formatted_time)
+
+    def destroy(self):
+        pass
 
 
 class StatusDisplay(QFrame):
@@ -274,3 +286,6 @@ class StatusDisplay(QFrame):
         self.collision_label.setText(format_label("Objetos de Colisão", show_collision, "EXIBINDO", "OCULTO"))
         self.grid_label.setText(format_label("Particionamento Espacial", show_grid, "EXIBINDO", "OCULTO"))
         self.running_label.setText(format_label("Estado da simulação", running, "RODANDO", "PARADA"))
+
+    def destroy(self):
+        pass

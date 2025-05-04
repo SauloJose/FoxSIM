@@ -55,3 +55,7 @@ class VSVisionPage(BasicPage):
         main_vlayout.addWidget(bottom_widget)
 
         self.add_layout(main_vlayout)
+
+    def destroy(self):
+        # Libere recursos de threads/câmera se houver
+        pass

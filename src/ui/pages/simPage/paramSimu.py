@@ -31,6 +31,14 @@ class ParamSimuPage(BasicPage):
                 border-radius: 12px;
                 padding: 18px;
             }
+            QComboBox QAbstractItemView {
+                selection-background-color: #e0ffe0;
+                selection-color: #006400;
+            }
+            QComboBox {
+                selection-background-color: #e0ffe0;
+                selection-color: #006400;
+            }
         """)
         main_layout = QVBoxLayout(main_container)
         main_layout.setContentsMargins(40, 20, 40, 20)
@@ -159,3 +167,7 @@ class ParamSimuPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere recursos se houver
+        pass

@@ -39,14 +39,6 @@ class ConfigRobotsPage(BasicPage):
                 selection-background-color: #e0ffe0;
                 selection-color: #006400;
             }
-            QDoubleSpinBox {
-                qproperty-buttonSymbols: UpDownArrows;
-                border: 1px solid #bbb;
-                border-radius: 4px;
-                background: #fff;
-                padding: 2px 20px 2px 6px;
-                min-height: 24px;
-            }
         """)
         main_layout = QHBoxLayout(main_container)
         main_layout.setContentsMargins(32, 24, 32, 24)
@@ -70,7 +62,6 @@ class ConfigRobotsPage(BasicPage):
                 padding: 0 8px;
                 background: transparent;
             }
-            QWidget { background: #f8f8fa; border-radius: 10px; }
             QComboBox QAbstractItemView {
                 selection-background-color: #e0ffe0;
                 selection-color: #006400;
@@ -78,14 +69,6 @@ class ConfigRobotsPage(BasicPage):
             QComboBox {
                 selection-background-color: #e0ffe0;
                 selection-color: #006400;
-            }
-            QDoubleSpinBox {
-                qproperty-buttonSymbols: UpDownArrows;
-                border: 1px solid #bbb;
-                border-radius: 4px;
-                background: #fff;
-                padding: 2px 20px 2px 6px;
-                min-height: 24px;
             }
         """)
         robot_layout = QFormLayout()
@@ -129,7 +112,6 @@ class ConfigRobotsPage(BasicPage):
                 padding: 0 8px;
                 background: transparent;
             }
-            QWidget { background: #f8f8fa; border-radius: 10px; }
             QComboBox QAbstractItemView {
                 selection-background-color: #e0ffe0;
                 selection-color: #006400;
@@ -137,14 +119,6 @@ class ConfigRobotsPage(BasicPage):
             QComboBox {
                 selection-background-color: #e0ffe0;
                 selection-color: #006400;
-            }
-            QDoubleSpinBox {
-                qproperty-buttonSymbols: UpDownArrows;
-                border: 1px solid #bbb;
-                border-radius: 4px;
-                background: #fff;
-                padding: 2px 20px 2px 6px;
-                min-height: 24px;
             }
         """)
         ball_layout = QFormLayout()
@@ -193,7 +167,6 @@ class ConfigRobotsPage(BasicPage):
                 padding: 0 8px;
                 background: transparent;
             }
-            QWidget { background: #f8f8fa; border-radius: 10px; }
             QComboBox QAbstractItemView {
                 selection-background-color: #e0ffe0;
                 selection-color: #006400;
@@ -287,3 +260,7 @@ class ConfigRobotsPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere recursos se houver
+        pass

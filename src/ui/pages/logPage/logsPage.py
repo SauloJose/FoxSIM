@@ -159,3 +159,7 @@ class LogPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere threads de log, arquivos, etc.
+        pass

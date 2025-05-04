@@ -152,3 +152,7 @@ class COMSysPage(BasicPage):
         main_layout.addWidget(save_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere recursos de comunicação, threads, etc.
+        pass

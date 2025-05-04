@@ -154,3 +154,13 @@ class VSselectColor(BasicPage):
 
         # Adiciona o container principal à página
         self.add_widget(main_container)
+
+        self._camera_cap = None  # Se usar câmera, armazene aqui
+
+    def destroy(self):
+        if hasattr(self, '_camera_cap') and self._camera_cap is not None:
+            try:
+                self._camera_cap.release()
+            except Exception:
+                pass
+            self._camera_cap = None

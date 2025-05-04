@@ -1,19 +1,43 @@
 from PyQt6.QtWidgets import (
-    QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QPushButton, QFormLayout, QGroupBox, QWidget
+    QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QWidget, QMessageBox,
+    QSplitter, QTreeView
 )
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QFont, QFileSystemModel
+from PyQt6.QtCore import Qt, QDir, QSize, QSortFilterProxyModel
+from pyqode.core.api import CodeEdit
+from pyqode.core.modes import PygmentsSyntaxHighlighter
+from pyqode.core.panels import LineNumberPanel
+import os
+
 from ui.pages.objects.pageObjects import *
 
+class HidePycacheProxyModel(QSortFilterProxyModel):
+    def filterAcceptsRow(self, source_row, source_parent):
+        index = self.sourceModel().index(source_row, 0, source_parent)
+        name = self.sourceModel().fileName(index)
+        # Oculta __pycache__
+        if name == "__pycache__":
+            return False
+        return super().filterAcceptsRow(source_row, source_parent)
 
 class CTstrategyPage(BasicPage):
     def __init__(self):
         super().__init__("Controle: Estratégias", QIcon("src/assets/PID.png"))
 
-        # Explanation section
+        button_style = """
+            QPushButton {
+                background-color: #14532d;
+                color: white;
+                border-radius: 5px;
+                padding: 6px 12px;
+            }
+            QPushButton:hover {
+                background-color: #22c55e;
+                color: #222;
+            }
+        """
         explanation_label = QLabel(
-            "Configure os parâmetros do controle PID e visualize o resultado da simulação. "
-            "Ajuste os ganhos e pontos de referência para observar o comportamento do sistema."
+            "Edite ou crie estratégias de controle diretamente nos arquivos Python da pasta 'intelligence'."
         )
         explanation_label.setWordWrap(True)
         explanation_label.setStyleSheet("""
@@ -24,123 +48,163 @@ class CTstrategyPage(BasicPage):
             border-radius: 8px;
             padding: 12px 20px;
         """)
-        explanation_label.setFixedHeight(80)
+        explanation_label.setFixedHeight(60)
         explanation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_widget(explanation_label)
 
-        # Main container
-        main_container = QWidget()
-        main_container.setObjectName("strategyMainContainer")
-        main_container.setStyleSheet("""
-            #strategyMainContainer {
-                background: #f4f4f7;
-                border: 1.5px solid #e0e0e0;
-                border-radius: 16px;
-                padding: 24px;
-            }
-        """)
-        main_layout = QHBoxLayout(main_container)
-        main_layout.setContentsMargins(36, 28, 36, 28)  # Aumenta margens
-        main_layout.setSpacing(56)  # Espaço maior entre grupos
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setSizes([160, 600])
 
-        # PID Form Section
-        pid_group = QGroupBox("Parâmetros do Controle PID")
-        pid_group.setStyleSheet("""
-            QGroupBox {
-                font-size: 15px;
-                font-weight: bold;
-                color: #228B22;
-            }
-            QGroupBox::title {
-                subcontrol-origin: content;
-                subcontrol-position: top left;
-                left: 10px;
-                top: 4px;
-                padding: 0 8px;
-                background: transparent;
-            }
-        """)
-        pid_form = QFormLayout()
-        pid_form.setContentsMargins(12, 30, 12, 12)
-        pid_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        pid_form.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
-        pid_form.setSpacing(16)  # Espaço maior entre linhas
+        # Caminho da pasta intelligence
+        self.intelligence_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../../../simulator/intelligence")
+        )
 
-        self.kp_input = QLineEdit()
-        self.kp_input.setPlaceholderText("Ganho Proporcional")
-        self.kp_input.setFixedWidth(120)
-        pid_form.addRow("Kp:", self.kp_input)
+        # Modelo de arquivos: mostra arquivos e subpastas (estrutura de árvore)
+        self.model = QFileSystemModel()
+        self.model.setRootPath(self.intelligence_dir)
+        self.model.setFilter(QDir.Filter.AllDirs | QDir.Filter.Files | QDir.Filter.NoDotAndDotDot)
 
-        self.ki_input = QLineEdit()
-        self.ki_input.setPlaceholderText("Ganho Integral")
-        self.ki_input.setFixedWidth(120)
-        pid_form.addRow("Ki:", self.ki_input)
+        # Proxy para ocultar __pycache__
+        self.proxy_model = HidePycacheProxyModel()
+        self.proxy_model.setSourceModel(self.model)
 
-        self.kd_input = QLineEdit()
-        self.kd_input.setPlaceholderText("Ganho Derivativo")
-        self.kd_input.setFixedWidth(120)
-        pid_form.addRow("Kd:", self.kd_input)
+        self.tree = QTreeView()
+        self.tree.setModel(self.proxy_model)
+        self.tree.setRootIndex(self.proxy_model.mapFromSource(self.model.index(self.intelligence_dir)))
+        self.tree.setMaximumWidth(300)
+        self.tree.setHeaderHidden(True)
+        self.tree.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
+        self.tree.setIconSize(QSize(16, 16))
+        self.tree.doubleClicked.connect(self.open_selected_file)
+        # Oculta todas as colunas exceto a 0 (nome/ícone)
+        for col in range(1, self.model.columnCount()):
+            self.tree.hideColumn(col)
+        splitter.addWidget(self.tree)
 
-        self.setpoint_input = QLineEdit()
-        self.setpoint_input.setPlaceholderText("Ponto Inicial")
-        self.setpoint_input.setFixedWidth(120)
-        pid_form.addRow("Ponto Inicial:", self.setpoint_input)
+        # Editor de código
+        editor_container = QWidget()
+        editor_layout = QVBoxLayout(editor_container)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.endpoint_input = QLineEdit()
-        self.endpoint_input.setPlaceholderText("Ponto Final")
-        self.endpoint_input.setFixedWidth(120)
-        pid_form.addRow("Ponto Final:", self.endpoint_input)
+        self.editor = CodeEdit()
+        self.editor.modes.append(PygmentsSyntaxHighlighter(self.editor.document()))
+        self.editor.panels.append(LineNumberPanel())
+        self.editor.setTabStopDistance(4)
 
-        # Extra: tempo de simulação
-        self.time_input = QLineEdit()
-        self.time_input.setPlaceholderText("Tempo (s)")
-        self.time_input.setFixedWidth(120)
-        pid_form.addRow("Tempo Simulação:", self.time_input)
+        # Fonte VSCode-like
+        font = QFont("Cascadia Code, Consolas, Menlo, Monaco, monospace", 12)
+        self.editor.setFont(font)
+        self.editor.setStyleSheet("background-color: #ffffff; color: #d4d4d4;")
+        self.current_file = None
 
-        # Simulate button centralizado
-        simulate_button = QPushButton("Simular Controle PID")
-        simulate_button.setStyleSheet("""
-            QPushButton {
-                background-color: #006400;
-                color: white;
-                border-radius: 6px;
-                padding: 8px 22px;
-                font-size: 15px;
-                font-weight: bold;
-                margin-top: 12px;
-                letter-spacing: 0.5px;
-            }
-            QPushButton:hover {
-                background-color: #228B22;
-            }
-        """)
-        # Centraliza o botão usando um layout auxiliar
-        btn_row = QHBoxLayout()
-        btn_row.addStretch(1)
-        btn_row.addWidget(simulate_button)
-        btn_row.addStretch(1)
-        pid_form.addRow("", btn_row)
+        # Botões de arquivo
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(8)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
 
-        pid_group.setLayout(pid_form)
-        main_layout.addWidget(pid_group, stretch=1)
+        btn_new = QPushButton("Novo")
+        btn_new.clicked.connect(self.new_file)
+        btn_layout.addWidget(btn_new)
 
-        # PID Graph Section
-        graph_section = QVBoxLayout()
-        graph_section.setSpacing(24)  # Espaço maior entre widgets
+        btn_open = QPushButton("Abrir")
+        btn_open.clicked.connect(self.open_file)
+        btn_layout.addWidget(btn_open)
 
-        graph_placeholder = QLabel()
-        graph_placeholder.setStyleSheet("""
-            background-color: #eaeaea;
-            border: 2px solid #bbb;
-            border-radius: 12px;
-        """)
-        graph_placeholder.setFixedSize(700, 400)  # Tamanho maior
-        graph_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        graph_placeholder.setText("Visualização do Gráfico PID")
-        graph_section.addWidget(graph_placeholder)
+        btn_save = QPushButton("Salvar")
+        btn_save.clicked.connect(self.save_file)
+        btn_layout.addWidget(btn_save)
 
-        main_layout.addSpacing(24)
-        main_layout.addLayout(graph_section, stretch=2)
+        btn_delete = QPushButton("Deletar")
+        btn_delete.clicked.connect(self.delete_file)
+        btn_layout.addWidget(btn_delete)
 
-        # Add main container to the page
-        self.add_widget(main_container)
+        editor_layout.addLayout(btn_layout)
+        editor_layout.addWidget(self.editor)
+        splitter.addWidget(editor_container)
+
+        btn_new.setStyleSheet(button_style)
+        btn_open.setStyleSheet(button_style)
+        btn_save.setStyleSheet(button_style)
+        btn_delete.setStyleSheet(button_style)
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(splitter)
+        container = QWidget()
+        container.setLayout(main_layout)
+        self.add_widget(container)
+
+    def open_selected_file(self, index):
+        file_path = self.model.filePath(self.proxy_model.mapToSource(index))
+        if os.path.isfile(file_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    self.editor.setPlainText(f.read(), 'text/x-python', 'utf-8')
+                self.current_file = file_path
+            except Exception as e:
+                QMessageBox.warning(self, "Erro", f"Não foi possível abrir o arquivo:\n{e}")
+
+    def new_file(self):
+        from PyQt6.QtWidgets import QInputDialog
+        file_name, ok = QInputDialog.getText(self, "Novo arquivo", "Nome do novo arquivo (.py):")
+        if ok and file_name:
+            if not file_name.endswith(".py"):
+                file_name += ".py"
+            file_path = os.path.join(self.intelligence_dir, file_name)
+            if os.path.exists(file_path):
+                QMessageBox.warning(self, "Aviso", "Arquivo já existe.")
+                return
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write("")
+            self.model.setRootPath(self.intelligence_dir)  # Atualiza a árvore
+            self.editor.setPlainText("", 'text/x-python', 'utf-8')
+            self.current_file = file_path
+            
+    def open_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Abrir arquivo", self.intelligence_dir, "Python Files (*.py);;Text Files (*.txt);;All Files (*)"
+        )
+        if file_path:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                self.editor.setPlainText(f.read(), 'text/x-python', 'utf-8')
+            self.current_file = file_path
+
+    def save_file(self):
+        if self.current_file is None:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Salvar arquivo", self.intelligence_dir, "Python Files (*.py)"
+            )
+            if not file_path:
+                return
+            self.current_file = file_path
+        with open(self.current_file, 'w', encoding='utf-8') as f:
+            f.write(self.editor.toPlainText())
+        QMessageBox.information(self, "Salvo", f"Arquivo salvo: {self.current_file}")
+        self.model.setRootPath(self.intelligence_dir)  # Atualiza a árvore
+
+
+    def delete_file(self):
+        import os
+        if self.current_file and os.path.exists(self.current_file):
+            reply = QMessageBox.question(
+                self, "Deletar", f"Deletar arquivo {self.current_file}?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                os.remove(self.current_file)
+                self.editor.setPlainText("", 'text/x-python', 'utf-8')
+                self.current_file = None
+                QMessageBox.information(self, "Deletado", "Arquivo deletado.")
+                self.model.setRootPath(self.intelligence_dir)  # Atualiza a árvore
+
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhum arquivo para deletar.")
+
+    def destroy(self):
+        # Libere arquivos abertos, threads, etc.
+        if hasattr(self, 'editor') and hasattr(self.editor, 'close'):
+            try:
+                self.editor.close()
+            except Exception:
+                pass
+        self.current_file = None

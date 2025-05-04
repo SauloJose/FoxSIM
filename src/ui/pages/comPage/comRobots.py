@@ -148,3 +148,7 @@ class COMrobotPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere recursos de comunicação, threads, etc.
+        pass

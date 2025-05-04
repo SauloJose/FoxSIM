@@ -24,7 +24,8 @@ class CTneuralPage(BasicPage):
             border-radius: 8px;
             padding: 12px 20px;
         """)
-        explanation_label.setFixedHeight(80)
+        explanation_label.setFixedHeight(80
+                                         )
         explanation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_widget(explanation_label)
 
@@ -198,3 +199,7 @@ class CTneuralPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+    def destroy(self):
+        # Libere threads, arquivos, etc.
+        pass

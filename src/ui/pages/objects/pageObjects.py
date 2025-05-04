@@ -62,6 +62,9 @@ class BasicPage(QWidget):
         container.setLayout(layout)
         self.content_layout.addWidget(container)
 
+    def destroy(self):
+        # Método base: pode ser sobrescrito nas subclasses
+        pass
 
 
 #Classes básicas de Widgets para utilizar na página básica
@@ -108,6 +111,8 @@ class BasicViewer(QGraphicsView):
 
         return None
 
+    def destroy(self):
+        pass
 
 
 #Viewers especializados
@@ -121,6 +126,15 @@ class CameraViewer(BasicViewer):
     def update_from_frame(self, image):
         """Chamado por alguma thread externa quando uma nova imagem estiver pronta."""
         self.show_image(image)
+
+    def destroy(self):
+        # Libera a câmera se estiver aberta
+        if hasattr(self, 'cap') and self.cap is not None:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
+        # ...adicione outras limpezas se necessário...
 
 
 

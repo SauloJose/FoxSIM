@@ -9,7 +9,7 @@ from ui.interface_config import (
     SCALE_PX_TO_CM,
 )
 from simulator.collision.collision import *
-from simulator.intelligence.controll import *
+from src.simulator.intelligence.logic.controll import *
 
 class Robot:
     '''

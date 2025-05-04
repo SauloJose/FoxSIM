@@ -34,13 +34,21 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('SyFox - Sistema de Controle e Visão para VSSS ')
         self.setWindowIcon(QIcon("src/assets/logo_minus.png"))
         self.setMinimumSize(1600, 900)
-
         self.showMaximized()
 
         self.create_menu_bar()  
-
         self.create_menu_navegate()
 
+        # Lazy loading: dicionário para instâncias das páginas
+        self.page_instances = {}
+        self.page_classes = [
+            SimulationViewPage, ConfigRobotsPage, ParamSimuPage, VSVisionPage,
+            VSEntryDataPage, VSCalibrationPage, VSOtimizationPage, VSselectColor,
+            CTneuralPage, CTstrategyPage, COMrobotPage, COMSysPage, LogPage
+        ]
+
+        # Cria e exibe a página inicial (Simulador > Visualização)
+        self.show_initial_page()
 
     def create_menu_bar(self):
         '''
@@ -111,6 +119,8 @@ class MainWindow(QMainWindow):
             "LOGs": "src/assets/simulation.png"
         }
 
+        
+
         # Mapa do menu
         self.page_map = {
                 # Simulador
@@ -137,7 +147,7 @@ class MainWindow(QMainWindow):
                 "Monitoramento > LOGs": 12
             }
 
-
+        
         # Função para adicionar ícones aos itens
         def add_item(parent, text, icon_key):
             item = QTreeWidgetItem(parent, [text])
@@ -186,14 +196,25 @@ class MainWindow(QMainWindow):
 
         # Criação do QStackedWidget para alternar entre as páginas
         self.stack = QStackedWidget()
-        self.add_pages_to_stack()
-
+        # Adiciona widgets vazios como placeholders
+        for _ in range(len(self.page_map)):
+            self.stack.addWidget(QWidget())
         self.splitter.addWidget(self.tree_widget)
         self.splitter.addWidget(self.stack)
         self.setCentralWidget(self.splitter)
-
-        # Conectar o click à mudança de página
         self.tree_widget.itemClicked.connect(self.on_item_clicked)
+
+    def show_initial_page(self):
+        # Página inicial: Simulador > Visualização (índice 0)
+        idx = 0
+        page = self.page_classes[idx]()
+        self.page_instances[idx] = page
+        self.stack.insertWidget(idx, page)
+        self.stack.setCurrentIndex(idx)
+        # Seleciona o item correspondente na árvore
+        root = self.tree_widget.topLevelItem(0)
+        if root:
+            root.child(0).setSelected(True)
 
     def add_pages_to_stack(self):
         self.stack.addWidget(SimulationViewPage())      # index 0 -> Simulador > Visualização
@@ -216,11 +237,25 @@ class MainWindow(QMainWindow):
         while current is not None:
             texts.insert(0, current.text(0))
             current = current.parent()
-        
         path = " > ".join(texts)
-
         if path in self.page_map:
-            self.stack.setCurrentIndex(self.page_map[path])
+            idx = self.page_map[path]
+            # Destrói a página anterior (se não for placeholder)
+            current_widget = self.stack.currentWidget()
+            # Evita destruir a própria página se clicou nela mesma
+            if hasattr(current_widget, "destroy") and current_widget is not self.page_instances.get(idx):
+                current_widget.destroy()
+                self.stack.removeWidget(current_widget)
+                for k, v in list(self.page_instances.items()):
+                    if v is current_widget:
+                        del self.page_instances[k]
+                        break
+            # Cria a página se ainda não existe
+            if idx not in self.page_instances:
+                page = self.page_classes[idx]()
+                self.page_instances[idx] = page
+                self.stack.insertWidget(idx, page)
+            self.stack.setCurrentIndex(idx)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
