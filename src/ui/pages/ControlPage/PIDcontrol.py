@@ -450,11 +450,7 @@ class CTPIDControlPage(BasicPage):
         self.pid_dist.set_new_consts(kp_dist, ki_dist, kd_dist)
         self.pid_angle.set_new_consts(kp_angle, ki_angle, kd_angle)
         self.pid_final.set_new_consts(kp_final, ki_final, kd_final)
-
-        self.pid_dist.reset()
-        self.pid_angle.reset()
-        self.pid_final.reset()
-
+        
         bot = SimBot(x0, y0, a0)
         dt = 0.1
         max_steps = 1000

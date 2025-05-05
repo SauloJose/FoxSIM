@@ -9,6 +9,6 @@
   "rest_rb": 0.7,
   "rest_rr": 0.7,
   "rest_bf": 0.7,
-  "debug": false,
-  "logs": false
+  "debug": true,
+  "logs": true
 }

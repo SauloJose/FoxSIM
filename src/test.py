@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer
-from ui.pages.objects.openGLWidgets import SimulatorWidget
+from ui.pages.objects.SimWidget import SimulatorWidget
 from ui.pages.objects.imageGL import Image
 
 def main():

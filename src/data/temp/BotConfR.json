@@ -1,0 +1,15 @@
+{
+    "robot_length": 8,
+    "robot_mass": 1.0,
+    "robot_max_speed": 10,
+    "robot_max_ang_speed": 5.0,
+    "ball_radius": 2,
+    "ball_mass": 45.0,
+    "ball_max_speed": 50,
+    "team_a_color": "120, 100%, 50%",
+    "goalie_a_color": "60, 100%, 50%",
+    "att_a_colors": ["90, 100%, 50%", "90, 100%, 50%"],
+    "team_b_color": "240, 100%, 50%",
+    "goalie_b_color": "180, 100%, 50%",
+    "att_b_colors": ["210, 100%, 50%", "210, 100%, 50%"]
+}

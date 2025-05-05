@@ -15,8 +15,16 @@ class SimulatorWidget(QWidget):
 
     def __init__(self, parent=None, width=None, height=None):
         super().__init__(parent)
-        self.view_width = max(1, width) if width is not None else 800
-        self.view_height = max(1, height) if height is not None else 600
+        if width is not None and height is not None:
+            self.view_width = max(1, width)
+            self.view_height = max(1, height)
+        elif parent is not None and hasattr(parent, "width") and hasattr(parent, "height"):
+            # Pega tamanho do parent se possível
+            self.view_width = max(1, parent.width())
+            self.view_height = max(1, parent.height())
+        else:
+            self.view_width = 800
+            self.view_height = 600
         self.setMinimumSize(self.view_width, self.view_height)
         self.back_buffer = BackBuffer2D()
         self.framebuffer = QPixmap(self.view_width, self.view_height)
@@ -70,6 +78,7 @@ class SimulatorWidget(QWidget):
 
     def render_frame(self):
         # Redesenha o framebuffer (QPixmap) usando QPainter
+        widget_w, widget_h = self.width(), self.height()
         self.framebuffer = QPixmap(self.view_width, self.view_height)
         self.framebuffer.fill(Qt.GlobalColor.black)
         painter = QPainter(self.framebuffer)
@@ -77,7 +86,15 @@ class SimulatorWidget(QWidget):
         if self._background_image and self._background_image.is_valid():
             bg_img = self._background_image.get_qimage()
             if bg_img:
-                painter.drawImage(0, 0, bg_img.scaled(self.view_width, self.view_height))
+                # Ajusta para preencher exatamente o espaço do widget, mantendo proporção e centralizando
+                img_w, img_h = bg_img.width(), bg_img.height()
+                widget_w, widget_h = self.view_width, self.view_height
+                scale = min(widget_w / img_w, widget_h / img_h)
+                new_w = int(img_w * scale)
+                new_h = int(img_h * scale)
+                offset_x = (widget_w - new_w) // 2
+                offset_y = (widget_h - new_h) // 2
+                painter.drawImage(offset_x, offset_y, bg_img.scaled(new_w, new_h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         # Desenha os demais elementos
         for call in sorted(self.back_buffer.get_calls(), key=lambda x: x.layer):
             try:
@@ -207,11 +224,20 @@ class SimulatorWidget(QWidget):
     def set_background_image(self, image: Image):
         """
         Define a imagem de fundo (campo) que será desenhada sempre antes dos demais elementos.
+        Redimensiona a imagem para o tamanho do widget.
         """
         if image and image.is_valid():
+            # Não faz cópia nem escala aqui, apenas guarda a imagem original
             self._background_image = image
         else:
             self._background_image = None
+
+    def resizeEvent(self, event):
+        # Atualiza view_width/view_height ao redimensionar e força redraw do fundo
+        self.view_width = self.width()
+        self.view_height = self.height()
+        self.render_frame()
+        super().resizeEvent(event)
 
     # Eventos de clique
     def mousePressEvent(self, event):

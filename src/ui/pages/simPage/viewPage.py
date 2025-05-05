@@ -3,7 +3,7 @@ from ui.pages.objects.styles import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
-
+from ui.pages.objects.SimWidget import *
 
 #Classe da página principal
 class SimulationViewPage(BasicPage):
@@ -27,21 +27,51 @@ class SimulationViewPage(BasicPage):
         self.top_hlayout.setSpacing(20)
 
         # === ESQUERDA ===
-        self.left_widget = QFrame()
-        self.left_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.left_widget = QWidget()
         self.left_layout = QVBoxLayout(self.left_widget)
-        self.left_widget.setFixedWidth(int(1.2*645))
-        self.left_widget.setFixedHeight(int(1.2*415))
-        self.left_layout.setContentsMargins(0,0,0,0)
+        self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(0)
 
-        # Scoreboard com placares
+        # Widget pai para o SimulatorWidget (tamanho 1.5x)
+        parent_width = int(1.2 * 645)
+        parent_height = int(1.2 * 413)
+        self.sim_parent_widget = QWidget()
+        # Remover setFixedSize para permitir expansão
+        self.sim_parent_widget.setMinimumSize(parent_width, parent_height)
+        self.sim_parent_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sim_parent_layout = QVBoxLayout(self.sim_parent_widget)
+        sim_parent_layout.setContentsMargins(0, 0, 0, 0)
+        sim_parent_layout.setSpacing(0)
+
+        viewer_width = int(645)
+        viewer_height = int(413)
+        self.viewer = SimulatorWidget(parent=self.sim_parent_widget)
+        self.viewer.set_background_image(Image("src/assets/field.png"))
+        self.viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.viewer.setMinimumSize(viewer_width // 2, viewer_height // 2)
+        self.viewer.setMaximumSize(parent_width, parent_height)
+
+        # Adiciona o SimulatorWidget para ocupar todo o espaço do widget pai
+        sim_parent_layout.addWidget(self.viewer)
+
+        self.left_layout.addWidget(self.sim_parent_widget)
+        self.top_hlayout.addWidget(self.left_widget, stretch=3)
+
+        # === DIREITA ===
+        self.right_widget = QWidget()
+        self.right_layout = QVBoxLayout(self.right_widget)
+        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.right_layout.setContentsMargins(10, 10, 10, 10)
+        self.right_layout.setSpacing(18)
+        self.right_widget.setFixedWidth(340)  # width menor para a lateral direita
+
+        # Placar encima
         self.scoreboard = QFrame()
         self.scoreboard.setStyleSheet("background-color: #f0f0f0;")
         self.scoreboard.setMinimumHeight(80)
         self.scoreObjs = QHBoxLayout(self.scoreboard)
         self.scoreObjs.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.scoreObjs.setContentsMargins(0,0,0,0)
+        self.scoreObjs.setContentsMargins(0, 0, 0, 0)
 
         self.score_widget_a = ScoreWidget("Time A", "blue")
         self.timer_widget = TimerWidget()
@@ -53,35 +83,17 @@ class SimulationViewPage(BasicPage):
         self.scoreObjs.addStretch(1)
         self.scoreObjs.addWidget(self.score_widget_b)
 
-        self.viewer_widget = QFrame()
-        self.viewer_widget.setContentsMargins(0,0,0,0)
-        self.viewer_layout = QVBoxLayout(self.viewer_widget)
-        self.viewer_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.right_layout.addWidget(self.scoreboard)
 
-        self.viewer = BasicViewer(width=int(645), height=int(413))
-        self.viewer.show_image(QImage("src/assets/field.png"))
-        self.viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # Labels para informações (você pode configurar depois)
+        self.info_label1 = QLabel("Label 1: Informação")
+        self.info_label2 = QLabel("Label 2: Informação")
+        self.info_label3 = QLabel("Label 3: Informação")
+        for lbl in [self.info_label1, self.info_label2, self.info_label3]:
+            lbl.setStyleSheet("font-size: 15px; color: #333; background: none;")
+            self.right_layout.addWidget(lbl)
 
-        self.viewer_layout.addWidget(self.viewer)
-        self.viewer_layout.setContentsMargins(0,0,0,0)
-        self.viewer_layout.setSpacing(0)
-
-        self.left_layout.addWidget(self.scoreboard)
-        self.left_layout.addWidget(self.viewer_widget)
-
-        self.top_hlayout.addWidget(self.left_widget, stretch=1)
-
-        # === DIREITA ===
-        self.right_widget = QFrame()
-        self.right_widget.setStyleSheet("background-color: #f0f0f0;")
-        self.right_layout = QVBoxLayout(self.right_widget)
-        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.right_layout.setContentsMargins(10,10,10,10)
-
-        self.info_label = QLabel("Gráficos")
-        self.right_layout.addWidget(self.info_label)
-
-        self.top_hlayout.addWidget(self.right_widget, stretch=2)
+        self.top_hlayout.addWidget(self.right_widget, stretch=1)
         return self.top_hlayout
 
     def create_bottom_section(self):
@@ -111,6 +123,10 @@ class SimulationViewPage(BasicPage):
         self.left_layout.addWidget(self.buttonStart)
         self.left_layout.addWidget(self.label2)
         self.left_layout.addWidget(self.buttonRestart)
+
+        # Conecta os botões ao SimulatorWidget
+        self.buttonStart.clicked.connect(lambda: self.viewer.start_timer())
+        self.buttonRestart.clicked.connect(lambda: self.viewer.reset_timer())
 
         # === CENTRO ===
         self.center_frame = QFrame()

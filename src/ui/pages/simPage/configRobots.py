@@ -1,8 +1,15 @@
 from ui.mainWindow.MainWindows import *
+import os, json
 
 class ConfigRobotsPage(BasicPage):
     def __init__(self):
         super().__init__("Simulador: Configuração dos Robôs", QIcon("src/assets/robot.png"))
+
+        # Diretório e arquivos de configuração
+        self.conf_dir = os.path.join("src", "data", "temp")
+        self.conf_file = os.path.join(self.conf_dir, "BotConf.json")
+        self.conf_reset_file = os.path.join(self.conf_dir, "BotConfR.json")
+        os.makedirs(self.conf_dir, exist_ok=True)
 
         # Explanation section
         explanation_label = QLabel(
@@ -77,8 +84,9 @@ class ConfigRobotsPage(BasicPage):
         robot_layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
         robot_layout.setSpacing(12)  # Espaço entre linhas do formulário
         # Comprimento
-        length_input = QSpinBox()
-        length_input.setRange(1, 100)
+        length_input = QDoubleSpinBox()
+        length_input.setRange(0.01, 100.0)
+        length_input.setSingleStep(0.01)
         length_input.setSuffix(" cm")
         length_input.setFixedWidth(90)
         robot_layout.addRow("Comprimento:", length_input)
@@ -95,6 +103,13 @@ class ConfigRobotsPage(BasicPage):
         speed_input.setSuffix(" cm/s")
         speed_input.setFixedWidth(90)
         robot_layout.addRow("Velocidade Máx.:", speed_input)
+        # Velocidade angular máxima
+        ang_speed_input = QDoubleSpinBox()
+        ang_speed_input.setRange(0.1, 50.0)
+        ang_speed_input.setSingleStep(0.1)
+        ang_speed_input.setSuffix(" rad/s")
+        ang_speed_input.setFixedWidth(90)
+        robot_layout.addRow("Velocidade Angular Máx.:", ang_speed_input)
         robot_group.setLayout(robot_layout)
         left_column.addWidget(robot_group)
 
@@ -127,8 +142,9 @@ class ConfigRobotsPage(BasicPage):
         ball_layout.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
         ball_layout.setSpacing(12)
         # Raio
-        radius_input = QSpinBox()
-        radius_input.setRange(1, 50)
+        radius_input = QDoubleSpinBox()
+        radius_input.setRange(0.01, 50.0)
+        radius_input.setSingleStep(0.01)
         radius_input.setSuffix(" cm")
         radius_input.setFixedWidth(90)
         ball_layout.addRow("Raio:", radius_input)
@@ -252,7 +268,28 @@ class ConfigRobotsPage(BasicPage):
                 background-color: #228B22;
             }
         """)
+
+        # Reset button
+        reset_button = QPushButton("Resetar Configurações")
+        reset_button.setStyleSheet("""
+            QPushButton {
+                background-color: #888;
+                color: white;
+                border-radius: 6px;
+                padding: 10px 28px;
+                font-size: 15px;
+                font-weight: bold;
+                margin-top: 8px;
+                letter-spacing: 0.5px;
+            }
+            QPushButton:hover {
+                background-color: #444;
+            }
+        """)
+
+        # Adiciona botões à coluna da direita
         right_column.addWidget(save_button, alignment=Qt.AlignmentFlag.AlignRight)
+        right_column.addWidget(reset_button, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Add columns to main layout
         main_layout.addLayout(left_column, stretch=1)
@@ -260,6 +297,97 @@ class ConfigRobotsPage(BasicPage):
 
         # Add main container to the page
         self.add_widget(main_container)
+
+        # Salvar referências dos inputs para uso posterior
+        self.length_input = length_input
+        self.mass_input = mass_input
+        self.speed_input = speed_input
+        self.ang_speed_input = ang_speed_input
+
+        # Sessão Bola
+        self.radius_input = radius_input
+        self.ball_mass_input = ball_mass_input
+        self.ball_speed_input = ball_speed_input
+
+        # Sessão Times
+        self.team_a_color_input = team_a_color_input
+        self.goalie_a_input = goalie_a_input
+        self.att_a_inputs = []
+        for i in range(1, 3):
+            self.att_a_inputs.append(team_a_form.itemAt(i+1, QFormLayout.FieldRole).widget())
+        self.team_b_color_input = team_b_color_input
+        self.goalie_b_input = goalie_b_input
+        self.att_b_inputs = []
+        for i in range(1, 3):
+            self.att_b_inputs.append(team_b_form.itemAt(i+1, QFormLayout.FieldRole).widget())
+
+        # Conecta sinais dos botões
+        save_button.clicked.connect(self.save_config)
+        reset_button.clicked.connect(self.reset_config)
+
+        # Carrega configurações iniciais
+        self.load_config()
+
+    def load_config(self):
+        conf_file = self.conf_file if os.path.exists(self.conf_file) else self.conf_reset_file
+        try:
+            with open(conf_file, "r") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+
+        # Robô
+        self.length_input.setValue(int(data.get("robot_length", 8)))
+        self.mass_input.setValue(float(data.get("robot_mass", 1.0)))
+        self.speed_input.setValue(int(data.get("robot_max_speed", 10)))
+        self.ang_speed_input.setValue(float(data.get("robot_max_ang_speed", 5.0)))
+        # Bola
+        self.radius_input.setValue(int(data.get("ball_radius", 2)))
+        self.ball_mass_input.setValue(float(data.get("ball_mass", 45.0)))
+        self.ball_speed_input.setValue(int(data.get("ball_max_speed", 50)))
+        # Time A
+        self.team_a_color_input.setText(data.get("team_a_color", "120, 100%, 50%"))
+        self.goalie_a_input.setText(data.get("goalie_a_color", "60, 100%, 50%"))
+        att_a_colors = data.get("att_a_colors", ["90, 100%, 50%", "90, 100%, 50%"])
+        for i, att_input in enumerate(self.att_a_inputs):
+            att_input.setText(att_a_colors[i] if i < len(att_a_colors) else "")
+        # Time B
+        self.team_b_color_input.setText(data.get("team_b_color", "240, 100%, 50%"))
+        self.goalie_b_input.setText(data.get("goalie_b_color", "180, 100%, 50%"))
+        att_b_colors = data.get("att_b_colors", ["210, 100%, 50%", "210, 100%, 50%"])
+        for i, att_input in enumerate(self.att_b_inputs):
+            att_input.setText(att_b_colors[i] if i < len(att_b_colors) else "")
+
+    def save_config(self):
+        data = {
+            # Robô
+            "robot_length": self.length_input.value(),
+            "robot_mass": self.mass_input.value(),
+            "robot_max_speed": self.speed_input.value(),
+            "robot_max_ang_speed": self.ang_speed_input.value(),
+            # Bola
+            "ball_radius": self.radius_input.value(),
+            "ball_mass": self.ball_mass_input.value(),
+            "ball_max_speed": self.ball_speed_input.value(),
+            # Time A
+            "team_a_color": self.team_a_color_input.text(),
+            "goalie_a_color": self.goalie_a_input.text(),
+            "att_a_colors": [att.text() for att in self.att_a_inputs],
+            # Time B
+            "team_b_color": self.team_b_color_input.text(),
+            "goalie_b_color": self.goalie_b_input.text(),
+            "att_b_colors": [att.text() for att in self.att_b_inputs]
+        }
+        with open(self.conf_file, "w") as f:
+            json.dump(data, f, indent=4)
+
+    def reset_config(self):
+        if os.path.exists(self.conf_reset_file):
+            with open(self.conf_reset_file, "r") as f:
+                data = json.load(f)
+            with open(self.conf_file, "w") as f2:
+                json.dump(data, f2, indent=4)
+            self.load_config()
 
     def destroy(self):
         # Libere recursos se houver
