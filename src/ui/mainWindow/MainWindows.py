@@ -18,6 +18,7 @@ from ui.pages.comPage.comSys import COMSysPage
 
 from ui.pages.ControlPage.neural import CTneuralPage
 from ui.pages.ControlPage.strategy import CTstrategyPage
+from ui.pages.ControlPage.PIDcontrol import CTPIDControlPage  # ADICIONADO
 
 from ui.pages.logPage.logsPage import LogPage
 
@@ -31,7 +32,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         #Informações básicas da maior janela
-        self.setWindowTitle('SyFox - Sistema de Controle e Visão para VSSS ')
+        self.setWindowTitle('SyFox - Sistema de Controle e Visão para VSSS - Por: Saulo José')
         self.setWindowIcon(QIcon("src/assets/logo_minus.png"))
         self.setMinimumSize(1600, 900)
         self.showMaximized()
@@ -44,7 +45,7 @@ class MainWindow(QMainWindow):
         self.page_classes = [
             SimulationViewPage, ConfigRobotsPage, ParamSimuPage, VSVisionPage,
             VSEntryDataPage, VSCalibrationPage, VSOtimizationPage, VSselectColor,
-            CTneuralPage, CTstrategyPage, COMrobotPage, COMSysPage, LogPage
+            CTneuralPage, CTPIDControlPage, CTstrategyPage, COMrobotPage, COMSysPage, LogPage
         ]
 
         # Cria e exibe a página inicial (Simulador > Visualização)
@@ -111,6 +112,7 @@ class MainWindow(QMainWindow):
             "Identificação de Cores": "src/assets/control-panel.png",
             "Controle": "src/assets/control.png",
             "Redes Neurais": "src/assets/IA.png",
+            "Configuração PID": "src/assets/PID.png",
             "Estratégias de Controle": "src/assets/PID.png",
             "Comunicação": "src/assets/message.png",
             "Entre Robôs": "src/assets/USB.png",
@@ -137,14 +139,15 @@ class MainWindow(QMainWindow):
 
                 # Controle
                 "Controle > Redes Neurais": 8,
-                "Controle > Estratégias de Controle": 9,
+                "Controle > Configuração PID": 9,
+                "Controle > Estratégias de Controle": 10,
 
                 # Comunicação
-                "Comunicação > Entre Robôs": 10,
-                "Comunicação > Entre Sistemas": 11,
+                "Comunicação > Entre Robôs": 11,
+                "Comunicação > Entre Sistemas": 12,
 
                 # Monitoramento
-                "Monitoramento > LOGs": 12
+                "Monitoramento > LOGs": 13
             }
 
         
@@ -179,6 +182,7 @@ class MainWindow(QMainWindow):
         ctrl_item = QTreeWidgetItem(self.tree_widget, ['Controle'])
         ctrl_item.setIcon(0, QIcon(self.icons["Controle"]))
         add_item(ctrl_item, 'Redes Neurais', 'Redes Neurais')
+        add_item(ctrl_item, 'Configuração PID', 'Configuração PID')  # NOVA LINHA
         add_item(ctrl_item, 'Estratégias de Controle', 'Estratégias de Controle')
         ctrl_item.setExpanded(True)
 
@@ -226,10 +230,11 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(VSOtimizationPage())       # index 6 -> Sistema de Visão > Otimização
         self.stack.addWidget(VSselectColor())           # index 7 -> Sistema de Visão > Identificação de Cores
         self.stack.addWidget(CTneuralPage())            # index 8 -> Controle > Redes Neurais
-        self.stack.addWidget(CTstrategyPage())          # index 9 -> Controle > Estratégias de Controle
-        self.stack.addWidget(COMrobotPage())            # index 10 -> Comunicação > Entre Robôs
-        self.stack.addWidget(COMSysPage())              # index 11 -> Comunicação > Entre Sistemas
-        self.stack.addWidget(LogPage())                 # index 12 -> Monitoramento > LOGs
+        self.stack.addWidget(CTPIDControlPage())        # index 9 -> Controle > Configuração PID
+        self.stack.addWidget(CTstrategyPage())          # index 10 -> Controle > Estratégias de Controle
+        self.stack.addWidget(COMrobotPage())            # index 11 -> Comunicação > Entre Robôs
+        self.stack.addWidget(COMSysPage())              # index 12 -> Comunicação > Entre Sistemas
+        self.stack.addWidget(LogPage())                 # index 13 -> Monitoramento > LOGs
 
     def on_item_clicked(self, item, column):
         texts = []

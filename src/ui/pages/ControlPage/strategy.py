@@ -37,7 +37,7 @@ class CTstrategyPage(BasicPage):
             }
         """
         explanation_label = QLabel(
-            "Edite ou crie estratégias de controle diretamente nos arquivos Python da pasta 'intelligence'."
+            "Edite ou crie estratégias de controle diretamente nos arquivos Python da pasta 'intelligence' que são utilizados no simulador."
         )
         explanation_label.setWordWrap(True)
         explanation_label.setStyleSheet("""
@@ -48,7 +48,7 @@ class CTstrategyPage(BasicPage):
             border-radius: 8px;
             padding: 12px 20px;
         """)
-        explanation_label.setFixedHeight(60)
+        explanation_label.setFixedHeight(65)
         explanation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_widget(explanation_label)
 
@@ -95,7 +95,30 @@ class CTstrategyPage(BasicPage):
         # Fonte VSCode-like
         font = QFont("Cascadia Code, Consolas, Menlo, Monaco, monospace", 12)
         self.editor.setFont(font)
-        self.editor.setStyleSheet("background-color: #ffffff; color: #d4d4d4;")
+
+        # Remove todos os modos e adiciona o highlighter, depois seta o estilo
+        self.editor.modes.clear()
+        highlighter = PygmentsSyntaxHighlighter(self.editor.document())
+        try:
+            highlighter._pygments_style = 'dracula'
+        except Exception:
+            highlighter._pygments_style= 'monokai'
+        self.editor.modes.append(highlighter)
+
+        # Estilo Drácula para fundo e fonte padrão
+        self.editor.setStyleSheet("""
+            QPlainTextEdit, CodeEdit {
+                background-color: #23272e;
+                color: #f8f8f2;
+                selection-background-color: #44475a;
+                selection-color: #f8f8f2;
+            }
+            /* Garante que números de linha e outros elementos não fiquem pretos */
+            QWidget, QAbstractScrollArea, QScrollBar, QHeaderView {
+                color: #f8f8f2;
+            }
+        """)
+
         self.current_file = None
 
         # Botões de arquivo
@@ -103,9 +126,8 @@ class CTstrategyPage(BasicPage):
         btn_layout.setSpacing(8)
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
-        btn_new = QPushButton("Novo")
-        btn_new.clicked.connect(self.new_file)
-        btn_layout.addWidget(btn_new)
+        # Removido: btn_new (Novo)
+        # Removido: btn_delete (Deletar)
 
         btn_open = QPushButton("Abrir")
         btn_open.clicked.connect(self.open_file)
@@ -115,18 +137,13 @@ class CTstrategyPage(BasicPage):
         btn_save.clicked.connect(self.save_file)
         btn_layout.addWidget(btn_save)
 
-        btn_delete = QPushButton("Deletar")
-        btn_delete.clicked.connect(self.delete_file)
-        btn_layout.addWidget(btn_delete)
-
         editor_layout.addLayout(btn_layout)
         editor_layout.addWidget(self.editor)
         splitter.addWidget(editor_container)
 
-        btn_new.setStyleSheet(button_style)
+        # Apenas dois botões
         btn_open.setStyleSheet(button_style)
         btn_save.setStyleSheet(button_style)
-        btn_delete.setStyleSheet(button_style)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(splitter)
@@ -144,22 +161,6 @@ class CTstrategyPage(BasicPage):
             except Exception as e:
                 QMessageBox.warning(self, "Erro", f"Não foi possível abrir o arquivo:\n{e}")
 
-    def new_file(self):
-        from PyQt6.QtWidgets import QInputDialog
-        file_name, ok = QInputDialog.getText(self, "Novo arquivo", "Nome do novo arquivo (.py):")
-        if ok and file_name:
-            if not file_name.endswith(".py"):
-                file_name += ".py"
-            file_path = os.path.join(self.intelligence_dir, file_name)
-            if os.path.exists(file_path):
-                QMessageBox.warning(self, "Aviso", "Arquivo já existe.")
-                return
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write("")
-            self.model.setRootPath(self.intelligence_dir)  # Atualiza a árvore
-            self.editor.setPlainText("", 'text/x-python', 'utf-8')
-            self.current_file = file_path
-            
     def open_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Abrir arquivo", self.intelligence_dir, "Python Files (*.py);;Text Files (*.txt);;All Files (*)"
@@ -181,7 +182,6 @@ class CTstrategyPage(BasicPage):
             f.write(self.editor.toPlainText())
         QMessageBox.information(self, "Salvo", f"Arquivo salvo: {self.current_file}")
         self.model.setRootPath(self.intelligence_dir)  # Atualiza a árvore
-
 
     def delete_file(self):
         import os

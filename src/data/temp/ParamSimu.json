@@ -1,0 +1,14 @@
+{
+  "fps": 60,
+  "tempo_partida": 300.0,
+  "velocidade_simulacao": 1.0,
+  "fric_rr": 0.5,
+  "fric_rf": 0.5,
+  "fric_rw": 0.5,
+  "fric_br": 0.5,
+  "rest_rb": 0.7,
+  "rest_rr": 0.7,
+  "rest_bf": 0.7,
+  "debug": false,
+  "logs": false
+}

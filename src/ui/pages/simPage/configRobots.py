@@ -26,7 +26,7 @@ class ConfigRobotsPage(BasicPage):
         main_container.setObjectName("robotConfigMainContainer")
         main_container.setStyleSheet("""
             #robotConfigMainContainer {
-                background: #f4f4f7;
+                background: #ffffff;
                 border: 1.5px solid #e0e0e0;
                 border-radius: 16px;
                 padding: 24px;
