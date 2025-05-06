@@ -5,6 +5,8 @@ from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from ui.pages.objects.SimWidget import *
 
+import os
+
 #Classe da página principal
 class SimulationViewPage(BasicPage):
     def __init__(self):
@@ -28,6 +30,17 @@ class SimulationViewPage(BasicPage):
         self.left_layout.setContentsMargins(0, 0, 0, 0)
         self.left_layout.setSpacing(0)
 
+        # --- Informações do time A ---
+        self.team_a_info = TeamInfoWidget("A", ["src/assets/ATGK.png","src/assets/ATA1.png", "src/assets/ATA2.png"])
+        wrapper_a = QWidget()
+        wrapper_a.setFixedHeight(80)
+        wrapper_a.setStyleSheet("background-color: #f5f5f7; border-radius: 8px;")
+        wrapper_a_layout = QVBoxLayout(wrapper_a)
+        wrapper_a_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_a_layout.setSpacing(0)
+        wrapper_a_layout.addWidget(self.team_a_info)
+        self.left_layout.addWidget(wrapper_a)
+
         # Widget pai para o SimulatorWidget (tamanho 1.5x)
         parent_width = int(1.2 * 645)
         parent_height = int(1.2 * 413)
@@ -48,6 +61,18 @@ class SimulationViewPage(BasicPage):
 
         sim_parent_layout.addWidget(self.viewer)
         self.left_layout.addWidget(self.sim_parent_widget)
+
+        # --- Informações do time B ---
+        self.team_b_info = TeamInfoWidget("B", ["src/assets/ETGK.png","src/assets/ETA1.png", "src/assets/ETA2.png"])
+        wrapper_b = QWidget()
+        wrapper_b.setFixedHeight(80)
+        wrapper_b.setStyleSheet("background-color: #f5f5f7; border-radius: 8px;")
+        wrapper_b_layout = QVBoxLayout(wrapper_b)
+        wrapper_b_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_b_layout.setSpacing(0)
+        wrapper_b_layout.addWidget(self.team_b_info)
+        self.left_layout.addWidget(wrapper_b)
+
         self.top_hlayout.addWidget(self.left_widget, stretch=3)
 
         # === DIREITA ===
@@ -296,3 +321,92 @@ class StatsLogWidget(QFrame):
         self.set_tempo("0s")
         self.set_estado("Parada")
         self.set_eventos([])
+
+# --- NOVAS CLASSES PARA INFORMAÇÕES DOS TIMES E ROBÔS ---
+
+class TeamInfoWidget(QWidget):
+    """
+    Widget para exibir informações dos robôs de um time.
+    """
+    def __init__(self, team_label, robot_img_paths):
+        super().__init__()
+        self.setFixedHeight(80)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(8, 4, 8, 4)
+        self.layout.setSpacing(12)
+        self.robots = []
+        self.robotNames = ["Goleiro (GK)", "Atacante 1 (A1)", "Atacante 2 (A2)"]
+        for i, img_path in enumerate(robot_img_paths):
+            self.layout.addStretch(1)
+            robot_widget = RobotInfoWidget(img_path, self.robotNames[i])
+            self.layout.addWidget(robot_widget)
+            self.robots.append(robot_widget)
+        self.layout.addStretch(1)
+
+    def set_robot_info(self, robot_idx, pos, direction, v_left, v_right, dist_ball):
+        """
+        Atualiza as informações de um robô específico.
+        robot_idx: índice do robô (0, 1, 2)
+        """
+        if 0 <= robot_idx < len(self.robots):
+            self.robots[robot_idx].set_info(pos, direction, v_left, v_right, dist_ball)
+
+class RobotInfoWidget(QWidget):
+    """
+    Widget para exibir informações de um robô.
+    """
+    def __init__(self, img_path, robot_label=""):
+        super().__init__()
+        self.setFixedHeight(72)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(2, 2, 2, 2)
+        self.layout.setSpacing(30)
+
+        # Imagem do robô, rotacionada 90 graus horário
+        self.img_label = QLabel()
+        self.img_label.setFixedSize(40, 40)
+        pixmap = QPixmap(img_path)
+        if not pixmap.isNull():
+            transform = QTransform().rotate(-90)
+            rotated = pixmap.transformed(transform, Qt.TransformationMode.SmoothTransformation)
+            self.img_label.setPixmap(rotated.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        self.layout.addWidget(self.img_label)
+
+        # Bloco de informações
+        self.info_layout = QVBoxLayout()
+        self.info_layout.setContentsMargins(0, 0, 0, 0)
+        self.info_layout.setSpacing(1)
+
+        font = QFont("Arial", 8)
+        font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
+
+        self.lbl_robot = QLabel(f"<b>{robot_label}</b>")
+        self.lbl_robot.setFont(font)
+        self.lbl_robot.setStyleSheet("font-weight: bold; color: #444;")
+        self.info_layout.addWidget(self.lbl_robot)
+        self.info_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.lbl_estado = QLabel("<b>Estado:</b> [0.00; 0.00; 0.0°]")
+        self.lbl_estado.setFont(font)
+        self.info_layout.addWidget(self.lbl_estado)
+
+        self.lbl_rodas = QLabel("<b>[VL, VR]:</b> [0.00; 0.00] cm/s")
+        self.lbl_rodas.setFont(font)
+        self.info_layout.addWidget(self.lbl_rodas)
+
+        self.lbl_dist = QLabel("<b>Dist. Bola:</b> 0.00 cm")
+        self.lbl_dist.setFont(font)
+        self.info_layout.addWidget(self.lbl_dist)
+
+        self.layout.addLayout(self.info_layout)
+
+    def set_info(self, pos, direction, v_left, v_right, dist_ball):
+        """
+        Atualiza as informações exibidas do robô.
+        pos: tupla (x, y)
+        direction: float (graus)
+        v_left, v_right, dist_ball: float
+        """
+        self.lbl_estado.setText(f"<b>Estado:</b> ({pos[0]:.2f}; {pos[1]:.2f}; {direction:.1f}°)")
+        self.lbl_rodas.setText(f"<b>[VL, VR]:</b> [{v_left:.2f}; {v_right:.2f}] cm/s")
+        self.lbl_dist.setText(f"<b>Dist. Bola:</b> {dist_ball:.2f} cm")
