@@ -20,6 +20,8 @@ class SimulationViewPage(BasicPage):
         self.main_vlayout.addLayout(self.top_layout)
         self.add_layout(self.main_vlayout)
 
+        # Criando objeto do simulado para controlar corretamente a simulação
+
     def create_top_section(self):
         self.top_hlayout = QHBoxLayout()
         self.top_hlayout.setSpacing(20)

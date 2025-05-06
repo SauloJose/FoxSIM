@@ -155,13 +155,9 @@ class Robot:
 
     def normalize_angle(self, angle):
         """
-        Normaliza ângulos para o intervalo [-π, π]
+        Normaliza ângulos para o intervalo [-π, π] usando numpy.
         """
-        while angle > math.pi:
-            angle -= 2 * math.pi
-        while angle < -math.pi:
-            angle += 2 * math.pi
-        return angle
+        return np.arctan2(np.sin(angle), np.cos(angle))
 
     #setando velocidade das rodas
     def set_wheel_speeds(self, v_l, v_r):

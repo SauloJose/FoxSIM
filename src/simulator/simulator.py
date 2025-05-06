@@ -16,8 +16,19 @@ class Simulator:
     '''
         Classe para encapsular a lógica da simulação e controlar o loop de tempo/desenho.
     '''
-    def __init__(self, screen: SimulatorWidget, fps=60):
-        self.screen = screen  # SimulatorWidget
+    def __init__(self, page_parent,screen: SimulatorWidget, fps: int =60):
+        '''
+        Inicializa o simulador do jogo com os parâmetros fornecidos.
+
+        :param page_parent (BasicPage): Página pai que contém o simulador.
+
+        :param screen (SimulatorWidget): Tela que o simulador utilizará para desenhar os objetos.
+
+        :param fps (int): Taxa de quadros por segundo (frames per second).
+
+        '''
+        self.screen = screen  # Tela que o simulador utilizará para desenhar os objetos
+        self.page_parent = page_parent
         self.fps = fps
         self.timer = QTimer()
         self.timer.timeout.connect(self._main_loop)
