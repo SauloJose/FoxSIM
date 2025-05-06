@@ -52,8 +52,11 @@ class Simulator:
             field=self.field,
             screen=self.screen
         )
+
+        # Objeto que representa o árbitro do jogo
         self.arbitrator = Arbitrator(self.ball, self.field, self.allies, self.enemies, self.screen, self.cronometer)
 
+    
     def set_FPS(self, fps):
         self.fps = max(1, int(fps))
         self.timer.setInterval(int(1000 / self.fps))

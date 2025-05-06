@@ -1,6 +1,6 @@
 {
   "fps": 60,
-  "tempo_partida": 300.0,
+  "tempo_partida": 60.0,
   "velocidade_simulacao": 1.0,
   "fric_rr": 0.5,
   "fric_rf": 0.5,

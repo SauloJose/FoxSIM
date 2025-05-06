@@ -1,57 +1,60 @@
-import sys
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer
-from ui.pages.objects.SimWidget import SimulatorWidget
-from ui.pages.objects.imageGL import Image
+from PIL import Image, ImageDraw
 
-def main():
-    app = QApplication(sys.argv)
+def gerar_robo_vss_png(cor_time, cor1, cor2, x_cm=7.5, caminho_saida="robo_vss.png"):
+    """
+    Gera uma imagem PNG de um robô VSS na escala correta (3.6 px = 1 cm).
+    - cor_time: cor do retângulo inferior
+    - cor1: cor do quadrado superior esquerdo
+    - cor2: cor do quadrado superior direito
+    - x_cm: lado do robô em centímetros
+    """
+    px_por_cm = 3.6
+    lado_px = int(round(x_cm * px_por_cm))
 
-    # Carrega imagem de fundo (campo)
-    campo_img = Image("src/assets/field.png")
-    width = campo_img.width
-    height = campo_img.height
+    # Proporções fixas do desenho (referência: corpo 100x100, borda 105x105, rodas 10x40)
+    prop_corpo = 1.0
+    prop_borda = 1.03
+    prop_roda_w = 0.15
+    prop_roda_h = 0.60
+    prop_sup_q = 0.5
+    prop_inf_h = 0.5
 
-    widget = SimulatorWidget(width=width, height=height)
-    widget.setWindowTitle("Teste SimulatorWidget")
-    widget.set_background_image(campo_img)
+    img_size = int(lado_px * prop_borda) + 2  # +2 para garantir espaço para borda
+    img = Image.new("RGBA", (img_size, img_size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
 
-    # Robô: 7 cm de lado, escala do campo: 3 px = 1 cm => 21 px de lado
-    robo_tamanho_px = 7 * 3  # 21 px
+    # Quadrado preto maior (borda)
+    borda_size = int(lado_px * prop_borda)
+    borda_x = (img_size - borda_size) // 2
+    borda_y = (img_size - borda_size) // 2
+    draw.rectangle([borda_x, borda_y, borda_x+borda_size, borda_y+borda_size], fill="#000000")
 
-    # Carrega imagens dos robôs
-    robo_azul_img = Image("src/assets/ATA2.png")
-    robo_vermelho_img = Image("src/assets/ATA1.png")  # ajuste o nome se necessário
+    # Quadrado principal (corpo)
+    quad_size = lado_px
+    quad_x = (img_size - quad_size) // 2
+    quad_y = (img_size - quad_size) // 2
 
-    # Usa métodos da classe Image para ajustar o tamanho
-    if robo_azul_img.width > 0:
-        scale_azul = robo_tamanho_px / robo_azul_img.width
-        robo_azul_img = robo_azul_img.set_scale(scale_azul)
-    if robo_vermelho_img.width > 0:
-        scale_vermelho = robo_tamanho_px / robo_vermelho_img.width
-        robo_vermelho_img = robo_vermelho_img.set_scale(scale_vermelho)
+    # Rodas (proporcionais ao lado)
+    roda_w = int(lado_px * prop_roda_w)
+    roda_h = int(lado_px * prop_roda_h)
+    roda_y = quad_y + (quad_size - roda_h)//2
+    # Esquerda
+    draw.rectangle([quad_x-roda_w, roda_y, quad_x, roda_y+roda_h], fill="#111111")
+    # Direita
+    draw.rectangle([quad_x+quad_size, roda_y, quad_x+quad_size+roda_w, roda_y+roda_h], fill="#111111")
 
-    # Variáveis para animação simples
-    pos_x = [200, 600]
-    pos_y = [300, 300]
-    angle = [0, 0]
+    # Quadrados superiores (proporcionais)
+    sup_q = int(lado_px * prop_sup_q)
+    draw.rectangle([quad_x, quad_y, quad_x+sup_q, quad_y+sup_q], fill=cor1)
+    draw.rectangle([quad_x+sup_q, quad_y, quad_x+quad_size, quad_y+sup_q], fill=cor2)
 
-    def animate():
-        angle[0] = (angle[0] + 2) % 360
-        angle[1] = (angle[1] - 2) % 360
+    # Retângulo inferior (proporcional)
+    inf_h = int(lado_px * prop_inf_h)
+    draw.rectangle([quad_x, quad_y+sup_q, quad_x+quad_size, quad_y+quad_size], fill=cor_time)
 
-        widget.back_buffer.clear()
-        widget.back_buffer.draw_img(robo_azul_img, pos_x[0], pos_y[0], angle=angle[0], scale=1.0, alpha=1.0, layer=1)
-        widget.back_buffer.draw_img(robo_vermelho_img, pos_x[1], pos_y[1], angle=angle[1], scale=1.0, alpha=1.0, layer=1)
-        widget.back_buffer.draw_circle(width // 2, height // 2, 40, color=(1,0,0,0.5), layer=2)
+    # Gira a imagem 90° no sentido horário
+    img = img.rotate(-90, expand=True)
+    img.save(caminho_saida)
 
-    timer = QTimer()
-    timer.timeout.connect(animate)
-    timer.start(1000 // 60)  # 60 FPS
-
-    widget.show()
-    widget.start_timer()
-    sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()
+# Exemplo de uso:
+gerar_robo_vss_png("#1e90ff", "#ffcc00", "#ffffff", x_cm=7.5, caminho_saida="robo_vss.png")

@@ -1,5 +1,4 @@
 import sys
-import pygame
 import numpy as np
 from PyQt6.QtWidgets import *
 
@@ -101,7 +100,7 @@ class MainWindow(QMainWindow):
 
         # Mapeamento de ícones
         self.icons = {
-            "Simulador": "src/assets/ATGK.png",
+            "Simulador": "src/assets/SIM.png",
             "Visualização": "src/assets/statistics.png",
             "Configuração de Robôs": "src/assets/robot.png",
             "Parâmetros da simulação": "src/assets/control-panel.png",
