@@ -5,8 +5,8 @@ from PyQt6.QtCore import Qt
 import cv2
 
 class VSEntryDataPage(BasicPage):
-    def __init__(self):
-        super().__init__("Sistema de Visão: Configuração de Entrada de Dados", QIcon("src/assets/USB.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Sistema de Visão: Configuração de Entrada de Dados", QIcon("src/assets/USB.png"),log_manager)
 
         self._camera_cap = None  # Se usar cv2.VideoCapture, armazene aqui
 

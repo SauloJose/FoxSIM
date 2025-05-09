@@ -221,6 +221,15 @@ class Ball:
         is_inside, mtv = goal_area.check_point_inside(self.collision_object)
         return is_inside
     
+    def new_draw(self, screen):
+        '''
+            Nova função de desenho da bola para testes
+
+            :param screen: Superfície do pygame onde a bola será desenhada.
+        '''
+
+        pass 
+    
     def draw(self, screen):
         """
         Desenha a bola na tela.

@@ -1,0 +1,46 @@
+[2025-05-09 14:12:30] [SYSTEM APP] [INFO] (LOW): Sistema iniciado com sucesso.
+[2025-05-09 14:12:32] [SYSTEM APP] [DEBUG] (LOW): Verificando integridade dos sensores...
+[2025-05-09 14:12:35] [SIMULATION] [WARNING] (MEDIUM): Sensor 3 com resposta instável.
+[2025-05-09 14:12:40] [SYSTEM APP] [ERROR] (HIGH): Falha ao comunicar com o robô 2.
+[2025-05-09 14:12:42] [SYSTEM APP] [INFO] (LOW): Tentando reconectar ao robô 2...
+[2025-05-09 14:12:45] [SYSTEM APP] [INFO] (LOW): Reconexão bem-sucedida.
+[2025-05-09 14:12:50] [VISION] [DEBUG] (LOW): Estado do robô 1: posição (12, 24), orientação 45°
+[2025-05-09 14:13:00] [SYSTEM APP] [CRITICAL] (CRITICAL): Perda total de comunicação com o servidor central!
+[2025-05-09 14:13:10] [SYSTEM APP] [INFO] (LOW): Sistema entrando em modo de recuperação.
+[2025-05-09 14:13:15] [SIMULATION] [DEBUG] (LOW): Tentando ping no servidor central...
+[2025-05-09 14:13:18] [SYSTEM APP] [INFO] (LOW): Ping recebido. Comunicação restabelecida.
+[2025-05-09 14:13:25] [SIMULATION] [WARNING] (MEDIUM): Sensor 2 com calibração imprecisa.
+[2025-05-09 14:13:30] [SIMULATION] [INFO] (LOW): Recalibrando Sensor 2.
+[2025-05-09 14:13:35] [SIMULATION] [DEBUG] (LOW): Sensor 2 recalibrado: novo valor 98.7%.
+[2025-05-09 14:13:40] [SYSTEM APP] [ERROR] (HIGH): Não foi possível conectar à rede Wi-Fi.
+[2025-05-09 14:13:50] [SYSTEM APP] [INFO] (LOW): Tentando reconectar à rede Wi-Fi...
+[2025-05-09 14:13:55] [SYSTEM APP] [INFO] (LOW): Conexão Wi-Fi bem-sucedida.
+[2025-05-09 14:14:00] [SYSTEM APP] [DEBUG] (LOW): Verificando status do servidor central.
+[2025-05-09 14:14:05] [SYSTEM APP] [CRITICAL] (CRITICAL): O servidor central não respondeu a tempo.
+[2025-05-09 14:14:10] [SYSTEM APP] [INFO] (LOW): Mudando para o servidor de backup.
+[2025-05-09 14:14:20] [SYSTEM APP] [ERROR] (HIGH): Conexão com o servidor de backup falhou.
+[2025-05-09 14:14:30] [SYSTEM APP] [INFO] (LOW): Tentando novamente conectar ao servidor central...
+[2025-05-09 14:14:35] [SYSTEM APP] [INFO] (LOW): Conexão bem-sucedida com o servidor central.
+[2025-05-09 14:14:40] [VISION] [DEBUG] (LOW): Atualizando configurações do sistema.
+[2025-05-09 14:14:50] [VISION] [INFO] (LOW): Sistema atualizado com sucesso.
+[2025-05-09 14:14:55] [SYSTEM APP] [WARNING] (MEDIUM): Temperatura do sistema atingindo 80°C.
+[2025-05-09 14:15:00] [SYSTEM APP] [INFO] (LOW): Ajustando ventilação do sistema.
+[2025-05-09 14:15:10] [SYSTEM APP] [INFO] (LOW): Sistema funcionando em temperatura ideal: 60°C.
+[2025-05-09 14:15:15] [VISION] [DEBUG] (LOW): Verificando integridade de todos os módulos.
+[2025-05-09 14:15:20] [VISION] [INFO] (LOW): Todos os módulos estão operacionais.
+[2025-05-09 14:15:30] [SYSTEM APP] [ERROR] (HIGH): Falha na detecção do sensor de movimento.
+[2025-05-09 14:15:35] [SYSTEM APP] [INFO] (LOW): Tentando reiniciar o sensor de movimento...
+[2025-05-09 14:15:40] [SYSTEM APP] [INFO] (LOW): Sensor de movimento reiniciado com sucesso.
+[2025-05-09 14:15:50] [VISION] [DEBUG] (LOW): Estado do robô 2: posição (5, 15), orientação 90°
+[2025-05-09 14:15:55] [SYSTEM APP] [CRITICAL] (CRITICAL): O robô 1 foi descontrolado e caiu.
+[2025-05-09 14:16:00] [SYSTEM APP] [INFO] (LOW): Enviando comando de recuperação para o robô 1.
+[2025-05-09 14:16:10] [SYSTEM APP] [INFO] (LOW): Robô 1 recuperado e em operação normal.[2025-05-09 14:30:13] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:31:44] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:38:11] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:40:06] [SYSTEM APP] [CRITICAL] (HIGH): Sistema de logs está funcionando fiot.
+[2025-05-09 14:40:06] [SYSTEM APP] [CRITICAL] (HIGH): Sistema de logs está funcionando fiot.
+[2025-05-09 14:40:13] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:43:20] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:46:28] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:48:14] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.
+[2025-05-09 14:49:10] [SYSTEM APP] [INFO] (HIGH): Página de Logs carregada com sucesso.

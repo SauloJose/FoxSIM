@@ -1,8 +1,8 @@
 from ui.pages.objects.pageObjects import *
 
 class VSOtimizationPage(BasicPage):
-    def __init__(self):
-        super().__init__("Sistema de Visão: Otimização", QIcon("src/assets/control-panel.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Sistema de Visão: Otimização", QIcon("src/assets/control-panel.png"),log_manager)
 
         # Explanation section
         explanation_label = QLabel(

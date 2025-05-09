@@ -65,8 +65,8 @@ class SimBot:
 
 
 class CTPIDControlPage(BasicPage):
-    def __init__(self):
-        super().__init__("Controle: Ajuste do Controle PID", QIcon("src/assets/PID.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Controle: Ajuste do Controle PID", QIcon("src/assets/PID.png"),log_manager)
 
         # Explicação curta
         explanation_label = QLabel("Ajuste os parâmetros PID e simule a trajetória entre dois estágios (posição e orientação).")

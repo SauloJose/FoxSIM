@@ -4,13 +4,14 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from PyQt6.QtCore import *
 from ui.pages.objects.SimWidget import *
+from simulator.simulator import *
 
 import os
 
 #Classe da página principal
 class SimulationViewPage(BasicPage):
-    def __init__(self):
-        super().__init__("Simulação: Visão Geral", QIcon("src/assets/ATGK.png"))
+    def __init__(self, log_manager: LogManager = None):
+        super().__init__("Simulação: Visão Geral", QIcon("src/assets/ATGK.png"),log_manager)
 
         self.main_vlayout = QVBoxLayout()
         self.main_vlayout.setSpacing(10)
@@ -21,7 +22,9 @@ class SimulationViewPage(BasicPage):
         self.add_layout(self.main_vlayout)
 
         # Criando objeto do simulado para controlar corretamente a simulação
-
+        #self.simulator = Simulator(self, self.viewer, FPS = 60)
+        #self.initialize_simulator()
+        
     def create_top_section(self):
         self.top_hlayout = QHBoxLayout()
         self.top_hlayout.setSpacing(20)
@@ -176,13 +179,63 @@ class SimulationViewPage(BasicPage):
         self.top_hlayout.addWidget(self.right_widget, stretch=1)
         return self.top_hlayout
 
+    # ==============================================================
+    # Método para atualizar o placar
+    def update_score(self, team_a_score, team_b_score):
+        pass 
+
+    # Método para atualizar as informações do robô
+    def update_robot_info(self, team, robot_idx, pos, direction, v_left, v_right, dist_ball):
+        pass 
+
+
+    #Método para atualizar o cronometro 
+    def update_timer(self, minutes, seconds):
+        pass 
+
+
+    #Método para atualizar os logs estatísticos 
+    def update_stats_log(self, velocity, distances, collisions, time_str, state, events):
+        pass 
+
+
+    # Método para puxar variáveis dos arquivos e carregar no simulador
+    def get_variables_simulation(self):
+        pass 
+
+    # Método para inicializar o simulador de forma correta 
+    def initialize_simulator(self):
+        pass 
+
+    # ==============================================================
+
+    # Método para dar início à simulação
+    def start_simulation(self):
+        pass 
+
+
+    # Método para reiniciar a simulação 
+    def restart_simulation(self):
+        pass
+
+
+    # Método para pausar a simulação 
+    def pause_simulation(self):
+        pass
+
+    # Método para dar condições de DEBUG à simulação
+    def debug_simulation(self):
+        pass
+    # ==============================================================
+
     def destroy(self):
         if hasattr(self, 'viewer') and hasattr(self.viewer, 'destroy'):
             self.viewer.destroy()
         # Libere outros recursos se necessário
 
 
-#Classe para os Widgets
+# =====================================================================
+# Classe para os Widgets
 
 class ScoreWidget(QWidget):
     def __init__(self, team_name, color):

@@ -1,8 +1,8 @@
 from ui.pages.objects.pageObjects import *
 
 class COMrobotPage(BasicPage):
-    def __init__(self):
-        super().__init__("Comunicação: Robôs", QIcon("src/assets/USB.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Comunicação: Robôs", QIcon("src/assets/USB.png"),log_manager)
 
         # Explanation section
         explanation_label = QLabel(

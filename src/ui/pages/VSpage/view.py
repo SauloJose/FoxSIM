@@ -5,8 +5,8 @@ from PyQt6.QtCore import Qt
 from ui.pages.objects.pageObjects import *
 
 class VSVisionPage(BasicPage):
-    def __init__(self):
-        super().__init__("Sistema de Visão: Visão Geral", QIcon("src/assets/statistics.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Sistema de Visão: Visão Geral", QIcon("src/assets/statistics.png"), log_manager)
 
         
         # Layout principal (vertical): top (esquerda + direita) + bottom

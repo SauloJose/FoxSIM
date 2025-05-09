@@ -26,7 +26,8 @@ from ui.pages.VSpage.configs.calibration import VSCalibrationPage
 from ui.pages.VSpage.configs.colors import VSselectColor
 from ui.pages.VSpage.configs.entry import VSEntryDataPage
 from ui.pages.VSpage.configs.otm import VSOtimizationPage
- 
+
+from src.data.objects.logs import * 
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -49,7 +50,7 @@ class MainWindow(QMainWindow):
         ]
 
         # Criação do LogManager para que todas as páginas tenham acesso 
-        self.log_manager = LogManager(auto_flush=True, flush_path="src/data/temp/simulator.logs")
+        self.log_manager = LogManager()
         
         # Cria e exibe a página inicial (Simulador > Visualização)
         self.show_initial_page()
@@ -67,8 +68,6 @@ class MainWindow(QMainWindow):
         # Exemplo de ação na barra de menus: Sair (fecha a aplicação)
         exit_action = file_menu.addAction("Sair")
         exit_action.triggered.connect(self.close)
-
-        
     
     def create_menu_navegate(self):
         '''Cria menu de navegação da aplicação'''
@@ -216,7 +215,7 @@ class MainWindow(QMainWindow):
     def show_initial_page(self):
         # Página inicial: Simulador > Visualização (índice 0)
         idx = 0
-        page = self.page_classes[idx](log_manager=self.log_manager)
+        page = self.page_classes[idx]()
         self.page_instances[idx] = page
         self.stack.insertWidget(idx, page)
         self.stack.setCurrentIndex(idx)
@@ -262,15 +261,10 @@ class MainWindow(QMainWindow):
                         break
             # Cria a página se ainda não existe
             if idx not in self.page_instances:
-                page = self.page_classes[idx](log_manager = self.log_manager)
+                page = self.page_classes[idx]()
                 self.page_instances[idx] = page
                 self.stack.insertWidget(idx, page)
             self.stack.setCurrentIndex(idx)
-
-    def log(self, message,type=LogType.DEBUG, priority = LogPriority.LOW, system = LogSystem.APP ):
-        #Função básica para o log_manager
-        if self.log_manager:
-            self.log_manager.add_log(Log(type, priority, message, system))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

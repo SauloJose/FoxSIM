@@ -7,8 +7,8 @@ from ui.pages.objects.pageObjects import *
 
 
 class CTneuralPage(BasicPage):
-    def __init__(self):
-        super().__init__("Controle: Redes Neurais", QIcon("src/assets/IA.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Controle: Redes Neurais", QIcon("src/assets/IA.png"),log_manager)
 
         # Explanation section
         explanation_label = QLabel(

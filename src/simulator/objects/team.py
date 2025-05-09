@@ -22,7 +22,7 @@ class Team:
 
         print(f"[DEBUG]: Criando robôs do time {self.team_name}")
 
-        # Escala para o tamanho do robô
+        # Escala para o tamanho do robô (Ajustar isso para a nova interface)
         scale = (ROBOT_SIZE_CM / SCALE_PX_TO_CM, ROBOT_SIZE_CM / SCALE_PX_TO_CM)
 
         # Imagens dos aliados com máxima qualidade

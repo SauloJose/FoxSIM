@@ -21,8 +21,8 @@ class HidePycacheProxyModel(QSortFilterProxyModel):
         return super().filterAcceptsRow(source_row, source_parent)
 
 class CTstrategyPage(BasicPage):
-    def __init__(self):
-        super().__init__("Controle: Estratégias", QIcon("src/assets/PID.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Controle: Estratégias", QIcon("src/assets/PID.png"),log_manager)
 
         button_style = """
             QPushButton {

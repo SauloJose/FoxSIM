@@ -1,8 +1,8 @@
 from ui.pages.objects.pageObjects import *
 
 class COMSysPage(BasicPage):
-    def __init__(self):
-        super().__init__("Comunicação: Sistemas", QIcon("src/assets/monitor.png"))
+    def __init__(self, log_manager: LogManager = None):
+        super().__init__("Comunicação: Sistemas", QIcon("src/assets/monitor.png"),log_manager)
 
         # Explanation section
         explanation_label = QLabel(

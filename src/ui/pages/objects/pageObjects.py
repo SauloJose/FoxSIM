@@ -9,11 +9,14 @@ from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 
 from OpenGL.GL import *
 from PIL import Image
+from data.objects.logs import * 
 
 #Classe básica para as paginas
 class BasicPage(QWidget):
-    def __init__(self, page_name: str, icon: QIcon = None):
+    def __init__(self, page_name: str, icon: QIcon = None, log_manager: LogManager= None):
         super().__init__()
+
+        self.log_manager = log_manager
 
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setStyleSheet("background-color: white;")
@@ -61,6 +64,10 @@ class BasicPage(QWidget):
         container = QWidget()
         container.setLayout(layout)
         self.content_layout.addWidget(container)
+
+    def log(self, type, priority, message, system ):
+        if self.log_manager:
+            self.log_manager.add_log(Log(type, priority, message, system))
 
     def destroy(self):
         # Método base: pode ser sobrescrito nas subclasses

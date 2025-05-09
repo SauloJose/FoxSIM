@@ -1,8 +1,8 @@
 from ui.pages.objects.pageObjects import *
 
 class VSselectColor(BasicPage):
-    def __init__(self):
-        super().__init__("Sistema de Visão: Identificação de Cores", QIcon("src/assets/control-panel.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Sistema de Visão: Identificação de Cores", QIcon("src/assets/control-panel.png"),log_manager)
 
         # Explicação
         explanation_label = QLabel(

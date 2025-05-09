@@ -11,6 +11,8 @@ from ui.interface_config import (
 from simulator.collision.collision import *
 from simulator.intelligence.logic.controll import *
 from simulator.intelligence.basicControl import *
+
+
 class Robot:
     '''
         Implementação dinâmica de um robô controlado por controle diferencial
@@ -388,6 +390,20 @@ class Robot:
         """
         v = (self.v_r + self.v_l) / 2  # velocidade linear
         self.velocity = v * self.direction  # vetor velocidade
+
+    def new_draw(self, screen):
+        '''
+        Nova função de desenho para o robô, que desenha a imagem do robô na tela
+        :param screen: Superfície do pygame onde o robô será desenhado.
+        '''
+        # Converte coordenadas virtuais para coordenadas de tela
+
+        # rotaciona corretamente a imagem do robô
+
+        # Verifica se está selecionado pelo mouse 
+
+        # Desenha no backbuffer do screen 
+        pass 
 
     def draw(self, screen):
         """

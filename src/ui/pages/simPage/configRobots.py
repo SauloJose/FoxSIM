@@ -7,8 +7,8 @@ from PIL import ImageDraw
 
 
 class ConfigRobotsPage(BasicPage):
-    def __init__(self):
-        super().__init__("Simulador: Configuração dos Robôs", QIcon("src/assets/robot.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Simulador: Configuração dos Robôs", QIcon("src/assets/robot.png"),log_manager)
 
         # Diretório e arquivos de configuração
         self.conf_dir = os.path.join("src", "data", "temp")

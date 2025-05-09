@@ -3,8 +3,8 @@ import os
 import json
 
 class ParamSimuPage(BasicPage):
-    def __init__(self):
-        super().__init__("Parâmetros de Simulação", QIcon("src/assets/simulation.png"))
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Parâmetros de Simulação", QIcon("src/assets/simulation.png"), log_manager)
         # Explicação
         explanation_label = QLabel(
             "Configure FPS, tempo de partida, velocidade da simulação, atrito, restituição, modo debug e logs."
