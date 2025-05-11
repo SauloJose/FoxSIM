@@ -119,11 +119,11 @@ class ParamSimuPage(BasicPage):
         friction_layout.setSpacing(12)
         self.friction_rr = QDoubleSpinBox(); self.friction_rr.setRange(0, 10); self.friction_rr.setSingleStep(0.01); self.friction_rr.setFixedWidth(80)
         self.friction_rf = QDoubleSpinBox(); self.friction_rf.setRange(0, 10); self.friction_rf.setSingleStep(0.01); self.friction_rf.setFixedWidth(80)
-        self.friction_rw = QDoubleSpinBox(); self.friction_rw.setRange(0, 10); self.friction_rw.setSingleStep(0.01); self.friction_rw.setFixedWidth(80)
+        self.friction_bw = QDoubleSpinBox(); self.friction_bw.setRange(0, 10); self.friction_bw.setSingleStep(0.01); self.friction_bw.setFixedWidth(80)
         self.friction_br = QDoubleSpinBox(); self.friction_br.setRange(0, 10); self.friction_br.setSingleStep(0.01); self.friction_br.setFixedWidth(80)
         friction_layout.addRow("Robô-Robô:", self.friction_rr)
         friction_layout.addRow("Robô-Campo:", self.friction_rf)
-        friction_layout.addRow("Robô-Paredes:", self.friction_rw)
+        friction_layout.addRow("Bola-Paredes:", self.friction_bw)
         friction_layout.addRow("Bola-Robô:", self.friction_br)
         friction_group.setLayout(friction_layout)
         right_column.addWidget(friction_group)
@@ -212,6 +212,7 @@ class ParamSimuPage(BasicPage):
 
         # Carrega parâmetros ao abrir
         self.load_params()
+    
     def get_param_path(self):
         return os.path.join("src", "data", "temp", "ParamSimu.json")
 
@@ -230,7 +231,7 @@ class ParamSimuPage(BasicPage):
             self.speed_input.setValue(data.get("velocidade_simulacao", 1.0))
             self.friction_rr.setValue(data.get("fric_rr", 0.5))
             self.friction_rf.setValue(data.get("fric_rf", 0.5))
-            self.friction_rw.setValue(data.get("fric_rw", 0.5))
+            self.friction_bw.setValue(data.get("fric_bw", 0.5))
             self.friction_br.setValue(data.get("fric_br", 0.5))
             self.restitution_rb.setValue(data.get("rest_rb", 0.7))
             self.restitution_rr.setValue(data.get("rest_rr", 0.7))
@@ -245,7 +246,7 @@ class ParamSimuPage(BasicPage):
             "velocidade_simulacao": self.speed_input.value(),
             "fric_rr": self.friction_rr.value(),
             "fric_rf": self.friction_rf.value(),
-            "fric_rw": self.friction_rw.value(),
+            "fric_bw": self.friction_bw.value(),
             "fric_br": self.friction_br.value(),
             "rest_rb": self.restitution_rb.value(),
             "rest_rr": self.restitution_rr.value(),
@@ -268,7 +269,7 @@ class ParamSimuPage(BasicPage):
             self.friction_br.setValue(data.get("fric_br", 0.5))
             self.friction_rr.setValue(data.get("fric_rr", 0.5))
             self.friction_rf.setValue(data.get("fric_rf", 0.5))
-            self.friction_rw.setValue(data.get("fric_rw", 0.5))
+            self.friction_bw.setValue(data.get("fric_bw", 0.5))
             self.restitution_rb.setValue(data.get("rest_rb", 0.7))
             self.restitution_rr.setValue(data.get("rest_rr", 0.7))
             self.restitution_bf.setValue(data.get("rest_bf", 0.7))

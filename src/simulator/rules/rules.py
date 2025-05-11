@@ -14,30 +14,24 @@ class Decisions(Enum):
     '''
     Enum que representa as decisões possíveis tomadas pelo Árbitro no VSSS (IEEE Rules).
     '''
-    FINISH = auto()              # Fim da partida
+    FINISH = auto()                     # Fim da partida
 
-    ALLY_GOAL = auto()           # Gol do time aliado
-    ENEMY_GOAL = auto()          # Gol do time adversário
+    ALLY_GOAL = auto()                  # Gol do time aliado
+    ENEMY_GOAL = auto()                 # Gol do time adversário
 
-    PENALTY_ALLY = auto()        # Pênalti a favor dos aliados
-    PENALTY_ENEMY = auto()       # Pênalti a favor dos inimigos
+    PENALTY_ALLY = auto()               # Pênalti a favor dos aliados
+    PENALTY_ENEMY = auto()              # Pênalti a favor dos inimigos
 
-    FOUL_ALLY = auto()           # Falta cometida pelos aliados
-    FOUL_ENEMY = auto()          # Falta cometida pelos inimigos
-    GK_AREA_VIOLATION_ALLY = auto()   # Invasão da área do goleiro aliado
-    GK_AREA_VIOLATION_ENEMY = auto()  # Invasão da área do goleiro adversário
+    FOUL_ALLY = auto()                  # Falta cometida pelos aliados
+    FOUL_ENEMY = auto()                 # Falta cometida pelos inimigos
+    GK_AREA_VIOLATION_ALLY = auto()     # Invasão da área do goleiro aliado
+    GK_AREA_VIOLATION_ENEMY = auto()    # Invasão da área do goleiro adversário
 
-    THROW_IN_ALLY = auto()       # Lateral a favor dos aliados
-    THROW_IN_ENEMY = auto()      # Lateral a favor dos inimigos
+    GOALKICK_ALLY = auto()              # Tiro de meta para os aliados
+    GOALKICK_ENEMY = auto()             # Tiro de meta para os inimigos
 
-    CORNER_ALLY = auto()         # Escanteio a favor dos aliados
-    CORNER_ENEMY = auto()        # Escanteio a favor dos inimigos
-
-    GOALKICK_ALLY = auto()       # Tiro de meta para os aliados
-    GOALKICK_ENEMY = auto()      # Tiro de meta para os inimigos
-
-    DROP_BALL = auto()           # Bola ao chão (bola presa ou empate de disputa)
-    RESTART = auto()             # Recomeço padrão
+    DROP_BALL = auto()                  # Bola ao chão (bola presa ou empate de disputa)
+    RESTART = auto()                    # Recomeço padrão
 
 
 #Posições 

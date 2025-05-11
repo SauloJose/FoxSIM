@@ -11,13 +11,45 @@ from ui.interface_config import (
 from simulator.collision.collision import *
 from simulator.intelligence.logic.controll import *
 from simulator.intelligence.basicControl import *
+from enum import Enum 
+from typing import List, Optional
 
+class BotRoles(str, Enum):
+    """
+        Enumeração que representa qual a função do robô dentro do sistema
+        - ATTACKER - Atacante 
+        - GOALKEEPER - Goleiro 
+        - DEFENSOR  - Defesa
+    """
+    ATTACKER = "ATACANTE"
+    GOALKEEPER = "GOLEIRO"
+    DEFENDER = "DEFENSOR"
+
+    def __str__(self):
+        return self.value
+
+class BotId(str, Enum):
+    """
+    Enumeração que representa o identificador do robô dentro do simulador
+    
+    - ATK1 - Atacante 1
+    - ATK2 - Atacante 2
+    - DEF - Defensor 
+    - GK - Goleiro
+    """
+    ATK1 = "ATK1" 
+    ATK2 = "ATK2"
+    DEF = "DEF"
+    GK  = "GK"
+
+    def __str__(self):
+        return self 
 
 class Robot:
     '''
         Implementação dinâmica de um robô controlado por controle diferencial
     '''
-    def __init__(self, x, y, team, role, id, image, initial_angle=0):
+    def __init__(self, x, y, team, role:BotRoles, id:BotId, image, initial_angle=0):
         '''
             Inicializando o objeto robô que será um objeto que irá se mover e interagir na simulação
         '''
@@ -391,7 +423,7 @@ class Robot:
         v = (self.v_r + self.v_l) / 2  # velocidade linear
         self.velocity = v * self.direction  # vetor velocidade
 
-    def new_draw(self, screen):
+    def _draw_(self, screen):
         '''
         Nova função de desenho para o robô, que desenha a imagem do robô na tela
         :param screen: Superfície do pygame onde o robô será desenhado.

@@ -27,8 +27,7 @@ class SimulatorWidget(QWidget):
             self.view_height = 600
         self.setMinimumSize(self.view_width, self.view_height)
         self.back_buffer = BackBuffer2D()
-        self.framebuffer = QPixmap(self.view_width, self.view_height)
-        self.framebuffer.fill(Qt.GlobalColor.black)
+
         self.click_position = None
         self._background_image = None
 
@@ -45,6 +44,35 @@ class SimulatorWidget(QWidget):
         self._start_time = None
 
         self.initialized.emit()
+
+
+        #Flag para controle de renderização
+        self._render_paused = False 
+        self._force_next_frame = False 
+
+        # Back e front buffer
+        self._needs_flip = False  # Flag para controle de atualização
+        self._back_pixmap = QPixmap(self.view_width, self.view_height)  # Backbuffer
+        self._front_pixmap = QPixmap(self.view_width, self.height())  # Frontbuffer
+
+        # Gerenciar auto_flip
+        self._auto_flip = False #Adicionar essa flag
+
+    def set_auto_flip(self, enabled: bool):
+        """Define se o flip() é automático após render_frame()"""
+        self._auto_flip = enabled
+
+    def set_render_paused(self, paused: bool):
+        self._render_paused = paused
+        if paused:
+            self._timer.stop()
+        else:
+            self._timer.start()
+
+    def request_single_frame(self):
+        ''' Força para renderização de um único frame'''
+        self._force_next_frame = True 
+        self.update()
 
     def set_FPS(self, fps):
         self._fps = max(1, int(fps))
@@ -65,48 +93,90 @@ class SimulatorWidget(QWidget):
         self._elapsed_time = 0
         self._start_time = None
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawPixmap(0, 0, self.framebuffer)
-        painter.end()
-
-    def update_widget(self):
-        """
-        Atualiza o widget, desenhando o framebuffer na tela (semelhante ao flip do pygame).
-        """
-        self.update()
-
+    # =================== Função principal de desenho
     def render_frame(self):
-        # Redesenha o framebuffer (QPixmap) usando QPainter
-        widget_w, widget_h = self.width(), self.height()
-        self.framebuffer = QPixmap(self.view_width, self.view_height)
-        self.framebuffer.fill(Qt.GlobalColor.black)
-        painter = QPainter(self.framebuffer)
-        # Desenha a imagem de fundo se existir
-        if self._background_image and self._background_image.is_valid():
-            bg_img = self._background_image.get_qimage()
-            if bg_img:
-                # Ajusta para preencher exatamente o espaço do widget, mantendo proporção e centralizando
-                img_w, img_h = bg_img.width(), bg_img.height()
-                widget_w, widget_h = self.view_width, self.view_height
-                scale = min(widget_w / img_w, widget_h / img_h)
-                new_w = int(img_w * scale)
-                new_h = int(img_h * scale)
-                offset_x = (widget_w - new_w) // 2
-                offset_y = (widget_h - new_h) // 2
-                painter.drawImage(offset_x, offset_y, bg_img.scaled(new_w, new_h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        # Desenha os demais elementos
-        for call in sorted(self.back_buffer.get_calls(), key=lambda x: x.layer):
-            try:
-                self._process_draw_call(painter, call)
-            except Exception as e:
-                print(f"Erro ao renderizar: {str(e)}")
-                continue
-        painter.end()
-        self.back_buffer.clear()
-        self.update_widget()  # Chama update_widget para desenhar na tela
+        """
+            Renderiza apenas no backbuffer (QPixmap) sem atualizar a tela.
+            A atualização só ocorre quando flip() é chamado
+        """
+        # Verifica se deve pular a renderização
+        if self._render_paused and not self._force_next_frame:
+            return 
+        
 
-    def _process_draw_call(self, painter, call):
+        self._back_pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(self._back_pixmap)
+        
+        try:
+            # 1. Desenha o background (se existir)
+            if self._background_image and self._background_image.is_valid():
+                bg_img = self._background_image.get_qimage()
+                if bg_img:
+                    # Mantém a proporção e centraliza
+                    img_ratio = bg_img.width() / bg_img.height()
+                    widget_ratio = self.width() / self.height()
+                    
+                    if widget_ratio > img_ratio:
+                        # Ajusta pela altura
+                        scaled_height = self.height()
+                        scaled_width = int(scaled_height * img_ratio)
+                    else:
+                        # Ajusta pela largura
+                        scaled_width = self.width()
+                        scaled_height = int(scaled_width / img_ratio)
+                    
+                    x = (self.width() - scaled_width) // 2
+                    y = (self.height() - scaled_height) // 2
+                    
+                    painter.drawImage(
+                        x, y,
+                        bg_img.scaled(scaled_width, scaled_height,
+                                    Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.SmoothTransformation)
+                    )
+
+            # 2. Processa os draw calls (usando seu método existente)
+            if not self._render_paused or self._force_next_frame:
+                for call in sorted(self.back_buffer.get_calls(), key=lambda x: x.layer):
+                    self._process_draw_call(painter, call)  # Usa seu método existente
+
+            self._needs_flip = True 
+
+        except Exception as e:
+            print(f"Erro durante renderização: {str(e)}")
+            # Opcional: desenha mensagem de erro no framebuffer
+            error_msg = f"Render Error: {str(e)}"
+            painter.setPen(QColor(255, 0, 0))
+            painter.drawText(10, 30, error_msg)
+        finally:
+            painter.end()
+            self._force_next_frame = False  # Reseta o flag após renderizar
+            if not self._force_next_frame:
+                self.back_buffer.clear()
+
+        if self._auto_flip: #Flip automático se habilitado
+            self.flip()
+
+    def flip(self):
+        """
+        Atualiza a tela (frontbuffer) com o conteúdo do backbuffer
+        """
+        if self._needs_flip:
+            # Swap buffers
+            self._front_pixmap, self._back_pixmap = self._back_pixmap, self._front_pixmap 
+            self.update()
+            self._needs_flip = False
+
+    def paintEvent(self, event):
+        """
+        Desenha apenas o frontbuffer na tela
+        """
+        painter = QPainter(self)
+        painter.drawPixmap(0, 0, self._front_pixmap)
+        painter.end()
+
+    # Processo de desenho organizado pela classe 
+    def _process_draw_call(self, painter:QPainter, call):
         if call.draw_type == BackBuffer2D.DRAW_IMAGE:
             if call.obj:
                 self._render_image(painter, call.obj, call.x, call.y, call.scale, call.angle, call.alpha)
@@ -136,7 +206,7 @@ class SimulatorWidget(QWidget):
             print(f"[Aviso][_process_draw_call]: Tipo de draw_call desconhecido: {call.draw_type}")
 
     # Métodos de renderização usando QPainter
-    def _render_rect(self, painter, x, y, w, h, color, thickness=1, fill=False):
+    def _render_rect(self, painter:QPainter, x, y, w, h, color, thickness=1, fill=False):
         qcolor = QColor.fromRgbF(*color) if color else QColor(255,255,255)
         pen = QPen(qcolor)
         pen.setWidth(thickness)
@@ -147,14 +217,14 @@ class SimulatorWidget(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawRect(int(x), int(y), int(w), int(h))
 
-    def _render_line(self, painter, x1, y1, x2, y2, color, thickness=1):
+    def _render_line(self, painter:QPainter, x1, y1, x2, y2, color, thickness=1):
         qcolor = QColor.fromRgbF(*color) if color else QColor(255,255,255)
         pen = QPen(qcolor)
         pen.setWidth(thickness)
         painter.setPen(pen)
         painter.drawLine(int(x1), int(y1), int(x2), int(y2))
 
-    def _render_circle(self, painter, x, y, radius, color, segments=32, thickness=1):
+    def _render_circle(self, painter:QPainter, x, y, radius, color, segments=32, thickness=1):
         qcolor = QColor.fromRgbF(*color) if color else QColor(255,255,255)
         pen = QPen(qcolor)
         pen.setWidth(thickness)
@@ -162,7 +232,7 @@ class SimulatorWidget(QWidget):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(int(x - radius), int(y - radius), int(radius * 2), int(radius * 2))
 
-    def _render_polygon(self, painter, points, color, thickness=1):
+    def _render_polygon(self, painter:QPainter, points, color, thickness=1):
         if not points or len(points) < 3:
             return
         qcolor = QColor.fromRgbF(*color) if color else QColor(255,255,255)
@@ -173,7 +243,7 @@ class SimulatorWidget(QWidget):
         qpoints = [QPointF(float(px), float(py)) for px, py in points]
         painter.drawPolygon(*qpoints)
 
-    def _render_text(self, painter, x, y, text, color):
+    def _render_text(self, painter:QPainter, x, y, text, color):
         if not text or not color or len(color) < 4:
             return
         qcolor = QColor.fromRgbF(*color)
@@ -182,28 +252,29 @@ class SimulatorWidget(QWidget):
         painter.setFont(font)
         painter.drawText(int(x), int(y), text)
 
-    def _render_arrow(self, painter, x1, y1, x2, y2, color, width=1):
+    def _render_arrow(self, painter:QPainter, x1, y1, x2, y2, color, width=1):
         qcolor = QColor.fromRgbF(*color) if color else QColor(255,255,255)
         pen = QPen(qcolor)
         pen.setWidth(width)
         painter.setPen(pen)
-        painter.drawLine(int(x1), int(y1), int(x2, int(y2)))
-        # Arrow head
-        import math
-        angle = math.atan2(y2 - y1, x2 - x1)
+        
+        # Desenha a linha principal
+        painter.drawLine(int(x1), int(y1), int(x2), int(y2))
+
+        angle = np.arctan2(y2 - y1, x2 - x1)
         head_len = 10 * width
-        head_angle = math.pi / 6
-        left_x = x2 - head_len * math.cos(angle - head_angle)
-        left_y = y2 - head_len * math.sin(angle - head_angle)
-        right_x = x2 - head_len * math.cos(angle + head_angle)
-        right_y = y2 - head_len * math.sin(angle + head_angle)
+        head_angle = np.pi / 6
+        left_x = x2 - head_len * np.cos(angle - head_angle)
+        left_y = y2 - head_len * np.sin(angle - head_angle)
+        right_x = x2 - head_len * np.cos(angle + head_angle)
+        right_y = y2 - head_len * np.sin(angle + head_angle)
         painter.drawPolygon(
             QPointF(x2, y2),
             QPointF(left_x, left_y),
             QPointF(right_x, right_y)
         )
 
-    def _render_image(self, painter, image_obj: Image, x: float, y: float,
+    def _render_image(self, painter:QPainter, image_obj: Image, x: float, y: float,
                      scale: float = 1.0, angle: float = 0.0, alpha: float = 1.0):
         if not image_obj or not image_obj.is_valid():
             return
@@ -221,6 +292,11 @@ class SimulatorWidget(QWidget):
         painter.drawImage(-w // 2, -h // 2, img)
         painter.restore()
 
+    # ===================| Métodos básicos para chamadas de desenho | =================
+
+
+
+    # =================== Métodos de configuração =====================================
     def set_background_image(self, image: Image):
         """
         Define a imagem de fundo (campo) que será desenhada sempre antes dos demais elementos.
@@ -238,6 +314,8 @@ class SimulatorWidget(QWidget):
         self.view_height = self.height()
         self.render_frame()
         super().resizeEvent(event)
+        if not self._auto_flip:
+            self.flip()
 
     # Eventos de clique
     def mousePressEvent(self, event):
@@ -251,7 +329,6 @@ class SimulatorWidget(QWidget):
     def cleanup(self):
         self._timer.stop()
         self.back_buffer.clear()
-        self.framebuffer.fill(Qt.GlobalColor.black)
 
     def closeEvent(self, event):
         self.cleanup()

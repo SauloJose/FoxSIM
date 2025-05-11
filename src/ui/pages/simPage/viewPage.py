@@ -46,7 +46,7 @@ class SimulationViewPage(BasicPage):
         wrapper_a_layout.addWidget(self.team_a_info)
         self.left_layout.addWidget(wrapper_a)
 
-        # Widget pai para o SimulatorWidget (tamanho 1.5x)
+        # Widget pai para o SimulatorWidget (tamanho 1.2x)
         parent_width = int(1.2 * 645)
         parent_height = int(1.2 * 413)
         self.sim_parent_widget = QWidget()
@@ -59,7 +59,7 @@ class SimulationViewPage(BasicPage):
         viewer_width = int(645)
         viewer_height = int(413)
         self.viewer = SimulatorWidget(parent=self.sim_parent_widget)
-        self.viewer.set_background_image(Image("src/assets/field.png"))
+        self.viewer.set_background_image(Image("src/assets/field2.png"))
         self.viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.viewer.setMinimumSize(viewer_width // 2, viewer_height // 2)
         self.viewer.setMaximumSize(parent_width, parent_height)

@@ -46,7 +46,7 @@ class LogPriority(str, Enum):
     CRITICAL = "CRITICAL"
 
     def __str__(self):
-        return self.value
+        return self
 
 
 class Log:

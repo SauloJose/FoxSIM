@@ -33,10 +33,10 @@ print("[Sistema]: ======== Criando objetos ======= \n")
 interface = Interface(screen)
 
 #Gerando objetos da simulação
-field = Field(FIELD_INTERNAL_WIDTH_IN_PX, FIELD_INTERNAL_HEIGHT_IN_PX, FIELD_COLOR)
+field = Field()
 
 print(f"\n[Sistema]: Criando a bola nas posições ({XVBALL_INIT},{YVBALL_INIT} e {BALL_RADIUS_CM})")
-ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM, color=BALL_COLOR)
+ball = Ball(XVBALL_INIT,YVBALL_INIT, field=field, radius=BALL_RADIUS_CM)
 
 #Só para debug:
 print("\n[Sistema]: Criando robôs do time azul")

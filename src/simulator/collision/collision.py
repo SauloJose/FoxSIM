@@ -3,7 +3,6 @@ import numpy as np
 from typing import TYPE_CHECKING
 from ui.interface_config import *
 from collections import defaultdict
-from utils.helpers import normalize
 from shapely.geometry import Polygon, LineString, Point
 import math
 import pygame 

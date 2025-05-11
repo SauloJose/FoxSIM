@@ -3,18 +3,20 @@
     "robot_mass": 1.0,
     "robot_max_speed": 100,
     "robot_max_ang_speed": 25.0,
-    "ball_radius": 5.0,
-    "ball_mass": 45.0,
-    "ball_max_speed": 100,
+    "wheel_distance": 8.0,
+    "wheel_radius": 6.0,
+    "ball_radius": 2.135,
+    "ball_mass": 0.045,
+    "ball_max_speed": 95,
     "team_a_color_hex": "#0000ff",
     "team_b_color_hex": "#ff3333",
     "atkA_cor1": [
         "#ffff00",
-        "#f959ff",
+        "#ffff00",
         "#ff0000"
     ],
     "atkA_cor2": [
-        "#12e3",
+        "#aa00ff",
         "#f12e33",
         "#00aa00"
     ],

@@ -90,28 +90,53 @@ class ConfigRobotsPage(BasicPage):
         robot_layout.setSpacing(12)  # Espaço entre linhas do formulário
         # Comprimento
         length_input = QDoubleSpinBox()
-        length_input.setRange(0.01, 100.0)
-        length_input.setSingleStep(0.01)
+        length_input.setDecimals(3)
+        length_input.setRange(0.001, 100.0)
+        length_input.setSingleStep(0.001)
         length_input.setSuffix(" cm")
         length_input.setFixedWidth(90)
         robot_layout.addRow("Comprimento:", length_input)
+
+        # Distância entre rodas
+        wheel_distance_input = QDoubleSpinBox()
+        wheel_distance_input.setDecimals(3)
+        wheel_distance_input.setRange(1.0, 50.0)
+        wheel_distance_input.setSingleStep(0.01)
+        wheel_distance_input.setSuffix(" cm")
+        wheel_distance_input.setFixedWidth(90)
+        robot_layout.addRow("Dist. entre Rodas:", wheel_distance_input)
+        self.wheel_distance_input = wheel_distance_input
+
+        # Raio das rodas
+        wheel_radius_input = QDoubleSpinBox()
+        wheel_radius_input.setDecimals(3)
+        wheel_radius_input.setRange(0.5, 10.0)
+        wheel_radius_input.setSingleStep(0.01)
+        wheel_radius_input.setSuffix(" cm")
+        wheel_radius_input.setFixedWidth(90)
+        robot_layout.addRow("Raio das Rodas:", wheel_radius_input)
+        self.wheel_radius_input = wheel_radius_input
+
         # Massa (incremento 0.01)
         mass_input = QDoubleSpinBox()
-        mass_input.setRange(0.01, 100.0)
-        mass_input.setSingleStep(0.01)
+        mass_input.setDecimals(3)
+        mass_input.setRange(0.001, 100.0)
+        mass_input.setSingleStep(0.001)
         mass_input.setSuffix(" kg")
         mass_input.setFixedWidth(90)
         robot_layout.addRow("Massa:", mass_input)
+
         # Velocidade máxima
         speed_input = QSpinBox()
         speed_input.setRange(1, 500)
         speed_input.setSuffix(" cm/s")
         speed_input.setFixedWidth(90)
         robot_layout.addRow("Velocidade Máx.:", speed_input)
+
         # Velocidade angular máxima
         ang_speed_input = QDoubleSpinBox()
         ang_speed_input.setRange(0.1, 50.0)
-        ang_speed_input.setSingleStep(0.1)
+        ang_speed_input.setSingleStep(0.01)
         ang_speed_input.setSuffix(" rad/s")
         ang_speed_input.setFixedWidth(90)
         robot_layout.addRow("Velocidade Angular Máx.:", ang_speed_input)
@@ -148,16 +173,19 @@ class ConfigRobotsPage(BasicPage):
         ball_layout.setSpacing(12)
         # Raio
         radius_input = QDoubleSpinBox()
-        radius_input.setRange(0.01, 50.0)
-        radius_input.setSingleStep(0.01)
+        radius_input.setDecimals(3)
+        radius_input.setRange(0.001, 50.0)
+        radius_input.setSingleStep(0.001)
         radius_input.setSuffix(" cm")
         radius_input.setFixedWidth(90)
         ball_layout.addRow("Raio:", radius_input)
+
         # Massa (incremento 0.01)
         ball_mass_input = QDoubleSpinBox()
-        ball_mass_input.setRange(0.01, 1000.0)
-        ball_mass_input.setSingleStep(0.01)
-        ball_mass_input.setSuffix(" g")
+        ball_mass_input.setDecimals(3)
+        ball_mass_input.setRange(0.001, 1000.0)
+        ball_mass_input.setSingleStep(0.001)
+        ball_mass_input.setSuffix(" kg")
         ball_mass_input.setFixedWidth(90)
         ball_layout.addRow("Massa:", ball_mass_input)
         # Velocidade máxima da bola
@@ -415,36 +443,52 @@ class ConfigRobotsPage(BasicPage):
             imgs[idx].setText("Erro\nna imagem")
 
     def load_config(self):
+        # Verifica qual arquivo de configuração usar (salvo ou padrão)
         conf_file = self.conf_file if os.path.exists(self.conf_file) else self.conf_reset_file
+        
         try:
             with open(conf_file, "r") as f:
                 data = json.load(f)
-        except Exception:
-            data = {}
+        except Exception as e:
+            print(f"Erro ao carregar configurações: {e}")
+            data = {}  # Usa valores vazios se houver erro
 
-        # Robô
-        self.length_input.setValue(int(data.get("robot_length", 8)))
+        # Carrega valores do robô (convertendo para os tipos corretos)
+        self.length_input.setValue(float(data.get("robot_length", 8.0)))
         self.mass_input.setValue(float(data.get("robot_mass", 1.0)))
-        self.speed_input.setValue(int(data.get("robot_max_speed", 10)))
+        self.speed_input.setValue(int(data.get("robot_max_speed", 100)))
         self.ang_speed_input.setValue(float(data.get("robot_max_ang_speed", 5.0)))
-        # Bola
-        self.radius_input.setValue(int(data.get("ball_radius", 2)))
-        self.ball_mass_input.setValue(float(data.get("ball_mass", 45.0)))
-        self.ball_speed_input.setValue(int(data.get("ball_max_speed", 50)))
+        self.wheel_distance_input.setValue(float(data.get("wheel_distance", 7.5)))  # Novo campo
+        self.wheel_radius_input.setValue(float(data.get("wheel_radius", 2.5)))      # Novo campo
 
-        # NOVO: Cores e imagens dos robôs customizados
+        # Carrega valores da bola (com atenção aos tipos e unidades)
+        self.radius_input.setValue(float(data.get("ball_radius", 2.0)))  # Em cm
+        self.ball_mass_input.setValue(float(data.get("ball_mass", 45.0)))  # Em gramas
+        self.ball_speed_input.setValue(int(data.get("ball_max_speed", 500)))  # Em cm/s
+
+        # Carrega configurações de cores dos times
         self.atkA_color_hex.setText(data.get("team_a_color_hex", "#1e90ff"))
         self.atkB_color_hex.setText(data.get("team_b_color_hex", "#ff3333"))
-        atkA_colors1 = data.get("atkA_cor1", ["#ffcc00", "#ffcc00", "#ffcc00"])
-        atkA_colors2 = data.get("atkA_cor2", ["#ffffff", "#ffffff", "#ffffff"])
-        atkB_colors1 = data.get("atkB_cor1", ["#ffcc00", "#ffcc00", "#ffcc00"])
-        atkB_colors2 = data.get("atkB_cor2", ["#ffffff", "#ffffff", "#ffffff"])
+        
+        # Carrega cores individuais dos jogadores
+        team_a_colors = {
+            "cor1": data.get("atkA_cor1", ["#ffcc00", "#ffcc00", "#ffcc00"]),
+            "cor2": data.get("atkA_cor2", ["#ffffff", "#ffffff", "#ffffff"])
+        }
+        
+        team_b_colors = {
+            "cor1": data.get("atkB_cor1", ["#ffcc00", "#ffcc00", "#ffcc00"]),
+            "cor2": data.get("atkB_cor2", ["#ffffff", "#ffffff", "#ffffff"])
+        }
+
+        # Aplica cores aos jogadores
         for i in range(3):
-            self.atkA_cor1[i].setText(atkA_colors1[i] if i < len(atkA_colors1) else "#ffcc00")
-            self.atkA_cor2[i].setText(atkA_colors2[i] if i < len(atkA_colors2) else "#ffffff")
-            self.atkB_cor1[i].setText(atkB_colors1[i] if i < len(atkB_colors1) else "#ffcc00")
-            self.atkB_cor2[i].setText(atkB_colors2[i] if i < len(atkB_colors2) else "#ffffff")
-            # Atualiza imagens
+            self.atkA_cor1[i].setText(team_a_colors["cor1"][i])
+            self.atkA_cor2[i].setText(team_a_colors["cor2"][i])
+            self.atkB_cor1[i].setText(team_b_colors["cor1"][i])
+            self.atkB_cor2[i].setText(team_b_colors["cor2"][i])
+            
+            # Atualiza as imagens dos robôs
             self.update_robot_image("A", i)
             self.update_robot_image("B", i)
 
@@ -455,6 +499,8 @@ class ConfigRobotsPage(BasicPage):
             "robot_mass": self.mass_input.value(),
             "robot_max_speed": self.speed_input.value(),
             "robot_max_ang_speed": self.ang_speed_input.value(),
+            "wheel_distance": self.wheel_distance_input.value(),
+            "wheel_radius": self.wheel_radius_input.value(),
             # Bola
             "ball_radius": self.radius_input.value(),
             "ball_mass": self.ball_mass_input.value(),
@@ -484,60 +530,56 @@ class ConfigRobotsPage(BasicPage):
 
     def gerar_robo_vss_png(self, cor_time, cor1, cor2, x_cm=7.5, caminho_saida="robo_vss.png"):
         """
-        Gera uma imagem PNG de um robô VSS na escala correta (3.6 px = 1 cm).
-        - cor_time: cor do retângulo inferior
-        - cor1: cor do quadrado superior esquerdo
-        - cor2: cor do quadrado superior direito
-        - x_cm: lado do robô em centímetros
+        Gera uma imagem PNG de um robô VSS, onde o quadrado principal tem exatamente x_cm de lado
+        na escala de 3.6 px = 1 cm. Rodas e borda são adicionadas como extras.
         """
-        px_por_cm = 3.6
-        lado_px = int(round(x_cm * px_por_cm))
+        from PIL import Image, ImageDraw
 
-        # Proporções fixas do desenho (referência: corpo 100x100, borda 105x105, rodas 10x40)
-        prop_corpo = 1.0
-        prop_borda = 1.03
-        prop_roda_w = 0.1
+        px_por_cm = 3.6
+        lado_px = int(round(x_cm * px_por_cm))  # lado do quadrado principal
+
+        # Proporções relativas
+        prop_borda = 1.1
+        prop_roda_w = 0.15
         prop_roda_h = 0.60
         prop_sup_q = 0.5
         prop_inf_h = 0.5
 
-        # Calcula o espaço extra necessário para as rodas
+        # Tamanhos derivados
         roda_w = int(lado_px * prop_roda_w)
-        img_size = int(lado_px * prop_borda) + 2 * roda_w + 2  # +2*roda_w para garantir espaço dos dois lados
-    
+        roda_h = int(lado_px * prop_roda_h)
+        borda_size = int(lado_px * prop_borda)
+
+        # Tamanho final da imagem (borda + rodas)
+        img_size = max(borda_size, lado_px) + 2 * roda_w
+
+        # Coordenadas do quadrado principal
+        quad_x = (img_size - lado_px) // 2
+        quad_y = (img_size - lado_px) // 2
+
+        # Criar imagem
         img = Image.new("RGBA", (img_size, img_size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
 
-        # Quadrado preto maior (borda)
-        borda_size = int(lado_px * prop_borda)
+        # Rodas (cinza claro)
+        roda_y = quad_y + (lado_px - roda_h) // 2
+        draw.rectangle([quad_x - roda_w, roda_y, quad_x, roda_y + roda_h], fill="#969A91")  # Esquerda
+        draw.rectangle([quad_x + lado_px, roda_y, quad_x + lado_px + roda_w, roda_y + roda_h], fill="#969A91")  # Direita
+
+        # Borda preta
         borda_x = (img_size - borda_size) // 2
         borda_y = (img_size - borda_size) // 2
-        draw.rectangle([borda_x, borda_y, borda_x+borda_size, borda_y+borda_size], fill="#000000")
+        draw.rectangle([borda_x, borda_y, borda_x + borda_size, borda_y + borda_size], fill="#000000")
 
-        # Quadrado principal (corpo)
-        quad_size = lado_px
-        quad_x = (img_size - quad_size) // 2
-        quad_y = (img_size - quad_size) // 2
-
-        # Rodas (proporcionais ao lado)
-        roda_w = int(lado_px * prop_roda_w)
-        roda_h = int(lado_px * prop_roda_h)
-        roda_y = quad_y + (quad_size - roda_h)//2
-        # Esquerda
-        draw.rectangle([quad_x-roda_w, roda_y, quad_x, roda_y+roda_h], fill="#111111")
-        # Direita
-        draw.rectangle([quad_x+quad_size, roda_y, quad_x+quad_size+roda_w, roda_y+roda_h], fill="#111111")
-
-        # Quadrados superiores (proporcionais)
+        # Parte superior (dois quadrados)
         sup_q = int(lado_px * prop_sup_q)
-        draw.rectangle([quad_x, quad_y, quad_x+sup_q, quad_y+sup_q], fill=cor1)
-        draw.rectangle([quad_x+sup_q, quad_y, quad_x+quad_size, quad_y+sup_q], fill=cor2)
+        draw.rectangle([quad_x, quad_y, quad_x + sup_q, quad_y + sup_q], fill=cor1)
+        draw.rectangle([quad_x + sup_q, quad_y, quad_x + lado_px, quad_y + sup_q], fill=cor2)
 
-        # Retângulo inferior (proporcional)
-        inf_h = int(lado_px * prop_inf_h)
-        draw.rectangle([quad_x, quad_y+sup_q, quad_x+quad_size, quad_y+quad_size], fill=cor_time)
+        # Parte inferior (cor do time)
+        draw.rectangle([quad_x, quad_y + sup_q, quad_x + lado_px, quad_y + lado_px], fill=cor_time)
 
-        # Gira a imagem 90° no sentido horário
+        # Rotaciona e salva
         img = img.rotate(-90, expand=True)
         img.save(caminho_saida)
 

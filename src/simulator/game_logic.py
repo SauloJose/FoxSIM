@@ -4,13 +4,12 @@ from simulator.objects.ball import Ball
 from simulator.objects.robot import Robot 
 from simulator.objects.team import Team
 from simulator.rules.rules  import *
-from ui.interface   import Interface
 import numpy as np
 
 class Physics:
     '''
-        Engine de física responsável por atualizar o estado da simulação.
-        Gerencia o movimento dos robôs e da bola, e resolve colisões via SAT.
+        Engine física para de servir de interface no Simulador, permitindo que o controle e a física estejam em arquivos separados
+        O sistema de colisão, CollisionManagerSAT, é o que implementa a lógica de colisões e interações entre os objetos da simulação.
     '''
     def __init__(self, allies: Team, enemies:Team, ball: Ball, dt: float, field: Field, screen):
         # Objetos principais da simulação
@@ -35,9 +34,6 @@ class Physics:
 
         # Gerenciador de colisões (com Spatial Hashing e SAT)
         self.collision_manager = CollisionManagerSAT(cell_size=CELL_SIZE, screen=self.screen, dt=self.dt)
-
-        #Parte para a atualização de controle dos robôs
-
 
     # ===============================================================
 
@@ -77,3 +73,9 @@ class Physics:
             Atualizo a posição da bola na interface.
         '''
         self.ball.update_position(self.dt)
+
+    def set_physics(self):
+        '''
+            Método para setar as variáveis da física para o objeto de colisão e 
+            para a lógica de update dos objetos
+        '''

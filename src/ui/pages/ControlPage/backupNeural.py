@@ -1,74 +1,21 @@
 from PyQt6.QtWidgets import (
-    QLabel, QPushButton, QLineEdit, QHBoxLayout, QVBoxLayout, QFormLayout, QGroupBox, QSpinBox, QFileDialog, QWidget, QFrame
+    QLabel, QPushButton, QLineEdit, QHBoxLayout, QVBoxLayout, QFormLayout, QGroupBox, QSpinBox, QFileDialog, QWidget
 )
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from ui.pages.objects.pageObjects import *
-import os, json
-import pyqtgraph as pg
-import numpy as np  # Corrigir: garantir import do numpy
+from ui.pages.ControlPage.PIDcontrol import SimBot
 from simulator.intelligence.logic.controll import *
 from simulator.intelligence.basicControl import *
 import time 
+import numpy as np
+import pyqtgraph as pg
+import os, json 
 
-#Objeto robô para simulação simples
-class SimBot:
-    """Classe simples de robô diferencial para simulação PID."""
-    def __init__(self, x, y, angle, wheel_dist=7):
-        self.v_l = 0.0 
-        self.v_r = 0.0
-        self.position = np.array([x, y], dtype=float)
-        self.angle = angle  # radianos
-        self.distance_wheels = wheel_dist  # distância entre rodas
-        self.history = [self.position.copy()]
-        self.angles = [self.angle]
-
-        #PIDs
-        # PID da distância
-        self.pid_linear = PIDController(0,0,0)
-
-        # PID do angulo até o alvo 
-        self.pid_heading = PIDController(0,0,0)
-
-        # PID do ângulo final do robô
-        self.pid_angular = PIDController(0,0,0)
-
-    
-    def normalize_angle(self, angle):
-        """
-        Normaliza ângulos para o intervalo [-π, π] usando numpy.
-        """
-        return np.arctan2(np.sin(angle), np.cos(angle))
-    
-    def move(self, dt):
-        v = (self.v_r + self.v_l) / 2.0
-        w = (self.v_r - self.v_l) / self.distance_wheels
-        self.angle += w * dt
-        self.angle = np.arctan2(np.sin(self.angle), np.cos(self.angle))  # normaliza
-        dx = v * np.cos(self.angle) * dt
-        dy = v * np.sin(self.angle) * dt
-        self.position += np.array([dx, dy])
-        self.history.append(self.position.copy())
-        self.angles.append(self.angle)
-
-    def set_wheel_speed(self,vl, vr):
-        "Seto nova velocidade para as rodas"
-        self.v_r = vr 
-        self.v_l = vl 
-
-    def goto_point(self, target_pos, target_angle, dt):
-        """
-        Método para ir a um ponto específico (x, y) e alinhar o robô na direção do alvo.
-        """
-        # Implementar lógica de controle PID aqui, se necessário
-        return go_to_point(self, target_pos, target_angle, dt)
-
-
-class CTPIDControlPage(BasicPage):
-    def __init__(self):
-        super().__init__("Controle: Ajuste do Controle PID", QIcon("src/assets/PID.png"))
-
-        # Explicação curta
+class CTneuralPage(BasicPage):
+    def __init__(self,log_manager: LogManager = None):
+        super().__init__("Controle: Redes Neurais", QIcon("src/assets/IA.png"),log_manager)
+    # Explicação curta
         explanation_label = QLabel("Ajuste os parâmetros PID e simule a trajetória entre dois estágios (posição e orientação).")
         explanation_label.setWordWrap(True)
         explanation_label.setStyleSheet("""

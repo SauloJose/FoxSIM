@@ -22,8 +22,13 @@ class Team:
 
         print(f"[DEBUG]: Criando robôs do time {self.team_name}")
 
-        # Escala para o tamanho do robô (Ajustar isso para a nova interface)
-        scale = (ROBOT_SIZE_CM / SCALE_PX_TO_CM, ROBOT_SIZE_CM / SCALE_PX_TO_CM)
+        # Escala da imagem original
+        ORIGINAL_SCALE_PX_PER_CM = 3.6
+        TARGET_SCALE_PX_PER_CM = ORIGINAL_SCALE_PX_PER_CM
+
+        # Calcula tamanho da imagem final em pixels para nova escala
+        final_size_px = int(ROBOT_SIZE_CM * TARGET_SCALE_PX_PER_CM)
+        scale = (final_size_px, final_size_px)
 
         # Imagens dos aliados com máxima qualidade
         self.ATA1_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATA1.png").convert_alpha(), scale)

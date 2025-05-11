@@ -4,13 +4,12 @@ from simulator.collision.collision import *
 from ui.interface_config import *
 
 class Ball:
-    def __init__(self, x, y, field, radius=BALL_RADIUS_CM, color=BALL_COLOR):
+    def __init__(self, x, y, field, radius=BALL_RADIUS_CM):
         """
         Inicializa a bola.
         :param x: Posição X da bola na imagem principal
         :param y: Posição Y da bola na imagem principal
         :param radius: Raio da bola em cm.
-        :param color: Cor da bola (RGB).
         """
         #Variáveis espaciais
         #Transforma as variáveis para o espaço virtual
@@ -40,8 +39,7 @@ class Ball:
         self.torque = 0.0
         self.impulse = None 
 
-        # Outros
-        self.color = color  
+        # Outros 
         self.type_object = BALL_OBJECT
         self.field = field 
 
@@ -221,11 +219,11 @@ class Ball:
         is_inside, mtv = goal_area.check_point_inside(self.collision_object)
         return is_inside
     
-    def new_draw(self, screen):
+    def _draw_(self, screen):
         '''
-            Nova função de desenho da bola para testes
+            Método responsável por desenhar a bola no screen que foi configurado.
 
-            :param screen: Superfície do pygame onde a bola será desenhada.
+            :param screen: Superfície da SimulatorWidget configurada para desenho.
         '''
 
         pass 

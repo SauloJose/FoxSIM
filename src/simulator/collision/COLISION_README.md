@@ -121,5 +121,66 @@ if collided:
 - Carros compostos por múltiplos `CollisionRectangle`
 - Resolver BUGs com as bordas
 
+# Melhorias para organizar dentro do sistema de colisões
+
+---
+
+### **Checklist de Otimização de Colisão**
+| Ordem | Técnica                          | Dificuldade | Benefício Esperado                     | Como Verificar Sucesso            |
+|-------|----------------------------------|-------------|----------------------------------------|-----------------------------------|
+| 1     | **Perfilagem Inicial**           | Baixa       | Identifica gargalos reais              | `cProfile` + `snakeviz`           |
+| 2     | **Early Exits**                  | Baixa       | Reduz verificações desnecessárias      | Menos chamadas a `check_collision` |
+| 3     | **Cache de Spatial Hashing**     | Média       | Acelera busca por vizinhos             | Tempo reduzido em `_get_nearby_objects` |
+| 4     | **Numba para Círculos**          | Média       | 10-100x mais rápido em colisões simples | Benchmarks com `timeit`           |
+| 5     | **Pré-computar Matrizes de Rotação** | Alta    | Elimina recálculos trigonométricos     | CPU usage ↓ em rotações           |
+| 6     | **Batch Processing com NumPy**   | Alta        | Vetoriza operações de pontos           | Tempo reduzido em `_extract_points` |
+| 7     | **Otimização SAT (Normais em Cache)** | Alta   | Acelera colisão retângulo-retângulo    | Menos tempo em `check_collision_with_rectangle` |
+| 8     | **Paralelização para Pares**     | Alta        | Distribui carga em CPUs múltiplas      | Uso de CPU ≈100% em testes        |
+| 9     | **Ajuste de Parâmetros (CELL_SIZE)** | Baixa  | Melhora distribuição espacial          | Menos objetos por célula no grid  |
+| 10    | **CCD Seletivo**                 | Média       | Só aplica CCD a objetos rápidos        | Menos chamadas a `check_continuous_collision` |
+
+---
+
+### **Passo a Passo Recomendado**
+1. **Rode o Profiler**  
+   ```python
+   import cProfile
+   profiler = cProfile.Profile()
+   profiler.enable()
+   # Seu código de simulação
+   profiler.disable()
+   profiler.dump_stats('perfil.colisao')
+   ```
+   - Use `snakeviz perfil.colisao` para visualizar.
+
+2. **Implemente Early Exits**  
+   Adicione no início de funções como `check_collision()`:
+   ```python
+   if not self.is_moving and not other.is_moving:
+       return [False, None]
+   ```
+
+3. **Cache de Spatial Hashing**  
+   Modifique `_hash_position` como no exemplo anterior.
+
+4. **Numba para Funções Críticas**  
+   Decore funções como `check_circle_collision` com `@njit`.
+
+5. **Teste e Meça**  
+   - Compare tempos antes/depois com:
+     ```python
+     import timeit
+     timeit.timeit(lambda: manager.detect_and_resolve(objects), number=100)
+     ```
+
+---
+
+### **Regras de Ouro**
+- **Otimize apenas o que o profiler mostrar como gargalo**  
+- **Mantenha um banchmarking suite** para evitar regressões  
+- **Documente cada mudança** (ex: "Cache de matrizes em 15/08")  
+
+Salve este checklist como `OPTIMIZAÇÃO_COLISÃO.md` no seu projeto e marque itens concluídos ✅.
+
 ---
 
