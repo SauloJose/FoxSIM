@@ -95,7 +95,7 @@ class BackBuffer2D:
             layer=layer
         )
 
-    def draw_text(self, x, y, text, color=(1.0, 1.0, 1.0, 1.0), layer=LAYER_DEBUG):
+    def draw_text(self, x, y, text:str, color=(1.0, 1.0, 1.0, 1.0), layer=LAYER_DEBUG):
         self.add_draw_call(
             draw_type=self.DRAW_TEXT,
             obj=text,
@@ -106,6 +106,22 @@ class BackBuffer2D:
         )
 
     def draw_img(self, image_obj, x, y, angle=0.0, scale=1.0, alpha=1.0, layer=LAYER_OBJECTS):
+        if not image_obj or not image_obj.is_valid():
+            print("Aviso: Tentando desenhar imagem inválida")
+            return
+
+        self.add_draw_call(
+            draw_type=self.DRAW_IMAGE,
+            obj=image_obj,
+            x=x,
+            y=y,
+            angle=angle,
+            scale=scale,
+            alpha=alpha,
+            layer=layer
+        )
+    
+    def draw_background(self, image_obj, x, y, angle=0.0, scale=1.0, alpha=1.0, layer=LAYER_BACKGROUND):
         if not image_obj or not image_obj.is_valid():
             print("Aviso: Tentando desenhar imagem inválida")
             return

@@ -1,10 +1,12 @@
-from PyQt6.QtGui import QImage
+from PyQt6.QtGui import QImage, QTransform
+from PyQt6.QtCore import QRectF,Qt
+from PyQt6.QtGui import QPixmap,QPainter,QColor
 import os
 import numpy as np
 
 class Image:
     """Classe estilo Pygame para desenho de imagens no SimulatorWidget (QPainter)"""
-    def __init__(self, filepath=None, default_scale=1.0):
+    def __init__(self, filepath=None, default_scale: float=1.0):
         self._source = None  # QImage
         self._filepath = filepath
         self._current_angle = 0
@@ -93,6 +95,29 @@ class Image:
         flipped._flip_y = y if y is not None else self._flip_y
         return flipped
 
+    def get_size(self):
+        """Equivalente ao método do Pygame: retorna (largura, altura)."""
+        return self.size
+
+    def get_rect(self, center=None, topleft=None):
+        """
+        Retorna um retângulo (QRectF) representando a área da imagem.
+        Pode ser centralizado ou ter canto superior esquerdo especificado.
+
+        Args:
+            center (tuple): (x, y) para centralizar o retângulo.
+            topleft (tuple): (x, y) para posicionar o canto superior esquerdo.
+        """
+        w, h = self.size
+        if center:
+            x, y = center
+            return QRectF(x - w / 2, y - h / 2, w, h)
+        elif topleft:
+            x, y = topleft
+            return QRectF(x, y, w, h)
+        else:
+            return QRectF(0, 0, w, h)
+
     def draw(self, x, y, screen, layer=1, alpha=1.0):
         """
         Desenha a imagem no SimulatorWidget (QPainter)
@@ -115,25 +140,54 @@ class Image:
         )
 
     def get_qimage(self):
-        """Retorna o QImage transformado (rotação, escala, flip)"""
+        """Retorna o QImage transformado (rotação, escala, flip) com suavização máxima"""
         if not self._source:
             return None
         img = self._source
+
         # Flip
         if self._flip_x or self._flip_y:
             img = img.mirrored(self._flip_x, self._flip_y)
-        # Escala
+
+        # Escala com suavização
         if self._current_scale != 1.0:
             img = img.scaled(
                 int(img.width() * self._current_scale),
-                int(img.height() * self._current_scale)
+                int(img.height() * self._current_scale),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
             )
-        # Rotação
-        if self._current_angle != 0:
-            from PyQt6.QtGui import QTransform
-            transform = QTransform().rotate(self._current_angle)
-            img = img.transformed(transform)
+
+
         return img
 
+    # No arquivo image.py, adicione este método à classe Image
+    def get_highlighted_copy(self, intensity=100):
+        """Retorna uma cópia clareada da imagem"""
+        if not self.is_valid():
+            return None
+            
+        # Cria uma QImage com os mesmos dados, mas podemos modificar
+        img = self._source.copy()
+        
+        # Clareia cada pixel
+        for x in range(img.width()):
+            for y in range(img.height()):
+                color = img.pixelColor(x, y)
+                if color.alpha() > 0:  # Só modifica pixels visíveis
+                    r = min(color.red() + intensity, 255)
+                    g = min(color.green() + intensity, 255)
+                    b = min(color.blue() + intensity, 255)
+                    img.setPixelColor(x, y, QColor(r, g, b, color.alpha()))
+        
+        # Cria uma nova Image com a versão clareada
+        highlighted = Image()
+        highlighted._source = img
+        highlighted._current_angle = self._current_angle
+        highlighted._current_scale = self._current_scale
+        highlighted._flip_x = self._flip_x
+        highlighted._flip_y = self._flip_y
+        return highlighted
+    
     def __repr__(self):
         return f"Image('{self._filepath}', size={self.size}, angle={self._current_angle}, scale={self._current_scale})"

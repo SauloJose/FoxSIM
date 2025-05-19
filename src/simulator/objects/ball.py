@@ -1,7 +1,9 @@
-import pygame
+#import pygame
 import numpy as np  # Substitui math por numpy
 from simulator.collision.collision import * 
+from simulator.simUtils import *
 from ui.interface_config import *
+from ui.pages.objects.image import *
 
 class Ball:
     def __init__(self, x, y, field, radius=BALL_RADIUS_CM):
@@ -26,7 +28,8 @@ class Ball:
 
         #imagem que representa a bola
         self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
-        
+        #self.image = Image("src/assets/ball.png",scale)
+
         # Física
         self.radius = radius    
         self.mass = BALL_MASS 
@@ -40,14 +43,16 @@ class Ball:
         self.impulse = None 
 
         # Outros 
-        self.type_object = BALL_OBJECT
+        self.type_object = SimObjTypes.BALL_OBJECT
         self.field = field 
 
         #Objeto de colisão para tratar das colisões 
         self.collision_object = CollisionCircle(
                 self.x, self.y, self.radius,
-                type_object=MOVING_OBJECTS, reference=self
+                type_object=ObjTypes.MOVING_OBJECTS, reference=self
                 )
+
+        self.max_velocity = 50 #cm/s
 
     #WHATCHDOGS
     @property
@@ -80,19 +85,44 @@ class Ball:
         self._position[1] = value
         self.collision_object.y = value
 
+    #Método para aplicar os valores da simulação na classe
+    def set_physics_var(self,mass, radius):
+        '''
+            Aplicando as variáveis carregadas para a física do robô
+        '''
+        # Física
+        self.radius = radius    
+        self.mass = mass 
+        self.inertia = 0.5 *self.mass*self.radius**2 #Disco sólido
+        self.size = np.array([2*self.radius, 2*self.radius])
+
+
+    def set_max_velocity(self, max_vel):
+        '''
+            Seta a máxima velocidade
+        '''
+        self.max_velocity = max_vel 
 
     def set_velocity(self, vx, vy):
         """
-        Define a velocidade da bola.
+        Define a velocidade da bola, garantindo que não ultrapasse a velocidade máxima.
         :param vx: Velocidade no eixo X.
         :param vy: Velocidade no eixo Y.
         """
         self.velocity = np.array([vx, vy], dtype=float)
-        self.speed = np.linalg.norm(self.velocity)  # Atualiza a velocidade linear
+        self.speed = np.linalg.norm(self.velocity)  # Calcula a magnitude da velocidade
         
+        # Limita a velocidade se exceder o máximo permitido
+        if self.speed > self.max_velocity:
+            scale_factor = self.max_velocity / self.speed
+            self.velocity *= scale_factor  # Reduz proporcionalmente os componentes
+            self.speed = self.max_velocity  # Atualiza a magnitude
+        
+        # Atualiza o vetor de direção se a velocidade for não-nula
         if self.speed > 0:
-            self.direction = self.velocity /self.speed  # Atualiza a direção
-
+            self.direction = self.velocity / self.speed
+        else:
+            self.direction = np.array([1.0, 0.0])  # Direção padrão quando parado
 
     def update_position(self, dt):
         """
@@ -101,12 +131,14 @@ class Ball:
         - Força contínua
         - Rolamento com resistência
         - Perda progressiva da rotação
+        - Limite de velocidade máxima
         """
-        #Gambiarra para evitar crossing
+        # Gambiarra para evitar crossing
         self.dt = dt
 
-        #Atualiza posição anterior
+        # Atualiza posição anterior
         self.previous_pos = self.position.copy()
+        
         # 1. Aplica impulso (se existir)
         if self.impulse is not None:
             self.velocity += self.impulse / self.mass
@@ -116,13 +148,19 @@ class Ball:
         acceleration = self.force / self.mass
         self.velocity += acceleration * dt
         
-        # 3. Atrito com o solo (dinâmico linear)
-        if np.linalg.norm(self.velocity) > 0:
+        # 3. Limita a velocidade máxima
+        current_speed = np.linalg.norm(self.velocity)
+        if current_speed > self.max_velocity:
+            self.velocity = (self.velocity / current_speed) * self.max_velocity
+            current_speed = self.max_velocity
+
+        # 4. Atrito com o solo (dinâmico linear)
+        if current_speed > 0:
             # Aproximação de desaceleração natural por rolamento
             rolling_resistance_coeff = 0.002  # Bem menor que atrito deslizante
             friction_force_mag = rolling_resistance_coeff * self.mass * 980  # N = m.g
             # A direção oposta à velocidade
-            friction_dir = -self.velocity / np.linalg.norm(self.velocity)
+            friction_dir = -self.velocity / current_speed
             friction_accel = friction_dir * (friction_force_mag / self.mass)
             
             new_velocity = self.velocity + friction_accel * dt
@@ -134,19 +172,17 @@ class Ball:
             linear_speed = np.linalg.norm(self.velocity)
             self.angular_velocity = linear_speed / self.radius
 
-        # 4. Atualiza posição com velocidade final
+        # 5. Atualiza posição com velocidade final
         self.position += self.velocity * dt
 
-
-        # 5. Calcula aceleração angular e atualiza velocidade angular
+        # 6. Calcula aceleração angular e atualiza velocidade angular
         self.angular_velocity += 0.995
 
-
-        # 6. Atualiza direção (para possíveis efeitos visuais)
+        # 7. Atualiza direção (para possíveis efeitos visuais)
         if np.linalg.norm(self.velocity) > 0:
             self.direction = self.velocity / np.linalg.norm(self.velocity)
 
-        # 7. Reseta forças acumuladas
+        # 8. Reseta forças acumuladas
         self.force = np.zeros(2, dtype=float)
         self.impulse = None
         self.torque = 0.0
@@ -225,8 +261,11 @@ class Ball:
 
             :param screen: Superfície da SimulatorWidget configurada para desenho.
         '''
+        # Converte posição virtual para coordenada de tela
+        pos_img = virtual_to_screen([self.x, self.y])
 
-        pass 
+        # Desenha a imagem da bola com fundo transparente
+        self.image.draw(pos_img[0],pos_img[1],screen=screen)
     
     def draw(self, screen):
         """

@@ -137,7 +137,7 @@ COEFICIENT_FRICTION_BALL_FIELD  = 0.0001
 COEFICIENT_FRICTION_BALL_ROBOT  = 0.9
 
 # Máximo impulso do simulador.
-MAX_IMPULSE = 10000 #(cm/s)*kg
+MAX_IMPULSE = 100 #(cm/s)*kg
 
 
 # Limitadores
@@ -254,17 +254,6 @@ ATACKER2 = "ATTACKER2"
 #Cor dos times
 BLUE_TEAM = "BLUE"
 RED_TEAM = "RED"
-
-
-#Posições importante dos robôs na imagem:# Coordenadas relativas dos pontos "+" (em cm, baseadas no campo original)
-RELATIVE_POSITIONS = [
-    [GOALKEEPER,MID_GOALAREA_A],                     # Exemplo: Goleiro aliado 1
-    [ATACKER1,ATK1_POSITION_SITUATION1_ALLY],      # Exemplo: Atacante aliado 1
-    [ATACKER2,ATK2_POSITION_SITUATION2_ALLY],      # Exemplo: Atacante Aliado 2
-    [GOALKEEPER,MID_GOALAREA_E],                     # Exemplo: Goleiro inimigo 1
-    [ATACKER1,ATK1_POSITION_SITUATION1_ENEMY],     # Exemplo: atacante inimigo 1
-    [ATACKER2,ATK2_POSITION_SITUATION2_ENEMY],     # Exemplo: Atacante inimigo 2
-]
 
 
 # ------------------------------------------------------------

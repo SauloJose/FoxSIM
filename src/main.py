@@ -52,7 +52,7 @@ bots = blue_team.robots + red_team.robots
 clock = pygame.time.Clock()
 timer = Stopwatch(TIMER_PARTY) #Gerando cronometro 
 
-    
+
 #Gerando motor físico para atualizar a simulação
 Physics_Engine = Physics(allies=blue_team,enemies=red_team,ball=ball,dt=1.0/FPS,field=field,screen=screen)
 
@@ -67,7 +67,7 @@ is_game_paused = False
 selected_robot = None
 
 # Gerando Arbitro para entender o jogo
-arbitrator = Arbitrator(ball, field, blue_team,red_team,interface,timer)
+arbitrator = Arbitrator(ball, field, blue_team,red_team,timer)
 
 #Método para resetar configurações
 def reset_simulation(timer:Stopwatch):

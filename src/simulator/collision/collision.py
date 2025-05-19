@@ -1,6 +1,7 @@
 from __future__ import annotations  # Permite usar strings para tipagem tardia
 import numpy as np
 from typing import TYPE_CHECKING
+from simulator.simUtils import *
 from ui.interface_config import *
 from collections import defaultdict
 from shapely.geometry import Polygon, LineString, Point
@@ -13,6 +14,7 @@ if TYPE_CHECKING:
     from simulator.objects.robot import Robot
     from simulator.objects.ball import Ball
     from simulator.objects.field import Field
+
 
 ### Classes dos objetos de colisão
 class CollisionObject:
@@ -1067,6 +1069,56 @@ class CollisionManagerSAT:
         self.ccd_threshold = 50.0 #Velocidade mínima para usar CDD (em)
 
 
+        # Variáveis internas para manipulação dos resultados
+        # Coeficientes de restituição
+        self.coeficient_restituition_ball_robot = 0.8
+        self.coeficient_restituition_robot_robot = 0.8
+        self.coeficient_restituition_robot_field = 0.6
+        self.coeficient_restituition_ball_field = 0.85
+
+        # Coeficientes de atrito
+        self.coeficient_friction_ball_robot = 0.8
+        self.coeficient_friction_robot_robot = 0.01
+        self.coeficient_friction_ball_field = 0.0001
+        self.coeficient_friction_robot_field = 0.9
+
+        # Impulso máximo
+        self.max_impulse = 100 #(cm/s)*kg 
+
+        # Velocidades dos robôs
+        self.max_velocity_robot = 30.0 #cm/s
+        self.max_angular_velocity_robot = 30.0 #rads/s
+
+        # Velocidades da bola 
+        self.max_velocity_ball = 60.0 #cm/s
+
+    def set_environment_var(self, var:SimulatorVariables):
+        '''
+            Setando as novas variáveis físicas e dinâmicas da solução
+        '''
+        #Coeficientes de restituição
+        self.coeficient_restituition_ball_robot = var.rest_rb
+        self.coeficient_restituition_robot_robot = var.rest_rr
+        self.coeficient_restituition_robot_field = 0.001
+        self.coeficient_restituition_ball_field = var.rest_bf
+        
+        # Coeficientes de atrito
+        self.coeficient_friction_ball_robot = var.fric_br
+        self.coeficient_friction_robot_robot = var.fric_rr
+        self.coeficient_friction_ball_field = var.fric_bw
+        self.coeficient_friction_robot_field = var.fric_rf
+
+        # Impulso máximo
+        self.max_impulse = 100 #(cm/s)*kg 
+
+        # Velocidades dos robôs
+        self.max_velocity_robot = var.robot_max_speed #cm/s
+        self.max_angular_velocity_robot = var.robot_max_ang_speed #rads/s
+
+        # Velocidades da bola 
+        self.max_velocity_ball = var.ball_max_speed #cm/s
+
+
     def detect_and_resolve(self, objects):
         """
         Detecta e resolve colisões entre os objetos passados, considerando apenas os tipos relevantes.
@@ -1085,7 +1137,7 @@ class CollisionManagerSAT:
         collisions = []
         #2. Verifica colisões no grid
         for obj in objects:
-            if obj.type_object != MOVING_OBJECTS:
+            if obj.type_object != ObjTypes.MOVING_OBJECTS:
                 continue 
                
             nearby = self._get_nearby_objects(obj)
@@ -1104,8 +1156,8 @@ class CollisionManagerSAT:
                 
                 # Aplica CCD apenas se a bola estiver envolvida
                 is_ball_involved = (
-                    (obj.reference.type_object == BALL_OBJECT) or 
-                    (other.reference.type_object == BALL_OBJECT)
+                    (obj.reference.type_object == SimObjTypes.BALL_OBJECT) or 
+                    (other.reference.type_object == SimObjTypes.BALL_OBJECT)
                 )
 
                 if is_ball_involved and (
@@ -1124,7 +1176,7 @@ class CollisionManagerSAT:
         # Fase de resolução com pontos de contato
         for obj1, obj2, mtv in collisions:
             #Apenas calcula, por enquanto, os pontos de contato para objetos que não são do campo
-            if obj1.reference.type_object != FIELD_OBJECT and obj2.reference.type_object != FIELD_OBJECT:
+            if obj1.reference.type_object != SimObjTypes.FIELD_OBJECT and obj2.reference.type_object != SimObjTypes.FIELD_OBJECT:
                 contact_point = self.calculate_contact_point(obj1, obj2)
             else:
                 contact_point = None 
@@ -1133,7 +1185,7 @@ class CollisionManagerSAT:
             pair_key = self._get_pair_key(obj1, obj2)
             self.contact_points_cache[pair_key] = contact_point
             
-            if obj2.type_object == STRUCTURE_OBJECTS:
+            if obj2.type_object == ObjTypes.STRUCTURE_OBJECTS:
                 self.resolve_collision_with_field(obj1, obj2, mtv)
             else:
                 self.resolve_moving_collision(obj1, obj2, mtv, contact_point)
@@ -1277,7 +1329,7 @@ class CollisionManagerSAT:
 
         # Proteção: MTV nulo ou objetos sem massa válida
         mtv_norm = np.linalg.norm(mtv)
-        if mtv_norm < 1e-6 or obj1.mass <= 0 or obj2.mass <= 0:
+        if mtv_norm < 1e-2 or obj1.mass <= 0 or obj2.mass <= 0:
             return  #silenciosamente ignora colisões inválidas
         
         # Corrige direção da MTV
@@ -1304,14 +1356,14 @@ class CollisionManagerSAT:
         type1 = obj1.type_object
         type2 = obj2.type_object
 
-        if {type1, type2} == {ROBOT_OBJECT, BALL_OBJECT}:
+        if {type1, type2} == {SimObjTypes.ROBOT_OBJECT, SimObjTypes.BALL_OBJECT}:
             # Robô-Bola → ponto estimado: centro da bola
-            if type1 == BALL_OBJECT:
+            if type1 == SimObjTypes.BALL_OBJECT:
                 collision_point = obj1.position.copy()
             else:
                 collision_point = obj2.position.copy()
 
-        elif {type1, type2} == {ROBOT_OBJECT}:
+        elif {type1, type2} == {SimObjTypes.ROBOT_OBJECT}:
             # Robô-Robô → ponto mais próximo entre as bordas dos retângulos
             poly1 = Polygon(obj1.collision_object.get_corners())
             poly2 = Polygon(obj2.collision_object.get_corners())
@@ -1355,12 +1407,12 @@ class CollisionManagerSAT:
             return  # já estão se separando
 
         # Coeficientes
-        if {type1, type2} == {ROBOT_OBJECT, BALL_OBJECT}:
-            restitution = COEFFICIENT_RESTITUTION_BALL_ROBOT
-            friction = COEFICIENT_FRICTION_BALL_ROBOT
-        elif {type1, type2} == {ROBOT_OBJECT}:
-            restitution = COEFFICIENT_RESTITUTION_ROBOT_ROBOT
-            friction = COEFICIENT_FRICTION_ROBOT_ROBOT
+        if {type1, type2} == {SimObjTypes.ROBOT_OBJECT, SimObjTypes.BALL_OBJECT}:
+            restitution = self.coeficient_restituition_ball_robot
+            friction = self.coeficient_friction_ball_robot
+        elif {type1, type2} == {SimObjTypes.ROBOT_OBJECT}:
+            restitution = self.coeficient_restituition_robot_robot
+            friction = self.coeficient_friction_robot_robot
         else:
             restitution = 0.5
             friction = 0.1
@@ -1411,6 +1463,8 @@ class CollisionManagerSAT:
         obj1.angular_velocity = np.clip(obj1.angular_velocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
         obj2.angular_velocity = np.clip(obj2.angular_velocity, -MAX_ANGULAR_VELOCITY, MAX_ANGULAR_VELOCITY)
 
+    
+
     def line_segment_intersect(self, p1, p2, q1, q2):
         def ccw(a, b, c):
             return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0])
@@ -1452,12 +1506,12 @@ class CollisionManagerSAT:
         # --- Parâmetros de colisão por tipo ---
         type_name = type(obj).__name__
         if 'Ball' in type_name:
-            restitution = COEFFICIENT_RESTITUTION_BALL_FIELD
-            friction = 0.0
+            restitution = self.coeficient_restituition_ball_field
+            friction = self.coeficient_friction_ball_field
             contact_points = [object_pos.copy()]
         elif 'Robot' in type_name:
-            restitution = COEFFICIENT_RESTITUTION_ROBOT_FIELD
-            friction = COEFICIENT_FRICTION_ROBOT_FIELD
+            restitution = self.coeficient_restituition_robot_field
+            friction = self.coeficient_friction_robot_field
             if hasattr(obj.collision_object, "get_corners"):
                 corners = obj.collision_object.get_corners()
                 mid_edges = [(corners[i] + corners[(i + 1) % 4]) / 2 for i in range(4)]
@@ -1505,7 +1559,7 @@ class CollisionManagerSAT:
             obj.apply_impulse(friction_impulse, point)
             
         # Limita velocidades para evitar instabilidades numéricas
-        MAX_VELOCITY = 200.0  # Limite de velocidade linear
+        MAX_VELOCITY = 30.0  # Limite de velocidade linear
         MAX_ANGULAR_VELOCITY = 10.0  # Limite de velocidade angular
 
         velocity_magnitude = np.linalg.norm(obj.velocity)
@@ -1537,9 +1591,9 @@ class CollisionManagerSAT:
         obj2 = obj2.reference 
 
         # Caso 1: Colisão entre bola e robô
-        if {obj1.type_object, obj2.type_object} == {BALL_OBJECT, ROBOT_OBJECT}:
-            ball = obj1 if obj1.type_object == BALL_OBJECT else obj2
-            robot = obj2 if obj1.type_object == BALL_OBJECT else obj1
+        if {obj1.type_object, obj2.type_object} == {SimObjTypes.BALL_OBJECT, SimObjTypes.ROBOT_OBJECT}:
+            ball = obj1 if obj1.type_object == SimObjTypes.BALL_OBJECT else obj2
+            robot = obj2 if obj1.type_object == SimObjTypes.BALL_OBJECT else obj1
             
             # Para bola-robô, o ponto é o mais próximo no robô à bola
             robot_corners = robot.collision_object.get_corners()
@@ -1553,7 +1607,7 @@ class CollisionManagerSAT:
             return np.array(nearest_point.coords[0])
 
         # Caso 2: Colisão robô-robô
-        elif obj1.type_object == ROBOT_OBJECT and obj2.type_object == ROBOT_OBJECT:
+        elif obj1.type_object == SimObjTypes.ROBOT_OBJECT and obj2.type_object == SimObjTypes.ROBOT_OBJECT:
             # Usa o ponto médio entre os pontos mais próximos
             poly1 = Polygon(obj1.collision_object.get_corners())
             poly2 = Polygon(obj2.collision_object.get_corners())

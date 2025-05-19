@@ -2,7 +2,7 @@ import numpy as np
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPointF
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QFontMetrics, QImage, QPen, QBrush
-from ui.pages.objects.imageGL import *
+from ui.pages.objects.image import *
 from ui.pages.objects.backbuffer2D import *
 
 class SimulatorWidget(QWidget):
@@ -23,32 +23,18 @@ class SimulatorWidget(QWidget):
             self.view_width = max(1, parent.width())
             self.view_height = max(1, parent.height())
         else:
-            self.view_width = 800
+            self.view_width = int(1.2*645)
             self.view_height = 600
+            
         self.setMinimumSize(self.view_width, self.view_height)
         self.back_buffer = BackBuffer2D()
-
         self.click_position = None
         self._background_image = None
-
-        # Timer para atualização (FPS)
-        self._timer = QTimer(self)
-        self._timer.timeout.connect(self.render_frame)
-        self._fps = 60
-        self.set_FPS(self._fps)
-
-        # Controle de tempo
-        self._running = False
-        self._paused = False
-        self._elapsed_time = 0
-        self._start_time = None
-
-        self.initialized.emit()
-
 
         #Flag para controle de renderização
         self._render_paused = False 
         self._force_next_frame = False 
+        self._auto_flip = False 
 
         # Back e front buffer
         self._needs_flip = False  # Flag para controle de atualização
@@ -56,57 +42,31 @@ class SimulatorWidget(QWidget):
         self._front_pixmap = QPixmap(self.view_width, self.height())  # Frontbuffer
 
         # Gerenciar auto_flip
-        self._auto_flip = False #Adicionar essa flag
+        self.initialized.emit()
 
     def set_auto_flip(self, enabled: bool):
         """Define se o flip() é automático após render_frame()"""
         self._auto_flip = enabled
 
-    def set_render_paused(self, paused: bool):
-        self._render_paused = paused
-        if paused:
-            self._timer.stop()
-        else:
-            self._timer.start()
-
     def request_single_frame(self):
         ''' Força para renderização de um único frame'''
         self._force_next_frame = True 
-        self.update()
-
-    def set_FPS(self, fps):
-        self._fps = max(1, int(fps))
-        self._timer.setInterval(int(1000 / self._fps))
-
-    def start_timer(self):
-        self._running = True
-        self._paused = False
-        self._elapsed_time = 0
-        self._start_time = None
-        self._timer.start()
-
-    def pause_timer(self):
-        self._paused = True
-        self._timer.stop()
-
-    def reset_timer(self):
-        self._elapsed_time = 0
-        self._start_time = None
+        self.render_frame()
 
     # =================== Função principal de desenho
     def render_frame(self):
         """
             Renderiza apenas no backbuffer (QPixmap) sem atualizar a tela.
             A atualização só ocorre quando flip() é chamado
-        """
-        # Verifica se deve pular a renderização
-        if self._render_paused and not self._force_next_frame:
-            return 
-        
-
+        """        
         self._back_pixmap.fill(Qt.GlobalColor.transparent)
         painter = QPainter(self._back_pixmap)
-        
+        painter.setRenderHints(
+            QPainter.RenderHint.Antialiasing |
+            QPainter.RenderHint.SmoothPixmapTransform 
+        )
+
+
         try:
             # 1. Desenha o background (se existir)
             if self._background_image and self._background_image.is_valid():
@@ -171,12 +131,14 @@ class SimulatorWidget(QWidget):
         """
         Desenha apenas o frontbuffer na tela
         """
+        if not self.isVisible():
+            return
         painter = QPainter(self)
         painter.drawPixmap(0, 0, self._front_pixmap)
         painter.end()
 
     # Processo de desenho organizado pela classe 
-    def _process_draw_call(self, painter:QPainter, call):
+    def _process_draw_call(self, painter:QPainter, call:DrawCall):
         if call.draw_type == BackBuffer2D.DRAW_IMAGE:
             if call.obj:
                 self._render_image(painter, call.obj, call.x, call.y, call.scale, call.angle, call.alpha)
@@ -248,7 +210,7 @@ class SimulatorWidget(QWidget):
             return
         qcolor = QColor.fromRgbF(*color)
         painter.setPen(qcolor)
-        font = QFont("Arial", 14, QFont.Weight.Bold)
+        font = QFont("Arial", 10, QFont.Weight.Bold)
         painter.setFont(font)
         painter.drawText(int(x), int(y), text)
 
@@ -283,18 +245,22 @@ class SimulatorWidget(QWidget):
             return
         painter.save()
         painter.setOpacity(alpha)
+        painter.setRenderHints(
+            QPainter.RenderHint.Antialiasing |
+            QPainter.RenderHint.SmoothPixmapTransform
+        )
         # Centraliza a imagem no ponto (x, y)
         w = img.width()
         h = img.height()
+
+        #rotacionar no painter
         painter.translate(x, y)
         if angle != 0:
-            painter.rotate(angle)
+            painter.rotate(-angle)
+        
+        #Desenho centralizado
         painter.drawImage(-w // 2, -h // 2, img)
         painter.restore()
-
-    # ===================| Métodos básicos para chamadas de desenho | =================
-
-
 
     # =================== Métodos de configuração =====================================
     def set_background_image(self, image: Image):
@@ -327,9 +293,18 @@ class SimulatorWidget(QWidget):
         return self.click_position
 
     def cleanup(self):
-        self._timer.stop()
         self.back_buffer.clear()
 
+    def set_render_paused(self, paused: bool):
+        """Habilita ou desabilita a renderização"""
+        self._render_paused = paused
+
+    def hideEvent(self, event):
+        self.set_render_paused(True)
+
+    def showEvent(self, event):
+        self.set_render_paused(False)
+    
     def closeEvent(self, event):
         self.cleanup()
         super().closeEvent(event)

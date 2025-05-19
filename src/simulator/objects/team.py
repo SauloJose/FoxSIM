@@ -1,7 +1,10 @@
 import numpy as np  # Substitui math por numpy
-from simulator.objects.robot import Robot
+from simulator.objects.robot import *
+from simulator.simUtils import *
 from ui.interface_config import *
-import pygame 
+from ui.pages.objects.image import *
+
+
 
 #Classe para encapsular as posições
 class Position:
@@ -9,6 +12,7 @@ class Position:
         self.GoalKeeperP = np.array(GoalKeeperPosition)
         self.Atk1P      = np.array(FirstAtackPosition)
         self.Atk2P      = np.array(SecondAtackPosition)
+
 
 # Classe para encapsular os times como uma unidade
 class Team:
@@ -19,8 +23,6 @@ class Team:
         self.team_name = team_name
         self.initial_angle = initial_angle
         self.positions = positions 
-
-        print(f"[DEBUG]: Criando robôs do time {self.team_name}")
 
         # Escala da imagem original
         ORIGINAL_SCALE_PX_PER_CM = 3.6
@@ -34,12 +36,18 @@ class Team:
         self.ATA1_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATA1.png").convert_alpha(), scale)
         self.ATA2_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATA2.png").convert_alpha(), scale)
         self.ATGK_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ATGK.png").convert_alpha(), scale)
+        #self.ATA1_image = Image("src/assets/ATA1.png",scale)
+        #self.ATA2_image = Image("src/assets/ATA2.png",scale)
+        #self.ATGK_image = Image("src/assets/ATGK.png",scale)
         self.ally_images = [self.ATGK_image, self.ATA1_image, self.ATA2_image]
 
         # Imagens dos inimigos com máxima qualidade
         self.ETA1_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ETA1.png").convert_alpha(), scale)
         self.ETA2_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ETA2.png").convert_alpha(), scale)
         self.ETGK_image = pygame.transform.smoothscale(pygame.image.load("src/assets/ETGK.png").convert_alpha(), scale)
+        #self.ETA1_image = Image("src/assets/ETA1.png",scale)
+        #self.ETA2_image = Image("src/assets/ETA2.png",scale)
+        #self.ETGK_image = Image("src/assets/ETGK.png",scale)
         self.enemies_images = [self.ETGK_image, self.ETA1_image, self.ETA2_image]
 
 
@@ -50,8 +58,8 @@ class Team:
                                     x=positions.GoalKeeperP[0],
                                     y=positions.GoalKeeperP[1],
                                     team=self.team_name,
-                                    role = GOALKEEPER,
-                                    id = 0,
+                                    role = BotRoles.GOALKEEPER,
+                                    id = BotId.GK,
                                     image = imagesRobot[0],
                                     initial_angle= initial_angle 
         )
@@ -60,8 +68,8 @@ class Team:
                                     x=positions.Atk1P[0],
                                     y=positions.Atk1P[1],
                                     team=self.team_name,
-                                    role = ATACKER1,
-                                    id = 1,
+                                    role = BotRoles.ATTACKER,
+                                    id = BotId.ATK1,
                                     image = imagesRobot[1],
                                     initial_angle= initial_angle 
         )
@@ -70,8 +78,8 @@ class Team:
                                     x=positions.Atk2P[0],
                                     y=positions.Atk2P[1],
                                     team=self.team_name,
-                                    role = ATACKER2,
-                                    id = 2,
+                                    role = BotRoles.ATTACKER,
+                                    id = BotId.ATK2,
                                     image = imagesRobot[2],
                                     initial_angle= initial_angle  
         )
@@ -110,3 +118,21 @@ red_team_positions = Position(
                                 ATK1_POSITION_SITUATION1_ENEMY, #Posição do ATK1
                                 ATK2_POSITION_SITUATION2_ENEMY  #Posição do ATK2
                                 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

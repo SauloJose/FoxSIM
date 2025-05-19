@@ -15,7 +15,7 @@ import numpy as np
 from enum import Enum
 import json 
 import os
-from simulator.objects.robot import BotRoles, BotId
+
 
 # ==============================| ENUMERAÇÕES PADRÕES DA SIMULAÇÃO | =============================
 # Categorizar eventos no sistema (Apenas uma ideia)
@@ -26,6 +26,50 @@ class EventType(Enum):
     ROBOT_STUCK = "robot_stuck"
     PENALTY = "penalty"
 
+    def __str__(self):
+        return self.value
+
+class TeamNames(Enum):
+    BLUE_TEAM = "AZUL"
+    RED_TEAM = "VERMELHO"
+
+    def __str__(self):
+        return super().__str__()
+    
+class ObjTypes(Enum):
+    '''
+        Tipos de objetos de colisão
+    '''
+    MOVING_OBJECTS = "MOVING"
+    STRUCTURE_OBJECTS = "STRUCTURE"
+
+    def __str__(self):
+        return self.value
+    
+class SimObjTypes(Enum):
+    '''
+        Tipos de objetos da simulação
+    '''
+    # TIPOS DE OBJETOS DO JOGO
+    ROBOT_OBJECT = "ROBOT"
+    BALL_OBJECT = "BALL"
+    FIELD_OBJECT = "FIELD"
+    LINE_OBJECT = "LINE"
+    POINT_OBJECT = "POINT"
+
+    # TIPOS DE ESTRUTURAS PARA LÓGICA
+    POSSIBLE_BOAL_PUT_OBJECT = "PUT_BALL"
+    ALLY_GOAL_OBJECT = "ALLY_GOAL"
+    ENEMY_GOAL_OBJECT = "ENEMY_GOAL"
+
+    #IDENTIFCADORES DAS ÁREAS
+    GOALKEEPER_AREA_OBJECT_ALLY = "GOALKEEPER_AREA"
+    GOALKEEPER_AREA_OBJECT_ENEMY = "GOALKEEPER_AREA_ENEMY"
+
+    def __str__(self):
+        return self.value
+    
+# Classe para encapsular variáveis do simulador
 class SimulatorVariables:
     def __init__(self):
         # Parâmetros padrão iniciais — serão sobrescritos se os arquivos forem carregados com sucesso
@@ -34,8 +78,8 @@ class SimulatorVariables:
         self.vel_sim = 1
 
         self.robot_length = 8.0
-        self.robot_max = 1.0
-        self.robot_max_speed = 100
+        self.robot_mass = 1.0
+        self.robot_max_speed = 20
         self.robot_max_ang_speed = 25
         self.robot_wheels_distance = 8.0
         self.robot_wheels_radius = 6.0
@@ -117,7 +161,7 @@ class SimulatorVariables:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 self.robot_length = data.get("robot_length", self.robot_length)
-                self.robot_max = data.get("robot_mass", self.robot_max)
+                self.robot_mass = data.get("robot_mass", self.robot_mass)
                 self.robot_max_speed = data.get("robot_max_speed", self.robot_max_speed)
                 self.robot_max_ang_speed = data.get("robot_max_ang_speed", self.robot_max_ang_speed)
                 self.robot_wheels_distance = data.get("wheel_distance", self.robot_wheels_distance)
@@ -126,7 +170,8 @@ class SimulatorVariables:
                 self.ball_mass = data.get("ball_mass", self.ball_mass)
                 self.ball_max_speed = data.get("ball_max_speed", self.ball_max_speed)
             return True
-        except Exception:
+        except Exception as e:
+            print(f"Erro ao carregar no get_Bot_conf: {e}")
             return False
 
     def get_PID_cont(self, path: str) -> bool:
@@ -156,39 +201,6 @@ class SimulatorVariables:
         except Exception:
             return False
 
-class ObjectTypes(Enum):
-    '''
-        Tipos de objetos de colisão
-    '''
-    MOVING_OBJECTS = "MOVING"
-    STRUCTURE_OBJECTS = "STRUCTURE"
-
-    def __str__(self):
-        return self
-    
-class ObjectSimulationTypes(Enum):
-    '''
-        Tipos de objetos da simulação
-    '''
-    # TIPOS DE OBJETOS DO JOGO
-    ROBOT_OBJECT = "ROBOT"
-    BALL_OBJECT = "BALL"
-    FIELD_OBJECT = "FIELD"
-    LINE_OBJECT = "LINE"
-    POINT_OBJECT = "POINT"
-
-    # Tipos de estruturas para lógica
-    # TIPOS DE ESTRUTURAS PARA LÓGICA
-    POSSIBLE_BOAL_PUT_OBJECT = "PUT_BALL"
-    ALLY_GOAL_OBJECT = "ALLY_GOAL"
-    ENEMY_GOAL_OBJECT = "ENEMY_GOAL"
-
-    #IDENTIFCADORES DAS ÁREAS
-    GOALKEEPER_AREA_OBJECT_ALLY = "GOALKEEPER_AREA"
-    GOALKEEPER_AREA_OBJECT_ENEMY = "GOALKEEPER_AREA_ENEMY"
-
-    def __str__(self):
-        return self
     
 # ------------------------------------------------------------
 # CONFIGURAÇÕES DA JANELA
@@ -200,7 +212,7 @@ ORIGIN_SYSTEM_PX    = np.array([int(1.2*67), int(1.2*452)])     # Origem do sist
 # ------------------------------------------------------------
 # Tamanho da tela na simulação
 SCREEN_WIDTH_IN_PX  = int(1.2*645)
-SCREEN_HEIGHT_IN_PX = int(1.2*645)
+SCREEN_HEIGHT_IN_PX = int(1.2*413)
 
 # VALOR EM PIXELS DA IMAGEM DO CAMPO
 FIELD_INTERNAL_WIDTH_IN_PX = int(450*1.2) #Tamanho novo do campo
@@ -214,9 +226,8 @@ REAL_FIELD_INTERNAL_HEIGHT_CM = int(130)
 SCALE_PX_TO_CM = REAL_FIELD_INTERNAL_WIDTH_CM / (FIELD_INTERNAL_WIDTH_IN_PX)
 
 # ------------------------------------------------------------
-# FUNÇÕES DE CONVERSÃO DE COORDENADAS
+# FUNÇÕES UTEIS DE CONVERSÃO DE COORDENADAS
 # ------------------------------------------------------------
-
 def _v2s_(pos_cm):
     '''
         Transforma das coordenadas da screen para as coordenadas
@@ -351,17 +362,6 @@ ATACKER1 = "ATTACKER1"
 ATACKER2 = "ATTACKER2"
 
 #Cor dos times
-BLUE_TEAM = "BLUE"
-RED_TEAM = "RED"
+BLUE_TEAM = "AZUL"
+RED_TEAM = "VERMELHO"
 
-
-
-#Posições importante dos robôs na imagem:# Coordenadas relativas dos pontos "+" (em cm, baseadas no campo original)
-RELATIVE_POSITIONS = [
-    [BotId.GK,MID_GOALAREA_A],                     # Exemplo: Goleiro aliado 1
-    [BotId.ATK1,ATK1_POSITION_SITUATION1_ALLY],      # Exemplo: Atacante aliado 1
-    [BotId.ATK2,ATK2_POSITION_SITUATION2_ALLY],      # Exemplo: Atacante Aliado 2
-    [BotId.GK,MID_GOALAREA_E],                     # Exemplo: Goleiro inimigo 1
-    [BotId.ATK1,ATK1_POSITION_SITUATION1_ENEMY],     # Exemplo: atacante inimigo 1
-    [BotId.ATK2,ATK2_POSITION_SITUATION2_ENEMY],     # Exemplo: Atacante inimigo 2
-]

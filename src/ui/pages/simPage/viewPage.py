@@ -20,11 +20,62 @@ class SimulationViewPage(BasicPage):
         self.top_layout = self.create_top_section()
         self.main_vlayout.addLayout(self.top_layout)
         self.add_layout(self.main_vlayout)
+        self._connect_debug_flags()
 
         # Criando objeto do simulado para controlar corretamente a simulação
-        #self.simulator = Simulator(self, self.viewer, FPS = 60)
-        #self.initialize_simulator()
+        self.simulator = Simulator(self, self.viewer, FPS = 60)
+        self.simulator.create_default_objects() #Crio os objetos padrões
         
+        self.simulator.stop() #Paro a simulação, até eu clicar em start.
+
+        # Conexão dos eventos do simulador com a atualização da UI
+        # self.simulator.score_updated.connect(self.update_score)
+        # self.simulator.robot_updated.connect(self.update_robot_info)
+        # self.simulator.timer_updated.connect(self.update_timer)
+
+    def _connect_debug_flags(self):
+        """
+        Conecta os checkboxes de debug às variáveis do simulador e define todos como False por padrão.
+        """
+        # === Trajetória da bola (ainda não implementado no Simulator, mas reservado)
+        self.chk_trajetoria_bola.setChecked(False)
+        # Se quiser implementar no futuro:
+        # self.chk_trajetoria_bola.stateChanged.connect(
+        #     lambda state: setattr(self.simulator, 'draw_trajectory_ball', bool(state))
+        # )
+
+        # === Trajetória dos robôs
+        self.chk_trajetoria_robos.setChecked(False)
+        self.chk_trajetoria_robos.stateChanged.connect(
+            lambda state: setattr(self.simulator, 'draw_trajectory_robots', bool(state))
+        )
+
+        # === Grade do campo
+        self.chk_grade.setChecked(False)
+        self.chk_grade.stateChanged.connect(
+            lambda state: setattr(self.simulator, 'draw_grid_collision', bool(state))
+        )
+
+        # === Objetos de colisão
+        self.chk_colisao.setChecked(False)
+        self.chk_colisao.stateChanged.connect(
+            lambda state: setattr(self.simulator, 'draw_collision_objects', bool(state))
+        )
+
+        # === Particionamento espacial (reserva futura)
+        self.chk_particionamento.setChecked(False)
+        # Se quiser usar no futuro:
+        # self.chk_particionamento.stateChanged.connect(
+        #     lambda state: setattr(self.simulator, 'draw_partitioning', bool(state))
+        # )
+
+        # === Pausar simulação
+        self.chk_pause.setChecked(False)
+        self.chk_pause.stateChanged.connect(
+            lambda state: self.simulator.pause() if state else self.simulator.resume()
+        )
+
+
     def create_top_section(self):
         self.top_hlayout = QHBoxLayout()
         self.top_hlayout.setSpacing(20)
@@ -47,25 +98,26 @@ class SimulationViewPage(BasicPage):
         self.left_layout.addWidget(wrapper_a)
 
         # Widget pai para o SimulatorWidget (tamanho 1.2x)
-        parent_width = int(1.2 * 645)
-        parent_height = int(1.2 * 413)
+        #carregando background
+        bkg = Image("src/assets/field2.png")
+        if bkg.is_valid():
+            w, h = bkg.size
+            scale = 1.0
+            scaled_w = int(w * scale)
+            scaled_h = int(h * scale)
+
         self.sim_parent_widget = QWidget()
-        self.sim_parent_widget.setMinimumSize(parent_width, parent_height)
-        self.sim_parent_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.sim_parent_widget.setFixedSize(scaled_w, scaled_h)  # ← define tamanho fixo
+
         sim_parent_layout = QVBoxLayout(self.sim_parent_widget)
         sim_parent_layout.setContentsMargins(0, 0, 0, 0)
-        sim_parent_layout.setSpacing(0)
 
-        viewer_width = int(645)
-        viewer_height = int(413)
         self.viewer = SimulatorWidget(parent=self.sim_parent_widget)
-        self.viewer.set_background_image(Image("src/assets/field2.png"))
-        self.viewer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.viewer.setMinimumSize(viewer_width // 2, viewer_height // 2)
-        self.viewer.setMaximumSize(parent_width, parent_height)
+        self.viewer.set_background_image(bkg)
 
+        self.left_layout.addWidget(self.sim_parent_widget, stretch=1)  # Adiciona stretch
         sim_parent_layout.addWidget(self.viewer)
-        self.left_layout.addWidget(self.sim_parent_widget)
+        self.left_layout.addWidget(self.sim_parent_widget, stretch=1)  # Adiciona stretch
 
         # --- Informações do time B ---
         self.team_b_info = TeamInfoWidget("B", ["src/assets/ETGK.png","src/assets/ETA1.png", "src/assets/ETA2.png"])
@@ -97,15 +149,15 @@ class SimulationViewPage(BasicPage):
         self.scoreObjs.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.scoreObjs.setContentsMargins(0, 0, 0, 0)
 
-        self.score_widget_a = ScoreWidget("Time A", "blue")
+        self.score_teamA = ScoreWidget("Time A", "blue")
         self.timer_widget = TimerWidget()
-        self.score_widget_b = ScoreWidget("Time B", "red")
+        self.score_teamB = ScoreWidget("Time B", "red")
 
-        self.scoreObjs.addWidget(self.score_widget_a)
+        self.scoreObjs.addWidget(self.score_teamA)
         self.scoreObjs.addStretch(1)
         self.scoreObjs.addWidget(self.timer_widget)
         self.scoreObjs.addStretch(1)
-        self.scoreObjs.addWidget(self.score_widget_b)
+        self.scoreObjs.addWidget(self.score_teamB)
 
         self.right_layout.addWidget(self.scoreboard)
 
@@ -134,6 +186,7 @@ class SimulationViewPage(BasicPage):
         self.chk_colisao = QCheckBox("Exibir objetos de colisão")
         self.chk_particionamento = QCheckBox("Exibir particionamento espacial")
         self.chk_pause = QCheckBox("Pausar simulação")
+
         controls_layout.addWidget(self.chk_trajetoria_bola)
         controls_layout.addWidget(self.chk_trajetoria_robos)
         controls_layout.addWidget(self.chk_grade)
@@ -167,8 +220,8 @@ class SimulationViewPage(BasicPage):
         self.buttonRestart.setStyleSheet(StyleButtonRestart)
         self.buttonRestart.setFixedWidth(120)
 
-        self.buttonStart.clicked.connect(lambda: self.viewer.start_timer())
-        self.buttonRestart.clicked.connect(lambda: self.viewer.reset_timer())
+        self.buttonStart.clicked.connect(self.start_simulation)
+        self.buttonRestart.clicked.connect(self.restart_simulation)
 
         btns_layout.addWidget(self.buttonStart)
         btns_layout.addWidget(self.buttonRestart)
@@ -180,51 +233,76 @@ class SimulationViewPage(BasicPage):
         return self.top_hlayout
 
     # ==============================================================
-    # Método para atualizar o placar
+
     def update_score(self, team_a_score, team_b_score):
-        pass 
+        self.score_teamA.set_score(team_a_score)
+        self.score_teamB.set_score(team_b_score)
+        self.stats_log_widget.set_estado(f"Placar: {team_a_score}-{team_b_score}")
 
-    # Método para atualizar as informações do robô
+    # Exemplo de implementação completa dos métodos de atualização
     def update_robot_info(self, team, robot_idx, pos, direction, v_left, v_right, dist_ball):
-        pass 
-
-
-    #Método para atualizar o cronometro 
+        """Atualiza as informações de um robô específico"""
+        if team == "A":
+            self.team_a_info.set_robot_info(robot_idx, pos, direction, v_left, v_right, dist_ball)
+        else:
+            self.team_b_info.set_robot_info(robot_idx, pos, direction, v_left, v_right, dist_ball)
+        
     def update_timer(self, minutes, seconds):
+        ''' Método para atualize o cronometro'''
         pass 
 
 
-    #Método para atualizar os logs estatísticos 
     def update_stats_log(self, velocity, distances, collisions, time_str, state, events):
+        ''' Método para atualizar os logs estatísticos'''
         pass 
 
 
-    # Método para puxar variáveis dos arquivos e carregar no simulador
     def get_variables_simulation(self):
+        ''' Método para puxar variáveis dos arquivos para carregar no simulador'''
         pass 
 
-    # Método para inicializar o simulador de forma correta 
     def initialize_simulator(self):
-        pass 
-
+        ''' Iniciar a simulação'''
+        self.simulator.create_default_objects()
+        self.simulator.reset() 
+    
     # ==============================================================
 
     # Método para dar início à simulação
     def start_simulation(self):
-        pass 
+        '''
+            Inicia a simulação, ou seja, dá start no Simulator()
+        '''
+        print("Simulação iniciou")
+        self.simulator.start()
 
 
     # Método para reiniciar a simulação 
     def restart_simulation(self):
-        pass
+        '''
+            Reinicia a simulação
+        '''
+        print("Simulação reiniciou")
+        self.simulator.reset()
 
 
     # Método para pausar a simulação 
     def pause_simulation(self):
-        pass
+        '''
+            Pausa a simulação
+        '''
+        self.simulator.pause()
 
+    def resume_simulation(self):
+        '''
+            Retorna da simulação
+        '''
+        self.simulator.resume()
     # Método para dar condições de DEBUG à simulação
     def debug_simulation(self):
+        '''
+            Ainda não tem uma lógica pronta
+        '''
         pass
     # ==============================================================
 
@@ -262,7 +340,12 @@ class ScoreWidget(QWidget):
         self.score_label.setText(str(value))
 
     def destroy(self):
-        pass
+        if hasattr(self, 'viewer'):
+            self.viewer.cleanup()
+            self.viewer.deleteLater()
+        if hasattr(self, 'simulator'):
+            self.simulator.destroy()
+        super().destroy()
 
 class TimerWidget(QWidget):
     def __init__(self):

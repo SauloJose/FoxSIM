@@ -533,11 +533,9 @@ class ConfigRobotsPage(BasicPage):
         Gera uma imagem PNG de um robô VSS, onde o quadrado principal tem exatamente x_cm de lado
         na escala de 3.6 px = 1 cm. Rodas e borda são adicionadas como extras.
         """
-        from PIL import Image, ImageDraw
 
-        px_por_cm = 3.6
-        lado_px = int(round(x_cm * px_por_cm))  # lado do quadrado principal
-
+        lado_px = 20*39 # 5x39 px para o quadrado principal
+        
         # Proporções relativas
         prop_borda = 1.1
         prop_roda_w = 0.15

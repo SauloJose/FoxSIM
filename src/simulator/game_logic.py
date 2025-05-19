@@ -36,6 +36,12 @@ class Physics:
         self.collision_manager = CollisionManagerSAT(cell_size=CELL_SIZE, screen=self.screen, dt=self.dt)
 
     # ===============================================================
+    def set_variables(self, var: SimulatorVariables):
+        '''
+            Seta as variáveis da simulação
+        '''
+        self.collision_manager.set_environment_var(var)
+
 
     def update(self):
         '''

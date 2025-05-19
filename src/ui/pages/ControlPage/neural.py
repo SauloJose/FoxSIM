@@ -27,7 +27,7 @@ class CTneuralPage(BasicPage):
             border-radius: 8px;
             padding: 12px 20px;
         """)
-        explanation_label.setFixedHeight(80)
+        explanation_label.setFixedHeight(60)
         explanation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_widget(explanation_label)
 
@@ -43,7 +43,7 @@ class CTneuralPage(BasicPage):
             }
         """)
         main_layout = QHBoxLayout(main_container)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setContentsMargins(10,10,10,10)
         main_layout.setSpacing(30)
 
         # Left: Configuração dos parâmetros, controles e diagrama da rede

@@ -1,10 +1,14 @@
+'''
+@ Saulo: Na simulação, quando rotacionar o robô, o vetor direção tem que ser modificado junto.
+'''
+
+
 import pygame
 import numpy as np
 from simulator.simUtils import *
 from simulator.collision.collision import *
 from simulator.intelligence.logic.controll import *
 from simulator.intelligence.basicControl import *
-from ui.pages.objects.image import *
 from enum import Enum 
 from typing import List, Optional, Tuple
 
@@ -43,7 +47,7 @@ class Robot:
     '''
         Implementação dinâmica de um robô controlado por controle diferencial
     '''
-    def __init__(self, x, y, team, role:BotRoles, id:BotId, image:Image, initial_angle=0):
+    def __init__(self, x, y, team, role:BotRoles, id:BotId, image, initial_angle=0):
         '''
             Inicializando o objeto robô que será um objeto que irá se mover e interagir na simulação
         '''
@@ -521,58 +525,17 @@ class Robot:
 
     def _draw_(self, screen):
         '''
-        Desenha o robô na tela, com efeito de seleção se aplicável
-        :param screen: SimulatorWidget onde desenhar
+        Nova função de desenho para o robô, que desenha a imagem do robô na tela
+        :param screen: Superfície do pygame onde o robô será desenhado.
         '''
-        try:
-            # Converte o ângulo para graus
-            angle = np.degrees(self.angle)
-            
-            # Converte as coordenadas virtuais para coordenadas de tela
-            screen_pos = virtual_to_screen([self.x, self.y])
-            screen_x, screen_y = screen_pos[0], screen_pos[1]
-            
-            # Obtém a imagem rotacionada
-            rotated_image = self.image.set_rotation(angle)
-            
-            # Aplica efeito de seleção (clareamento)
-            if self._is_selected:
-                # Cria uma cópia clareada (apenas quando selecionado)
-                if not hasattr(self, '_cached_highlighted'):
-                    # Cria QImage da imagem rotacionada
-                    qimg = rotated_image.get_qimage()
-                    
-                    # Clareia os pixels (apenas para pixels não transparentes)
-                    for x in range(qimg.width()):
-                        for y in range(qimg.height()):
-                            color = qimg.pixelColor(x, y)
-                            if color.alpha() > 0:
-                                r = min(color.red() + 100, 255)
-                                g = min(color.green() + 100, 255)
-                                b = min(color.blue() + 100, 255)
-                                qimg.setPixelColor(x, y, QColor(r, g, b, color.alpha()))
-                    
-                    # Armazena em cache
-                    self._cached_highlighted = Image()
-                    self._cached_highlighted._source = qimg
-                else:
-                    # Atualiza a posição/rotação da imagem em cache
-                    self._cached_highlighted._current_angle = angle
-                
-                # Usa a imagem clareada
-                draw_image = self._cached_highlighted
-            else:
-                # Limpa o cache se existir
-                if hasattr(self, '_cached_highlighted'):
-                    del self._cached_highlighted
-                # Usa a imagem normal
-                draw_image = rotated_image
-            
-            # Desenha na tela (usando coordenadas de tela convertidas)
-            draw_image.draw(screen_x, screen_y, screen)
-            
-        except Exception as e:
-            print(f"[ERRO] Falha ao desenhar robô '{self.id_robot}' em ({self.x:.2f}, {self.y:.2f}): {e}")
+        # Converte coordenadas virtuais para coordenadas de tela
+
+        # rotaciona corretamente a imagem do robô
+
+        # Verifica se está selecionado pelo mouse 
+
+        # Desenha no backbuffer do screen 
+        pass 
 
     def draw(self, screen):
         """

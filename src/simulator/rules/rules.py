@@ -48,13 +48,12 @@ class Arbitrator:
         Classe que representa o árbitro da partida, que irá garantir as regras
         da partida
     '''
-    def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team, interface: Interface, timer: Stopwatch):
+    def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team, timer: Stopwatch):
         # Referências para objetos principais da simulação
         self.ball = ball 
         self.field = field 
         self.allies = ally_bots
         self.enemies = enemy_bots
-        self.interface = interface
         self.timer = timer
 
         #Áreas do campo
@@ -76,7 +75,6 @@ class Arbitrator:
         #Pontuação
         self.ally_pontuation  = 0 
         self.enemy_pontuation = 0
-        self.pontuation = self.interface.score
 
         #Tempo de cada partida
         self.TIME_OF_A_PARTY = TIMER_PARTY   #Segundos
@@ -140,12 +138,10 @@ class Arbitrator:
         if side == 'ALLY':
             print("[Arbitro]: Gol do time A!")
             self.ally_pontuation  += 1 
-            self.interface.update_score(1)
             self.current_decision = Decisions.ALLY_GOAL
         elif side == 'ENEMY':
             print("[Arbitro]: Gol do time B!")
             self.enemy_pontuation += 1
-            self.interface.update_score(2)
             self.current_decision = Decisions.ENEMY_GOAL
 
         self._reset_initial_positions()
