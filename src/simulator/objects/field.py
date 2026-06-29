@@ -14,6 +14,7 @@ class Field:
         self.height = height
         self.color = color
         self.type_object = FIELD_OBJECT
+        self.velocity = np.array([0,0])
 
         print(f"[Sistema]: Campo criado com w = {self.width}, h = {self.height} e do tipo {self.type_object}")
         self.collision_objects = []          #Lista utilizada apenas no draw() para fins gráficos 

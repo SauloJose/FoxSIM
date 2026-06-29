@@ -9,13 +9,49 @@ from ui.interface_config import (
     SCALE_PX_TO_CM,
 )
 from simulator.collision.collision import *
+from simulator.intelligence.logic.controll import *
+from simulator.intelligence.basicControl import *
+from enum import Enum 
+from typing import List, Optional
+from ui.pages.objects.backbuffer2D import BackBuffer2D  # Certifique-se de importar
+from ui.pages.objects.imageGL import Image
 
+class BotRoles(str, Enum):
+    """
+        Enumeração que representa qual a função do robô dentro do sistema
+        - ATTACKER - Atacante 
+        - GOALKEEPER - Goleiro 
+        - DEFENSOR  - Defesa
+    """
+    ATTACKER = "ATACANTE"
+    GOALKEEPER = "GOLEIRO"
+    DEFENDER = "DEFENSOR"
+
+    def __str__(self):
+        return self.value
+
+class BotId(str, Enum):
+    """
+    Enumeração que representa o identificador do robô dentro do simulador
+    
+    - ATK1 - Atacante 1
+    - ATK2 - Atacante 2
+    - DEF - Defensor 
+    - GK - Goleiro
+    """
+    ATK1 = "ATK1" 
+    ATK2 = "ATK2"
+    DEF = "DEF"
+    GK  = "GK"
+
+    def __str__(self):
+        return self 
 
 class Robot:
     '''
         Implementação dinâmica de um robô controlado por controle diferencial
     '''
-    def __init__(self, x, y, team, role, id, image, initial_angle=0):
+    def __init__(self, x, y, team, role:BotRoles, id:BotId, image_path, initial_angle=0):
         '''
             Inicializando o objeto robô que será um objeto que irá se mover e interagir na simulação
         '''
@@ -27,8 +63,8 @@ class Robot:
         self.team = team                        # indicação do time
         self.role = role                        # função do robô
         self.id_robot = id                      # Apenas um identificado para ele
-        self.image    = image                   # Imagem que representa o robô7
-        self.initial_image = image              # Imagem inicial para quando resetar o robô.
+        self.image = Image(image_path)         # Imagem que representa o robô7
+        self.initial_image = Image(image_path) # Imagem inicial para quando resetar o robô.
         
         # Tipo de objeto para o sistema de colisão
         self.type_object = ROBOT_OBJECT
@@ -70,7 +106,6 @@ class Robot:
         self.v = 0.0
         self.omega = 0.0
 
-
         # Colisão
         self.collision_object = CollisionRectangle(
             self.x, self.y, self.width, self.height, 
@@ -89,6 +124,24 @@ class Robot:
         self.initial_y          = self.y
         self.initial_angular_velocity = self.angular_velocity
 
+        # Controlador PID para o robô
+        self.kp = 2.0
+        self.ki = 0.1
+        self.kd = 0.2
+
+        # Objetos de controle PID do robô
+        # PID da distância
+        self.pid_linear = PIDController(self.kp,self.ki,self.kd)
+
+        # PID do angulo até o alvo 
+        self.pid_heading = PIDController(self.kp,self.ki,self.kd)
+
+        # PID do ângulo final do robô
+        self.pid_angular = PIDController(self.kp,self.ki,self.kd)
+
+
+        # Métodos para interatibilidade com a interface do simulador
+        self._is_selected = False 
 
     @property
     def position(self):
@@ -117,7 +170,31 @@ class Robot:
     def y(self, value):
         self.position[1] = value
         self.collision_object.y =value
-    
+
+    # Método para enviar os valores de KP, Kd e Ki
+    def set_controll_const(self,kp,kd,ki):
+        # Atualizando constantes
+        self.kp = kp 
+        self.kd = kd 
+        self.ki = ki 
+        
+        # Atualizando controladores PID
+        self.pid_linear = PIDController(self.kp,self.ki,self.kd)
+        self.pid_heading = PIDController(self.kp,self.ki,self.kd)
+        self.pid_angular = PIDController(self.kp,self.ki,self.kd)
+
+    # Aplicar a edição e verificação de código num arquivo que exiba na interface
+    def goto_state(self, target_pos, target_angle, dt):
+        v_l, v_r = go_to_point(self, target_pos, target_angle, dt)
+        return v_l, v_r
+
+
+    def normalize_angle(self, angle):
+        """
+        Normaliza ângulos para o intervalo [-π, π] usando numpy.
+        """
+        return np.arctan2(np.sin(angle), np.cos(angle))
+
     #setando velocidade das rodas
     def set_wheel_speeds(self, v_l, v_r):
         """Define as velocidades das rodas esquerda e direita (em cm/s)."""
@@ -316,6 +393,17 @@ class Robot:
 
         self.sync_collision_object()
 
+    def new_position(self, x,y):
+        """
+        Define a posição do robô sem retornar a inicial, apenas muda o x e y
+        :param x: Nova posição X.
+        :param y: Nova posição Y.
+        """
+        #nova posição do robô
+        self.position = np.array([x, y], dtype=float)    
+
+        self.sync_collision_object()
+
     def stop(self):
         """
         Para o robô (define a velocidade como zero).
@@ -337,6 +425,37 @@ class Robot:
         v = (self.v_r + self.v_l) / 2  # velocidade linear
         self.velocity = v * self.direction  # vetor velocidade
 
+    def _draw_(self, simulator_widget):
+        """
+        Desenha o robô no SimulatorWidget usando o backbuffer.
+        :param simulator_widget: O widget baseado em VisPy que gerencia o backbuffer.
+        """
+
+        # Converte o ângulo de rotação para graus
+        angle = np.degrees(self.angle)
+
+        # Rotaciona a imagem (supondo que Image é um wrapper que converte para QImage/texture)
+        rotated_image = self.initial_image.get_rotated(angle)  # Adaptar para sua classe Image
+
+        # Clareia a imagem se selecionada
+        if self._is_selected:
+            rotated_image = rotated_image.lighten(0.4)  # método que você pode criar na classe Image
+
+        # Converte coordenadas virtuais para coordenadas de tela
+        center = virtual_to_screen([self.x, self.y])
+
+        # Adiciona draw call no backbuffer
+        simulator_widget.back_buffer.add_call(
+            draw_type=BackBuffer2D.DRAW_IMAGE,
+            obj=rotated_image,
+            x=center[0],
+            y=center[1],
+            scale=1.0,
+            angle=angle,
+            alpha=1.0
+        )
+
+
     def draw(self, screen):
         """
         Desenha o robô na tela com rotação e um vetor indicando a direção.
@@ -347,8 +466,28 @@ class Robot:
         angle = np.degrees(self.angle)
 
         # Rotaciona a imagem do robô conforme o ângulo atual
-        rotated_image = pygame.transform.rotate(self.image, angle)  # negativo pois y do Pygame cresce para baixo
+        rotated_image = pygame.transform.rotate(self.initial_image, angle)  # negativo pois y do Pygame cresce para baixo
 
+        # Se o robô estiver selecionado, clareia apenas as cores da imagem
+        if self._is_selected:
+            # Cria uma cópia da imagem rotacionada
+            selected_image = rotated_image.copy()
+            width, height = selected_image.get_size()
+
+            # Bloqueia a superfície para manipulação direta dos pixels
+            selected_image.lock()
+            for x in range(width):
+                for y in range(height):
+                    r, g, b, a = selected_image.get_at((x, y))  # Obtém a cor do pixel
+                    if a > 0:  # Apenas pixels visíveis
+                        # Clareia as cores (mantendo a transparência)
+                        r = min(r + 100, 255)
+                        g = min(g + 100, 255)
+                        b = min(b + 100, 255)
+                        selected_image.set_at((x, y), (r, g, b, a))
+            selected_image.unlock()
+
+            rotated_image = selected_image
         # Converte coordenadas virtuais para coordenadas de tela
         center = virtual_to_screen([self.x, self.y])
 

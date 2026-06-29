@@ -2,15 +2,16 @@ import pygame
 import numpy as np  # Substitui math por numpy
 from simulator.collision.collision import * 
 from ui.interface_config import *
+from ui.pages.objects.backbuffer2D import BackBuffer2D  # Certifique-se de importar
+from ui.pages.objects.imageGL import Image
 
 class Ball:
-    def __init__(self, x, y, field, radius=BALL_RADIUS_CM, color=BALL_COLOR):
+    def __init__(self, x, y, field, radius=BALL_RADIUS_CM, image_path="src/assets/ball.png"):
         """
         Inicializa a bola.
         :param x: Posição X da bola na imagem principal
         :param y: Posição Y da bola na imagem principal
         :param radius: Raio da bola em cm.
-        :param color: Cor da bola (RGB).
         """
         #Variáveis espaciais
         #Transforma as variáveis para o espaço virtual
@@ -26,7 +27,8 @@ class Ball:
         scale = (2*BALL_RADIUS_CM / SCALE_PX_TO_CM, 2*BALL_RADIUS_CM / SCALE_PX_TO_CM)
 
         #imagem que representa a bola
-        self.image = pygame.transform.smoothscale(pygame.image.load("src/assets/ball.png").convert_alpha(), scale)
+        self.image = Image(image_path)
+        self.image = pygame.transform.smoothscale(self.image, scale)
         
         # Física
         self.radius = radius    
@@ -40,8 +42,7 @@ class Ball:
         self.torque = 0.0
         self.impulse = None 
 
-        # Outros
-        self.color = color  
+        # Outros 
         self.type_object = BALL_OBJECT
         self.field = field 
 
@@ -220,6 +221,26 @@ class Ball:
         # Verifica se a bola está dentro da área do gol
         is_inside, mtv = goal_area.check_point_inside(self.collision_object)
         return is_inside
+    
+    def _draw_(self, screen):
+        """
+        Método responsável por desenhar a bola no SimulatorWidget.
+        :param screen: SimulatorWidget, possui back_buffer para draw calls.
+        """
+        # Converte posição virtual para coordenadas de tela
+        pos_img = virtual_to_screen([self.x, self.y])
+
+        # Adiciona uma draw call no backbuffer
+        screen.back_buffer.add_call(
+            draw_type=BackBuffer2D.DRAW_IMAGE,  # Tipo de draw: imagem
+            obj=self.image,                     # QImage ou objeto compatível
+            x=pos_img[0],
+            y=pos_img[1],
+            scale=1.0,
+            angle=0.0,
+            alpha=1.0
+        )
+
     
     def draw(self, screen):
         """

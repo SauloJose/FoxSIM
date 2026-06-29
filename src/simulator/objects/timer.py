@@ -1,7 +1,10 @@
 import time
 
 
-class HighPrecisionTimer:
+class Stopwatch:
+    '''
+        Gera um cronometro que irá durar a quantidade de tempo que foi configurado
+    '''
     def __init__(self, duration):
         """
         Inicializa o timer.
@@ -14,6 +17,15 @@ class HighPrecisionTimer:
         self.pause_start = None            # Armazena quando o cronômetro foi pausado
         self.total_paused_time = 0         # Tempo total acumulado em pausa
 
+    def set_duration(self, duration):
+        """
+        Define a duração do timer.
+        :param duration: Duração em segundos.
+        """
+        self.duration = duration
+        if self.running:
+            self.start_time = time.time()
+            
     def start(self):
         """Inicia o timer do zero."""
         self.reset()
