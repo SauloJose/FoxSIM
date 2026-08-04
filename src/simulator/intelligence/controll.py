@@ -66,3 +66,37 @@ class PIDController:
 
 
 # Estratégias de controle por arvore das decisões para cada robô
+import numpy as np
+
+class Status:
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAILURE"
+    RUNNING = "RUNNING"
+
+class Node:
+    def tick(self, robot, ball, team, dt):
+        raise NotImplementedError
+
+class Selector(Node):
+    def __init__(self, children):
+        self.children = children
+
+    def tick(self, robot, ball, team, dt):
+        for child in self.children:
+            status = child.tick(robot, ball, team, dt)
+            if status != Status.FAILURE:
+                return status
+        return Status.FAILURE
+
+class Sequence(Node):
+    def __init__(self, children):
+        self.children = children
+
+    def tick(self, robot, ball, team, dt):
+        for child in self.children:
+            status = child.tick(robot, ball, team, dt)
+            if status != Status.SUCCESS:
+                return status
+        return Status.SUCCESS
+
+    
