@@ -21,16 +21,16 @@ BALL_RADIUS = 2.13       # cm, bola de golfe oficial
 CONTACT_DISTANCE = ROBOT_RADIUS + BALL_RADIUS  # distância robô-bola considerada "contato"
 
 # --- Velocidades ---
-MAX_WHEEL_SPEED = 30.0
+MAX_WHEEL_SPEED = 20.0
 GOALIE_MAX_SPEED = 30.0
 SUPPORT_SPEED_FACTOR = 0.85
-EMERGENCY_REVERSE_SPEED = 18.0
+EMERGENCY_REVERSE_SPEED = 20.0
 
 # --- Navegação / desvio de obstáculos ---
-AVOID_RADIUS = 18.0              # raio do campo potencial tangencial (desvio preventivo)
+AVOID_RADIUS = 25.0              # raio do campo potencial tangencial (desvio preventivo)
 EMERGENCY_STOP_MARGIN = 0.8      # folga somada ao contato físico p/ ré de emergência
-EMERGENCY_STOP_DISTANCE = ROBOT_RADIUS * 2.0 + EMERGENCY_STOP_MARGIN
-EMERGENCY_FRONTAL_COS = 0.35     # cosseno do semi-ângulo do cone frontal (~70°/lado, cone de ~140°)
+EMERGENCY_STOP_DISTANCE = 8
+EMERGENCY_FRONTAL_COS = 0.3     # cosseno do semi-ângulo do cone frontal (~70°/lado, cone de ~140°)
 
 # --- Zonas táticas ---
 CORNER_SIZE = 18.0
@@ -43,4 +43,4 @@ SUPPORT_DEFENSE_RADIUS = 40.0
 # Times mais agressivos podem reduzir esse valor (rebote mais próximo), mas
 # nunca abaixo de ~2 raios de robô + raio da bola, para evitar sobreposição real.
 MIN_SUPPORT_TO_BALL_DIST_STANDARD = 25.0
-MIN_SUPPORT_TO_BALL_DIST_AGGRESSIVE = 14.0
+MIN_SUPPORT_TO_BALL_DIST_AGGRESSIVE = 18.0

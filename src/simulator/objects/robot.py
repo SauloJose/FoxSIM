@@ -5,6 +5,18 @@ import math
 from ui.interface_config import *
 from simulator.intelligence.controll import PIDController
 
+# Limites de aceleração do controle "servo" por força (ver apply_motor_forces).
+# Podem ser sobrescritos definindo ROBOT_MAX_LINEAR_ACCEL / ROBOT_MAX_ANGULAR_ACCEL
+# em ui/interface_config.py; caso contrário usam estes valores padrão.
+try:
+    _ROBOT_MAX_LINEAR_ACCEL = ROBOT_MAX_LINEAR_ACCEL
+except NameError:
+    _ROBOT_MAX_LINEAR_ACCEL = 600.0  # cm/s^2
+try:
+    _ROBOT_MAX_ANGULAR_ACCEL = ROBOT_MAX_ANGULAR_ACCEL
+except NameError:
+    _ROBOT_MAX_ANGULAR_ACCEL = 60.0  # rad/s^2
+
 class Robot:
     """
     Robô controlado por cinemática diferencial com corpo dinâmico no Pymunk.
@@ -68,6 +80,24 @@ class Robot:
         # Velocidades das rodas (apenas para referência)
         self.v_l = 0.0
         self.v_r = 0.0
+
+        # === Controle "servo" por força ===
+        # Em vez de escrever diretamente em body.velocity (o que ignora
+        # qualquer impulso de separação que o solver de colisão do Pymunk
+        # tenha calculado no passo anterior e permite sobreposição entre
+        # robôs), guardamos aqui a velocidade DESEJADA. A cada frame,
+        # apply_motor_forces() converte essa velocidade-alvo em força/torque
+        # aplicados ao corpo, deixando o solver de colisão do Pymunk livre
+        # para resistir/reduzir essa força quando houver contato com outro
+        # robô. Isso é o que garante que os robôs nunca se atravessem.
+        self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.target_angular_velocity = 0.0
+
+        # Limites de aceleração do "motor" (cm/s² e rad/s²). Também evitam
+        # que o corpo ganhe velocidade alta demais entre dois frames, o que
+        # poderia causar "tunelamento" através de outro robô.
+        self.max_linear_accel = _ROBOT_MAX_LINEAR_ACCEL
+        self.max_angular_accel = _ROBOT_MAX_ANGULAR_ACCEL
 
         # Salva valores iniciais para reset
         self.initial_x = x
@@ -143,24 +173,74 @@ class Robot:
     # === Métodos de controle ===
 
     def set_wheel_speeds(self, v_l, v_r):
-        """Define as velocidades das rodas e atualiza o corpo."""
+        """
+        Define as velocidades das rodas.
+
+        IMPORTANTE: isto NÃO escreve mais diretamente em body.velocity.
+        Escrever a velocidade diretamente todo frame sobrescreve qualquer
+        impulso de separação que o Pymunk tenha calculado ao resolver uma
+        colisão no passo anterior, fazendo o robô "empurrar" através de
+        outro robô e gerar sobreposição. Em vez disso guardamos a
+        velocidade DESEJADA; quem efetivamente move o corpo é
+        apply_motor_forces(), chamado antes de space.step() no loop
+        principal, que aplica força/torque limitados e deixa o solver de
+        colisão do Pymunk decidir o resultado final quando há contato.
+        """
         self.v_l = v_l
         self.v_r = v_r
         v = (v_l + v_r) / 2.0
         omega = (v_r - v_l) / self.distance_wheels
-        # Aplica a velocidade linear no referencial global
-        self.body.velocity = (v * math.cos(self.body.angle), v * math.sin(self.body.angle))
-        self.body.angular_velocity = omega
+        self.target_velocity = np.array(
+            [v * math.cos(self.body.angle), v * math.sin(self.body.angle)],
+            dtype=float
+        )
+        self.target_angular_velocity = omega
+
+    def apply_motor_forces(self, dt):
+        """
+        Converte a velocidade-alvo (definida por set_wheel_speeds /
+        set_vec_velocity) em força e torque aplicados ao corpo.
+
+        Deve ser chamado UMA VEZ POR ROBÔ, a cada frame, ANTES de
+        space.step(). Como a "motorização" vira força (e não uma escrita
+        direta de velocidade), o solver de colisão do Pymunk continua
+        podendo reagir a contatos com outros robôs no mesmo passo de
+        física, o que impede a sobreposição entre eles.
+        """
+        if dt <= 0:
+            return
+
+        # --- Força linear ---
+        current_v = np.array(self.body.velocity, dtype=float)
+        desired_accel = (self.target_velocity - current_v) / dt
+        accel_norm = np.linalg.norm(desired_accel)
+        if accel_norm > self.max_linear_accel:
+            desired_accel = desired_accel * (self.max_linear_accel / accel_norm)
+        force = self.mass * desired_accel
+        self.body.apply_force_at_world_point(tuple(force), tuple(self.body.position))
+
+        # --- Torque angular ---
+        current_w = self.body.angular_velocity
+        desired_ang_accel = (self.target_angular_velocity - current_w) / dt
+        if desired_ang_accel > self.max_angular_accel:
+            desired_ang_accel = self.max_angular_accel
+        elif desired_ang_accel < -self.max_angular_accel:
+            desired_ang_accel = -self.max_angular_accel
+        self.body.torque += self.inertia * desired_ang_accel
 
     def get_vec_velocity(self):
         """Retorna o vetor velocidade global."""
         return np.array(self.body.velocity, dtype=float)
 
     def set_vec_velocity(self, vx, vy):
-        """Define a velocidade linear global."""
-        self.body.velocity = (vx, vy)
+        """
+        Define a velocidade linear global desejada (alvo), pelo mesmo
+        mecanismo de força usado por set_wheel_speeds — não escreve mais
+        em body.velocity diretamente, pelo mesmo motivo explicado ali.
+        """
+        self.target_velocity = np.array([vx, vy], dtype=float)
         v = np.linalg.norm([vx, vy])
-        omega = self.body.angular_velocity
+        omega = self.target_angular_velocity
         self.v_l = v - (omega * self.distance_wheels / 2.0)
         self.v_r = v + (omega * self.distance_wheels / 2.0)
 
@@ -228,6 +308,8 @@ class Robot:
         self.body.angle = self.initial_theta
         self.body.velocity = (0.0, 0.0)
         self.body.angular_velocity = 0.0
+        self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.target_angular_velocity = 0.0
         self.v_l = 0.0
         self.v_r = 0.0
         self.image = self.initial_image
@@ -237,6 +319,8 @@ class Robot:
         self.body.position = (x, y)
         self.body.velocity = (0.0, 0.0)
         self.body.angular_velocity = 0.0
+        self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.target_angular_velocity = 0.0
         self.v_l = 0.0
         self.v_r = 0.0
 
@@ -248,6 +332,8 @@ class Robot:
         """Para o robô."""
         self.body.velocity = (0.0, 0.0)
         self.body.angular_velocity = 0.0
+        self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.target_angular_velocity = 0.0
         self.v_l = 0.0
         self.v_r = 0.0
 

@@ -466,6 +466,35 @@ class DefensiveWallNode(Node):
         robot.set_wheel_speeds(vl, vr)
         return Status.RUNNING
 
+class DriveToGoalNode(Node):
+    """Conduz a bola em direção ao gol adversário, mantendo-a próxima."""
+    def __init__(self, enemy_goal, max_speed=MAX_WHEEL_SPEED):
+        self.enemy_goal = enemy_goal
+        self.max_speed = max_speed
+
+    def tick(self, robot, ball, team, enemy_team, dt):
+        # Se perdeu a bola, falha (fallback para AttackBallNode)
+        dist_to_ball = np.linalg.norm(ball.position - robot.position)
+        if dist_to_ball > 7.0:
+            return Status.FAILURE
+
+        vec_to_goal = self.enemy_goal - ball.position
+        norm = np.linalg.norm(vec_to_goal)
+        if norm < 1e-6:
+            return Status.FAILURE
+        dir_to_goal = vec_to_goal / norm
+
+        # Alvo: um ponto à frente da bola em direção ao gol
+        target_pos = ball.position + dir_to_goal * 10.0
+        target_angle = np.arctan2(dir_to_goal[1], dir_to_goal[0])
+
+        # Aplica desvio tangencial para evitar colisões
+        target_pos = apply_tangential_avoidance(robot, target_pos, team, enemy_team)
+
+        vl, vr = compute_forward_steering(robot, target_pos, target_angle, max_speed=self.max_speed)
+        robot.set_wheel_speeds(vl, vr)
+        return Status.RUNNING
+    
 
 class WallClearanceSpinNode(Node):
     """

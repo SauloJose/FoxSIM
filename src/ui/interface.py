@@ -136,7 +136,9 @@ class Interface:
             for robot in robots:
                 if robot.shape:
                     verts = robot.shape.get_vertices()
-                    verts_screen = [virtual_to_screen(v + robot.body.position) for v in verts]
+                    # Aplica rotação e depois translada
+                    verts_global = [robot.body.position + v.rotated(robot.body.angle) for v in verts]
+                    verts_screen = [virtual_to_screen(v) for v in verts_global]
                     pygame.draw.polygon(screen, (0, 255, 0), verts_screen, 2)
 
             # Campo: shapes estáticos (segmentos e círculos)

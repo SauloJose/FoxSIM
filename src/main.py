@@ -38,6 +38,19 @@ manager = pygame_gui.UIManager(
 space = pymunk.Space()
 space.gravity = (0, 0)                # sem gravidade (campo horizontal)
 space.damping = 0.9995                # amortecimento global (opcional)
+# collision_slop pequeno: quanto de sobreposição o Pymunk tolera antes de
+# considerar duas formas "em contato" sem corrigir. 0.1 cm era grande o
+# bastante para ficar visível entre robôs; reduzimos para deixar o contato
+# mais "sólido".
+space.collision_slop = 0.01
+# collision_bias controla a velocidade com que uma sobreposição já
+# existente é corrigida ao longo dos passos de física (fração da
+# penetração removida por passo). O padrão do Pymunk corrige devagar;
+# aumentamos para que qualquer overlap residual (ex.: robôs spawnando
+# muito próximos, ou arrastados manualmente) seja resolvido em poucos
+# frames em vez de se acumular.
+space.collision_bias = (1 - 0.4) ** 60
+space.iterations = 30
 
 # === Instanciação de Objetos ===
 print("[Sistema]: ======== Criando objetos ======= \n")
@@ -129,7 +142,6 @@ while running:
                     print('[Simulador]: Simulador retornou da pausa')
 
         # Mouse Down
-        # Mouse Down
         elif event.type == pygame.MOUSEBUTTONDOWN:
             x, y = pygame.mouse.get_pos()
             sx, sy = screen_to_virtual([x, y])
@@ -171,7 +183,14 @@ while running:
                 sx, sy = screen_to_virtual([x, y])
                 buttons = pygame.mouse.get_pressed()
                 if buttons[0]:  # botão esquerdo pressionado
-                    selected_robot.new_position(sx, sy)
+                    # CORREÇÃO 2: Verifica se o ponto não colide com outros robôs antes de mover
+                    can_move = True
+                    for other_bot in bots:
+                        if other_bot != selected_robot and other_bot.shape.point_query((sx, sy)).distance <= 0:
+                            can_move = False
+                            break
+                    if can_move:
+                        selected_robot.new_position(sx, sy)
 
         # Mouse Up (desseleciona)
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -190,12 +209,24 @@ while running:
                 red_bt.tick(robot=bot, ball=ball, team=red_team,
                             enemy_team=blue_team, dt=dt)
 
+        # --- Aplica as forças dos "motores" de cada robô ---
+        # CORREÇÃO 3: antes só se escrevia body.velocity diretamente dentro de
+        # set_wheel_speeds, o que sobrescrevia qualquer impulso de separação
+        # calculado pelo solver de colisão do Pymunk no passo anterior e
+        # deixava os robôs se sobreporem parcialmente. Agora set_wheel_speeds
+        # apenas guarda uma velocidade-alvo, e é aqui — logo antes de
+        # space.step(), usando o mesmo dt fixo do passo de física — que essa
+        # velocidade-alvo é convertida em força/torque real. Isso garante que
+        # o solver de colisão do Pymunk continue no comando quando dois
+        # robôs se tocam.
+        FIXED_DT = 1 / 60.0
+        for bot in bots:
+            bot.apply_motor_forces(FIXED_DT)
+
         # --- Atualização Física com Pymunk ---
-        # Aplica as velocidades desejadas nos robôs (cinemáticos) e na bola (dinâmica)
-        # As classes Robot e Ball já atualizam seus corpos quando set_wheel_speeds
-        # ou set_velocity são chamados.
-        # Basta executar o step do espaço.
-        space.step(dt)
+        # CORREÇÃO 1: Usar passo de tempo FIXO (1/60) para evitar que travamentos 
+        # no FPS façam os robôs penetrarem uns nos outros.
+        space.step(FIXED_DT)
 
         # Controles adicionais (opcionais): clamping da velocidade da bola
         ball.clamp_velocity()

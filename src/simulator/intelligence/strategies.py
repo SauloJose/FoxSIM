@@ -1,30 +1,7 @@
 from simulator.intelligence.bt_core import Selector, Sequence
-from simulator.intelligence.bt_config import (
-    FIELD_LIMITS,
-    WALL_MARGIN,
-    DEFENSE_RADIUS,
-    SUPPORT_DEFENSE_RADIUS,
-    MIN_SUPPORT_TO_BALL_DIST_STANDARD,
-    MIN_SUPPORT_TO_BALL_DIST_AGGRESSIVE,
-)
-from simulator.intelligence.bt_conditions import (
-    IsRoleNode,
-    IsClosestAttackerNode,
-    IsBallInCornerNode,
-    CanShootDirectlyNode,
-    IsBallInDefenseZoneNode,
-    IsNearWallNode,
-)
-from simulator.intelligence.bt_actions import (
-    DefendGoalNode,
-    AttackBallNode,
-    SpinShootNode,
-    UnstuckCornerNode,
-    SupportAttackerNode,
-    ClearBallNode,
-    DefensiveWallNode,
-    WallClearanceSpinNode,
-)
+from simulator.intelligence.bt_config import *
+from simulator.intelligence.bt_conditions import *
+from simulator.intelligence.bt_actions import *
 from ui.interface_config import GOALKEEPER
 
 
@@ -118,30 +95,38 @@ def build_defensive_strategy(own_goal, enemy_goal, forward_angle):
 
 
 def build_aggressive_strategy(own_goal, enemy_goal, forward_angle):
-    """Estratégia Agressiva Aninhada: Pressão total e chutes rápidos."""
-
+    # Goleiro
     goalkeeper_branch = Sequence([
         IsRoleNode(GOALKEEPER),
-        DefendGoalNode(own_goal=own_goal, forward_angle=forward_angle)
+        DefendGoalNode(own_goal=own_goal, forward_angle=forward_angle, intercept_dist=18.0)
     ])
 
-    aggressive_attacker_tactical = Selector([
+    # Atacante: prioridades ajustadas
+    attacker_actions = Selector([
+        # 1. Chute direto (se estiver com a bola e alinhado)
         Sequence([CanShootDirectlyNode(enemy_goal=enemy_goal), SpinShootNode(enemy_goal=enemy_goal)]),
-        Sequence([IsBallInCornerNode(), UnstuckCornerNode()]),
-        Sequence([IsNearWallNode(field_limits=FIELD_LIMITS, wall_margin=WALL_MARGIN), WallClearanceSpinNode(enemy_goal=enemy_goal)]),
+        # 2. Condução para o gol (se estiver com a bola)
+        Sequence([IsBallNearNode(max_dist=5.0), DriveToGoalNode(enemy_goal=enemy_goal)]),
+        # 3. Recuperações (bola presa ou parede)
+        Selector([
+            Sequence([IsBallInCornerNode(), UnstuckCornerNode()]),
+            Sequence([IsNearWallNode(field_limits=FIELD_LIMITS, wall_margin=WALL_MARGIN), WallClearanceSpinNode(enemy_goal=enemy_goal)]),
+        ]),
+        # 4. Perseguição padrão
         AttackBallNode(enemy_goal=enemy_goal)
     ])
 
     primary_attacker_branch = Sequence([
         IsClosestAttackerNode(hysteresis_margin=3.5),
-        aggressive_attacker_tactical
+        attacker_actions
     ])
 
-    # Suporte Agressivo: acompanha mais perto da bola para brigar pelo rebote.
-    # Usa uma distância mínima menor que o padrão (ainda suficiente para não
-    # sobrepor fisicamente o atacante), refletindo a intenção original do
-    # comentário "aproxima para rebote" sem reabrir o risco de empurrão.
-    support_branch = SupportAttackerNode(own_goal=own_goal, min_ball_distance=MIN_SUPPORT_TO_BALL_DIST_AGGRESSIVE)
+    # Suporte com distância segura
+    support_branch = SupportAttackerNode(
+        own_goal=own_goal,
+        min_ball_distance=MIN_SUPPORT_TO_BALL_DIST_AGGRESSIVE,
+        max_speed=MAX_WHEEL_SPEED * 0.85
+    )
 
     return Selector([
         goalkeeper_branch,

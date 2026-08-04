@@ -12,6 +12,15 @@ class IsRoleNode(Node):
     def tick(self, robot, ball, team, enemy_team, dt):
         return Status.SUCCESS if str(robot.role).lower() == str(self.role).lower() else Status.FAILURE
 
+class IsBallNearNode(Node):
+    """Verifica se o robô está com a bola (distância < threshold)."""
+    def __init__(self, max_dist=5.0):
+        self.max_dist = max_dist
+
+    def tick(self, robot, ball, team, enemy_team, dt):
+        dist = np.linalg.norm(ball.position - robot.position)
+        return Status.SUCCESS if dist <= self.max_dist else Status.FAILURE
+    
 
 class IsClosestAttackerNode(Node):
     """
