@@ -57,6 +57,105 @@ class Interface:
         self.is_game_paused = is_game_paused
         self.draw_grid_collision = draw_grid_collision
 
+    def draw_robot_logs(self, screen, blue_team, red_team):
+        # A caixa de logs ficará à direita da caixa de exibição
+        left = self.exibition_label.right + 15
+        top = self.exibition_label.top
+
+        # Espaçamentos reduzidos para maior compactação
+        padding = 10
+        row_height = 30    # Altura de cada robô bem mais enxuta
+        img_offset_x = 30  # Distância da imagem ao texto
+        column_gap = 30    # Espaço horizontal entre as duas colunas
+        font_size = 11
+        max_robots = max(len(blue_team.robots), len(red_team.robots))
+        if max_robots == 0:
+            return
+
+        # Fonte dedicada e menor (tamanho 9) para esta área
+        font_log = pygame.font.SysFont("Arial",font_size)
+
+        # Função auxiliar para extrair o theta (ângulo)
+        def get_theta(robot):
+            if hasattr(robot, 'angle'):
+                return np.degrees(robot.angle)
+            elif hasattr(robot, 'direction'):
+                return np.degrees(np.arctan2(robot.direction[1], robot.direction[0]))
+            return 0.0
+
+        # --- 1. CÁLCULO DE LARGURAS DAS COLUNAS ---
+        max_blue_width = 0
+        for robot in blue_team.robots:
+            theta = get_theta(robot)
+            p_str = f"p: [{robot.x:.1f}, {robot.y:.1f}]"
+            d_str = f"d: [{theta:.1f}°]"
+            
+            w_p = font_log.size(p_str)[0]
+            w_d = font_log.size(d_str)[0]
+            max_w = max(w_p, w_d) + img_offset_x
+
+            if max_w > max_blue_width:
+                max_blue_width = max_w
+
+        max_red_width = 0
+        for robot in red_team.robots:
+            theta = get_theta(robot)
+            p_str = f"p: [{robot.x:.1f}, {robot.y:.1f}]"
+            d_str = f"d: [{theta:.1f}°]"
+            
+            w_p = font_log.size(p_str)[0]
+            w_d = font_log.size(d_str)[0]
+            max_w = max(w_p, w_d) + img_offset_x
+
+            if max_w > max_red_width:
+                max_red_width = max_w
+
+        # --- 2. DIMENSIONAMENTO DA CAIXA ---
+        total_width = padding + max_blue_width + column_gap + max_red_width + padding
+        total_height = padding + (max_robots * row_height) + padding
+
+        info_rect = pygame.Rect(left, top, total_width, total_height)
+        pygame.draw.rect(screen, (0, 0, 0), info_rect, width=1)
+
+        # --- 3. RENDERIZAÇÃO ---
+        col1_x = info_rect.left + padding
+        col2_x = col1_x + max_blue_width + column_gap
+        start_y = info_rect.top + padding
+
+        for i in range(max_robots):
+            y_pos = start_y + (i * row_height)
+
+            # --- Coluna Azul ---
+            if i < len(blue_team.robots):
+                robot = blue_team.robots[i]
+                theta = get_theta(robot)
+
+                if hasattr(robot, 'image') and robot.image:
+                    img_y = y_pos + (row_height // 2) - (robot.image.get_height() // 2)
+                    screen.blit(robot.image, (col1_x, img_y))
+
+                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (0, 0, 255))
+                surf_d = font_log.render(f"d: [{theta:.1f}°]", True, (0, 0, 255))
+
+                # Linha 1 colada na linha 2 com apenas 10px de offset vertical
+                screen.blit(surf_p, (col1_x + img_offset_x, y_pos + 1))
+                screen.blit(surf_d, (col1_x + img_offset_x, y_pos + 11))
+
+            # --- Coluna Vermelha ---
+            if i < len(red_team.robots):
+                robot = red_team.robots[i]
+                theta = get_theta(robot)
+
+                if hasattr(robot, 'image') and robot.image:
+                    img_y = y_pos + (row_height // 2) - (robot.image.get_height() // 2)
+                    screen.blit(robot.image, (col2_x, img_y))
+
+                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (255, 0, 0))
+                surf_d = font_log.render(f"d: [{theta:.1f}°]", True, (255, 0, 0))
+
+                screen.blit(surf_p, (col2_x + img_offset_x, y_pos + 1))
+                screen.blit(surf_d, (col2_x + img_offset_x, y_pos + 11))
+
     def draw(self, time_left, screen, ball: Ball, robots: list, field: Field):
         screen.fill((200, 200, 200))
 

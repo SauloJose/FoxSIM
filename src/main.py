@@ -12,7 +12,7 @@ from simulator.objects.timer import Stopwatch
 from simulator.rules.rules import *
 from ui.interface import Interface
 from ui.interface_config import *
-from simulator.intelligence.strategies import *
+from simulator.intelligence.BT.strategies import *
 
 import random
 
@@ -214,7 +214,7 @@ while running:
             # Telemetria + Tick do Time Vermelho
             for bot in red_team.robots:
                 #print(f"  [Time Vermelho] Bot ID {bot.id_robot:<2} ({getattr(bot, 'role', 'N/A'):<10}) | f"Pos: (x={bot.x:6.2f}, y={bot.y:6.2f}) cm")
-                bot.set_wheel_speeds(25,25)
+                bot.set_wheel_speeds(0,0)
             # Telemetria da Bola
             #print(f"  [Bola] Pos: (x={ball.x:6.2f}, y={ball.y:6.2f}) cm")
 
@@ -241,6 +241,7 @@ while running:
         is_game_paused=is_game_paused,
         draw_grid_collision=draw_grid_collision
     )
+    
     interface.draw(
         time_left=timer.get_time_left(),
         screen=screen,
@@ -249,6 +250,10 @@ while running:
         robots=blue_team.robots + red_team.robots,
     )
 
+    # --- AJUSTE AQUI ---
+    # Passando as variáveis corretas: blue_team e red_team
+    interface.draw_robot_logs(screen, blue_team, red_team)
+    
     pygame.display.flip()
 
 pygame.quit()
