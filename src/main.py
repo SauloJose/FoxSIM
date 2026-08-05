@@ -12,7 +12,9 @@ from simulator.objects.timer import Stopwatch
 from simulator.rules.rules import *
 from ui.interface import Interface
 from ui.interface_config import *
-from simulator.intelligence.BT.strategies import *
+
+# IMPORTANDO AS ESTRATÉGIAS DA BEHAVIOR TREE
+from simulator.intelligence.BT.strategies import StrategyManager, TeamStrategy
 
 import random
 
@@ -93,7 +95,23 @@ selected_robot = None
 # Gerando Árbitro
 arbitrator = Arbitrator(ball, field, blue_team, red_team, interface, timer)
 
-#Carregar as estratégias
+# =====================================================================
+# CARREGAR AS ESTRATÉGIAS (BEHAVIOR TREES)
+# =====================================================================
+print("\n[Estratégia]: Construindo Behavior Trees para os times...")
+
+# --- TIME AZUL ---
+# Defende o gol A (Esquerda) e ataca o gol E (Direita)
+manager_blue = StrategyManager(profile="aggressive")
+manager_blue.factory = TeamStrategy(enemy_goal_pos=MID_GOALAREA_E, ally_goal_x=MID_GOALAREA_A[0])
+blue_trees = manager_blue.build_trees_for_team(blue_team.robots)
+
+# --- TIME VERMELHO ---
+# Defende o gol E (Direita) e ataca o gol A (Esquerda)
+manager_red = StrategyManager(profile="defensive")
+manager_red.factory = TeamStrategy(enemy_goal_pos=MID_GOALAREA_A, ally_goal_x=MID_GOALAREA_E[0])
+red_trees = manager_red.build_trees_for_team(red_team.robots)
+# =====================================================================
 
 # Método para resetar configurações
 def reset_simulation(timer: Stopwatch):
@@ -198,26 +216,18 @@ while running:
     if not is_game_paused:
         if game_started:
             frame_count += 1
-            #print(f"--- [Tick {frame_count}] TELEMETRIA DA SIMULAÇÃO ---")
             
-            # Telemetria + Tick do Time Azul
-            for i, bot in enumerate(blue_team.robots):
-                #print(f"  [Time Azul] Bot ID {bot.id_robot:<2} ({getattr(bot, 'role', 'N/A'):<10}) | "Pos: (x={bot.x:6.2f}, y={bot.y:6.2f}) cm")
-                if i == 0:
-                    target_pos = np.array([ball.x, ball.y], dtype=float)
-                    v_l, v_r = bot.go_to_point(target_pos, None, dt)
-                    # Limitar velocidades máximas
-                    bot.set_wheel_speeds(v_l, v_r)
-                else:
-                    bot.set_wheel_speeds(0, 0)   # demais robôs azuis parados
+            # LÓGICA DO TIME AZUL (Via Behavior Tree)
+            for bot in blue_team.robots:
+                tree = blue_trees[bot.id_robot]
+                tree.tick(bot, ball, blue_team.robots, red_team.robots, dt)
                 
-            # Telemetria + Tick do Time Vermelho
+            # LÓGICA DO TIME VERMELHO (Via Behavior Tree)
             for bot in red_team.robots:
-                #print(f"  [Time Vermelho] Bot ID {bot.id_robot:<2} ({getattr(bot, 'role', 'N/A'):<10}) | f"Pos: (x={bot.x:6.2f}, y={bot.y:6.2f}) cm")
-                bot.set_wheel_speeds(0,0)
-            # Telemetria da Bola
-            #print(f"  [Bola] Pos: (x={ball.x:6.2f}, y={ball.y:6.2f}) cm")
+                tree = red_trees[bot.id_robot]
+                tree.tick(bot, ball, red_team.robots, blue_team.robots, dt)
 
+        # Atualização constante dos motores baseada nas velocidades definidas pelas BTs
         FIXED_DT = 1 / 60.0
         for bot in bots:
             bot.apply_motor_forces(FIXED_DT)
