@@ -65,38 +65,51 @@ class PIDController:
         self.prev_error = 0.0 
 
 
-# Estratégias de controle por arvore das decisões para cada robô
-import numpy as np
+class LyapunovController:
+    """
+    Controlador baseado em função de Lyapunov para robô diferencial.
+    Estabiliza o robô em um ponto alvo com orientação livre.
+    """
+    def __init__(self, kv=1.5, kw=4.0, max_linear=None, max_angular=None):
+        """
+        :param kv: ganho da velocidade linear (cm/s por cm de erro)
+        :param kw: ganho da velocidade angular (rad/s por rad de erro)
+        :param max_linear: saturação da velocidade linear (cm/s)
+        :param max_angular: saturação da velocidade angular (rad/s)
+        """
+        self.kv = kv
+        self.kw = kw
+        self.max_linear = max_linear
+        self.max_angular = max_angular
 
-class Status:
-    SUCCESS = "SUCCESS"
-    FAILURE = "FAILURE"
-    RUNNING = "RUNNING"
+    def compute(self, target_pos, current_pos, current_angle):
+        """
+        Retorna (v, w) – velocidades linear e angular.
+        """
+        e = target_pos - current_pos
+        dist = np.linalg.norm(e)
+        if dist < 1e-4:
+            return 0.0, 0.0
 
-class Node:
-    def tick(self, robot, ball, team, dt):
-        raise NotImplementedError
+        # Vetor direção do robô
+        u = np.array([np.cos(current_angle), np.sin(current_angle)])
 
-class Selector(Node):
-    def __init__(self, children):
-        self.children = children
+        # Projeção do erro no eixo longitudinal do robô
+        e_proj = np.dot(e, u)
 
-    def tick(self, robot, ball, team, dt):
-        for child in self.children:
-            status = child.tick(robot, ball, team, dt)
-            if status != Status.FAILURE:
-                return status
-        return Status.FAILURE
+        # Erro angular entre o vetor erro e a direção do robô
+        cross = np.cross(u, e)       # u.x * e.y - u.y * e.x
+        dot = np.dot(u, e)
+        angle_error = np.arctan2(cross, dot)   # positivo se alvo está à esquerda
 
-class Sequence(Node):
-    def __init__(self, children):
-        self.children = children
+        # Lei de Lyapunov
+        v = self.kv * e_proj
+        w = self.kw * angle_error
 
-    def tick(self, robot, ball, team, dt):
-        for child in self.children:
-            status = child.tick(robot, ball, team, dt)
-            if status != Status.SUCCESS:
-                return status
-        return Status.SUCCESS
+        # Saturação
+        if self.max_linear is not None:
+            v = np.clip(v, -self.max_linear, self.max_linear)
+        if self.max_angular is not None:
+            w = np.clip(w, -self.max_angular, self.max_angular)
 
-    
+        return v, w

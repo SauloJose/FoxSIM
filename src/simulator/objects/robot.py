@@ -5,6 +5,63 @@ import math
 from ui.interface_config import *
 from simulator.intelligence.controll import PIDController
 
+# =============================================================================
+# Controlador Lyapunov (integrado localmente)
+# =============================================================================
+
+class LyapunovController:
+    """
+    Controlador baseado em função de Lyapunov para robô diferencial.
+    Estabiliza o robô em um ponto alvo com orientação livre.
+    """
+    def __init__(self, kv=1.5, kw=4.0, max_linear=None, max_angular=None):
+        """
+        :param kv: ganho da velocidade linear (cm/s por cm de erro)
+        :param kw: ganho da velocidade angular (rad/s por rad de erro)
+        :param max_linear: saturação da velocidade linear (cm/s)
+        :param max_angular: saturação da velocidade angular (rad/s)
+        """
+        self.kv = kv
+        self.kw = kw
+        self.max_linear = max_linear
+        self.max_angular = max_angular
+
+    def compute(self, target_pos, current_pos, current_angle):
+        """
+        Retorna (v, w) – velocidades linear e angular.
+        """
+        e = target_pos - current_pos
+        dist = np.linalg.norm(e)
+        if dist < 1e-4:
+            return 0.0, 0.0
+
+        # Vetor direção do robô
+        u = np.array([np.cos(current_angle), np.sin(current_angle)])
+
+        # Projeção do erro no eixo longitudinal do robô
+        e_proj = np.dot(e, u)
+
+        # Erro angular entre o vetor erro e a direção do robô
+        cross = np.cross(u, e)       # u.x * e.y - u.y * e.x
+        dot = np.dot(u, e)
+        angle_error = np.arctan2(cross, dot)   # positivo se alvo está à esquerda
+
+        # Lei de Lyapunov
+        v = self.kv * e_proj
+        w = self.kw * angle_error
+
+        # Saturação
+        if self.max_linear is not None:
+            v = np.clip(v, -self.max_linear, self.max_linear)
+        if self.max_angular is not None:
+            w = np.clip(w, -self.max_angular, self.max_angular)
+
+        return v, w
+
+# =============================================================================
+# Classe Robot
+# =============================================================================
+
 # Limites de aceleração do controle "servo" por força (ver apply_motor_forces).
 # Podem ser sobrescritos definindo ROBOT_MAX_LINEAR_ACCEL / ROBOT_MAX_ANGULAR_ACCEL
 # em ui/interface_config.py; caso contrário usam estes valores padrão.
@@ -15,7 +72,7 @@ except NameError:
 try:
     _ROBOT_MAX_ANGULAR_ACCEL = ROBOT_MAX_ANGULAR_ACCEL
 except NameError:
-    _ROBOT_MAX_ANGULAR_ACCEL = 60.0  # rad/s^2
+    _ROBOT_MAX_ANGULAR_ACCEL = 120.0  # rad/s^2
 
 class Robot:
     """
@@ -92,6 +149,12 @@ class Robot:
         # robô. Isso é o que garante que os robôs nunca se atravessem.
         self.target_velocity = np.array([0.0, 0.0], dtype=float)
         self.target_angular_velocity = 0.0
+        # Ativado (por um único tick) via set_wheel_speeds(..., priority=True),
+        # usado por manobras de "atuador dedicado" — ré de emergência e giros
+        # de chute — que precisam ignorar o ritmo normal de aceleração da
+        # condução sem deixar de respeitar o solver de colisão do Pymunk.
+        self._priority_active = False
+        self.priority_accel_multiplier = 6.0
 
         # Limites de aceleração do "motor" (cm/s² e rad/s²). Também evitam
         # que o corpo ganhe velocidade alta demais entre dois frames, o que
@@ -104,7 +167,15 @@ class Robot:
         self.initial_y = y
         self.initial_theta = self.body.angle
 
-        # Controladores PID (mantidos para compatibilidade)
+        # --- Controlador Lyapunov (substitui os PIDs para movimento) ---
+        self.lyapunov = LyapunovController(
+            kv=1.8,                    # ganho linear (ajuste conforme necessário)
+            kw=6.0,                    # ganho angular (mais agressivo para girar)
+            max_linear=ROBOT_MAX_SPEED,
+            max_angular=10.0           # rad/s (ajuste conforme necessário)
+        )
+
+        # Controladores PID (mantidos para compatibilidade, mas não usados no go_to_point)
         self.kp = 2.0
         self.ki = 0.1
         self.kd = 0.2
@@ -172,7 +243,7 @@ class Robot:
 
     # === Métodos de controle ===
 
-    def set_wheel_speeds(self, v_l, v_r):
+    def set_wheel_speeds(self, v_l, v_r, priority=False):
         """
         Define as velocidades das rodas.
 
@@ -185,6 +256,15 @@ class Robot:
         apply_motor_forces(), chamado antes de space.step() no loop
         principal, que aplica força/torque limitados e deixa o solver de
         colisão do Pymunk decidir o resultado final quando há contato.
+
+        priority: use True para manobras curtas de "atuador dedicado" que
+        precisam atingir a velocidade-alvo quase instantaneamente — ré de
+        emergência (check_emergency_collision) e giros de chute
+        (SpinShootNode/WallClearanceSpinNode/chute de rebatida). Isso
+        aplica um multiplicador de aceleração só neste tick
+        (priority_accel_multiplier), continuando a passar pelo solver de
+        colisão do Pymunk — portanto ainda não atravessa outros robôs — só
+        deixa de ser suavizado pelo limite normal de aceleração da condução.
         """
         self.v_l = v_l
         self.v_r = v_r
@@ -195,6 +275,7 @@ class Robot:
             dtype=float
         )
         self.target_angular_velocity = omega
+        self._priority_active = priority
 
     def apply_motor_forces(self, dt):
         """
@@ -210,35 +291,44 @@ class Robot:
         if dt <= 0:
             return
 
+        accel_mult = self.priority_accel_multiplier if self._priority_active else 1.0
+
         # --- Força linear ---
         current_v = np.array(self.body.velocity, dtype=float)
         desired_accel = (self.target_velocity - current_v) / dt
         accel_norm = np.linalg.norm(desired_accel)
-        if accel_norm > self.max_linear_accel:
-            desired_accel = desired_accel * (self.max_linear_accel / accel_norm)
+        max_linear = self.max_linear_accel * accel_mult
+        if accel_norm > max_linear:
+            desired_accel = desired_accel * (max_linear / accel_norm)
         force = self.mass * desired_accel
         self.body.apply_force_at_world_point(tuple(force), tuple(self.body.position))
 
         # --- Torque angular ---
         current_w = self.body.angular_velocity
         desired_ang_accel = (self.target_angular_velocity - current_w) / dt
-        if desired_ang_accel > self.max_angular_accel:
-            desired_ang_accel = self.max_angular_accel
-        elif desired_ang_accel < -self.max_angular_accel:
-            desired_ang_accel = -self.max_angular_accel
+        max_angular = self.max_angular_accel * accel_mult
+        if desired_ang_accel > max_angular:
+            desired_ang_accel = max_angular
+        elif desired_ang_accel < -max_angular:
+            desired_ang_accel = -max_angular
         self.body.torque += self.inertia * desired_ang_accel
+
+        # O boost vale só para o tick em que foi pedido; se o node parar de
+        # passar priority=True, a próxima chamada volta ao limite normal.
+        self._priority_active = False
 
     def get_vec_velocity(self):
         """Retorna o vetor velocidade global."""
         return np.array(self.body.velocity, dtype=float)
 
-    def set_vec_velocity(self, vx, vy):
+    def set_vec_velocity(self, vx, vy, priority=False):
         """
         Define a velocidade linear global desejada (alvo), pelo mesmo
         mecanismo de força usado por set_wheel_speeds — não escreve mais
         em body.velocity diretamente, pelo mesmo motivo explicado ali.
         """
         self.target_velocity = np.array([vx, vy], dtype=float)
+        self._priority_active = priority
         v = np.linalg.norm([vx, vy])
         omega = self.target_angular_velocity
         self.v_l = v - (omega * self.distance_wheels / 2.0)
@@ -263,34 +353,35 @@ class Robot:
         self.body.angular_velocity += torque / self.inertia
 
     def go_to_point(self, target_pos, target_angle, dt, allow_reverse=False):
-        """Calcula velocidades das rodas usando PID (mantido para compatibilidade)."""
+        """
+        Calcula velocidades das rodas usando controle de Lyapunov.
+
+        target_angle: ângulo desejado ao chegar (não implementado nesta versão,
+                      mas pode ser incorporado futuramente).
+        allow_reverse: se True, permite marcha à ré (caso o alvo esteja atrás).
+        """
+        # Se a distância for muito pequena, para o robô
         pos_error = target_pos - self.position
         distance = np.linalg.norm(pos_error)
-
         if distance < 1.2:
-            self.pid_linear.reset()
-            self.pid_angular.reset()
             return 0.0, 0.0
 
-        angle_to_target = np.arctan2(pos_error[1], pos_error[0])
-        heading_error = self.normalize_angle(angle_to_target - self.angle)
+        # Obter velocidades linear e angular do controlador Lyapunov
+        v, w = self.lyapunov.compute(target_pos, self.position, self.angle)
 
-        if allow_reverse and abs(heading_error) > (np.pi / 2.0):
-            heading_error = self.normalize_angle(heading_error + np.pi)
-            distance *= -1.0
+        # Se allow_reverse for True e o alvo estiver atrás, podemos inverter
+        # a velocidade e ajustar o sinal do w (não implementado para simplicidade)
+        # Caso queira, pode ser adicionado aqui.
 
-        if abs(distance) > 6.0 or target_angle is None:
-            effective_angle_error = heading_error
-        else:
-            final_angle_error = self.normalize_angle(target_angle - self.angle)
-            weight = abs(distance) / 6.0
-            effective_angle_error = weight * heading_error + (1.0 - weight) * final_angle_error
-
-        v = self.pid_linear.compute(distance, dt)
-        w = self.pid_angular.compute(effective_angle_error, dt)
-
+        # Converter v, w para velocidades das rodas (cinemática diferencial)
         v_l = v - (w * self.distance_wheels / 2.0)
         v_r = v + (w * self.distance_wheels / 2.0)
+
+        # Limitar velocidades ao máximo permitido (já feito no controlador,
+        # mas garantimos aqui também)
+        max_speed = ROBOT_MAX_SPEED
+        v_l = np.clip(v_l, -max_speed, max_speed)
+        v_r = np.clip(v_r, -max_speed, max_speed)
 
         return v_l, v_r
 
@@ -346,7 +437,6 @@ class Robot:
         pass
 
     def distance_to(self, x, y):
-        """Calcula a distância até um ponto (x, y) em cm."""
         return np.linalg.norm(self.position - np.array([x, y], dtype=float))
 
     def draw(self, screen):
