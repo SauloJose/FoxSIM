@@ -1,23 +1,76 @@
 # src/intelligence/bt_conditions.py
 import numpy as np
-from .bt_core import Node, Status
-from ui.interface_config import fieldC # Importa o centro do campo calculado
+from .bt_core import *
+from ui.interface_config import * # Importa o centro do campo calculado
 
-class IsClosestToBall(Node):
-    """
-    Verifica se este robô é o mais próximo da bola entre todos os aliados.
-    """
+class IsBallNearWall(Node):
+    def __init__(self, margin=3.5, field_bounds=None):
+        """
+        Verifica se a bola está dentro da margem de segurança das paredes do campo.
+        field_bounds: (x_min, x_max, y_min, y_max)
+        """
+        self.margin = margin
+        if field_bounds is None:
+            field_bounds = (0.0, fieldC[0] * 2.0, 0.0, fieldC[1] * 2.0)
+        self.x_min, self.x_max, self.y_min, self.y_max = field_bounds
+
     def tick(self, robot, ball, team, enemy_team, dt):
-        my_dist = robot.distance_to(ball.x, ball.y)
+        near_x = (ball.x <= self.x_min + self.margin) or (ball.x >= self.x_max - self.margin)
+        near_y = (ball.y <= self.y_min + self.margin) or (ball.y >= self.y_max - self.margin)
         
-        for ally in team:
-            if ally.id_robot != robot.id_robot:
-                ally_dist = ally.distance_to(ball.x, ball.y)
-                if ally_dist < my_dist:
-                    return Status.FAILURE
-                    
-        return Status.SUCCESS
+        if near_x or near_y:
+            return Status.SUCCESS
+        return Status.FAILURE
+    
+class IsClosestToBall(Node):
+    _last_primary = {}
 
+    def __init__(self, hysteresis=5.0):
+        self.hysteresis = hysteresis
+
+    def tick(self, robot, ball, team, enemy_team, dt):
+        # 1. Goleiro nunca é atacante de linha
+        if getattr(robot, 'role', None) == GOALKEEPER:
+            return Status.FAILURE
+
+        # 2. Considera apenas os jogadores de linha (ATACKER1 e ATACKER2)
+        field_robots = [
+            r for r in team 
+            if getattr(r, 'role', None) in [ATACKER1, ATACKER2] or getattr(r, 'role', None) != GOALKEEPER
+        ]
+
+        if not field_robots:
+            return Status.SUCCESS
+
+        # 3. Distância de cada candidato até a bola
+        distances = {r.id_robot: r.distance_to(ball.x, ball.y) for r in field_robots}
+
+        # 4. Melhor candidato "puro" pela menor TUPLA (distancia, id_robot)
+        # Isso garante DESEMPATE PERFEITO e impossibilita 2 atacantes ou 2 suportes
+        best_candidate = min(field_robots, key=lambda r: (distances[r.id_robot], r.id_robot))
+        best_id = best_candidate.id_robot
+
+        # 5. Aplica histerese em relação a quem era o principal no tick anterior
+        team_key = tuple(sorted(distances.keys()))
+        last_id = IsClosestToBall._last_primary.get(team_key)
+
+        if last_id is not None and last_id in distances and last_id != best_id:
+            # Só troca de principal se o novo candidato estiver
+            # significativamente mais perto que o atual titular.
+            if distances[best_id] + self.hysteresis >= distances[last_id]:
+                primary_id = last_id
+            else:
+                primary_id = best_id
+        else:
+            primary_id = best_id
+
+        IsClosestToBall._last_primary[team_key] = primary_id
+
+        if robot.id_robot == primary_id:
+            return Status.SUCCESS
+        
+        return Status.FAILURE
+    
 class IsBallInGKZone(Node):
     """
     Verifica se a bola está dentro de uma distância máxima segura do gol aliado.

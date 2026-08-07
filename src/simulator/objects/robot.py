@@ -169,8 +169,8 @@ class Robot:
 
         # --- Controlador Lyapunov (substitui os PIDs para movimento) ---
         self.lyapunov = LyapunovController(
-            kv=1.8,                    # ganho linear (ajuste conforme necessário)
-            kw=6.0,                    # ganho angular (mais agressivo para girar)
+            kv=3.0,                    # ganho linear (ajuste conforme necessário)
+            kw=10.0,                    # ganho angular (mais agressivo para girar)
             max_linear=ROBOT_MAX_SPEED,
             max_angular=10.0           # rad/s (ajuste conforme necessário)
         )
@@ -363,7 +363,7 @@ class Robot:
         # Se a distância for muito pequena, para o robô
         pos_error = target_pos - self.position
         distance = np.linalg.norm(pos_error)
-        if distance < 1.2:
+        if distance < 0.4:
             return 0.0, 0.0
 
         # Obter velocidades linear e angular do controlador Lyapunov
