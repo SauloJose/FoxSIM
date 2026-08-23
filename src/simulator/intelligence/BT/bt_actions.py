@@ -178,6 +178,22 @@ class ReverseNode(Node):
 
 
 class PotentialFieldAvoidNode(Node):
+    """
+    Nó de recuperação de colisão baseado em campo potencial repulsivo.
+
+    Em vez de simplesmente dar ré em linha reta (ReverseNode), este nó soma
+    um vetor de repulsão vindo de TODOS os robôs próximos (aliados e
+    inimigos, dentro de influence_radius), com magnitude inversamente
+    proporcional à distância — quanto mais perto, mais forte empurra para
+    longe. O robô então se movimenta para um ponto na direção resultante,
+    "contornando" os vizinhos em vez de simplesmente recuar reto (o que
+    podia levar a nova colisão com um terceiro robô atrás dele).
+
+    A decisão de QUANDO entrar em modo de recuperação continua sendo
+    IsTangledWithRobot (fora deste nó) — inclusive o limiar que ignora a
+    colisão quando a bola está colada (disputa de bola) permanece
+    inalterado, exatamente como já era com ReverseNode.
+    """
     def __init__(self, influence_radius=25.0, escape_speed=45.0, min_dist_safety=3.0):
         self.influence_radius = influence_radius
         self.escape_speed = escape_speed
@@ -194,16 +210,21 @@ class PotentialFieldAvoidNode(Node):
 
         norm_rep = np.linalg.norm(repulsion)
 
+        # --- CORREÇÃO: fallback quando a repulsão é nula (ex: forças simétricas) ---
         if norm_rep < 1e-6:
-            # Sem vizinhos dentro do raio de influência — não deveria
-            # acontecer logo após IsTangledWithRobot ter disparado, mas por
-            # segurança apenas mantém o robô parado em vez de mover às cegas.
-            robot.set_wheel_speeds(0.0, 0.0, priority=True)
-            return Status.RUNNING
+            # Direção de fallback: centro do campo (ou qualquer direção que não seja a atual)
+            center = np.array([fieldC[0], fieldC[1]])  # centro do campo
+            escape_dir = center - robot_pos
+            if np.linalg.norm(escape_dir) < 1e-6:
+                escape_dir = np.array([1.0, 0.0])  # direção arbitrária
+            else:
+                escape_dir = escape_dir / np.linalg.norm(escape_dir)
+            target_pos = robot_pos + escape_dir * self.influence_radius
+        else:
+            escape_dir = repulsion / norm_rep
+            target_pos = robot_pos + escape_dir * self.influence_radius
 
-        escape_dir = repulsion / norm_rep
-        target_pos = robot_pos + escape_dir * self.influence_radius
-
+        # Usa target_angle=None para evitar travamento por orientação
         v_l, v_r = robot.go_to_point(target_pos, target_angle=None, dt=dt)
 
         # Satura a velocidade de fuga para não criar uma nova colisão em
@@ -213,8 +234,7 @@ class PotentialFieldAvoidNode(Node):
 
         robot.set_wheel_speeds(v_l, v_r, priority=True)
         return Status.RUNNING
-
-
+    
 class SupportAttackNode(Node):
     """
     Fica orientado para a bola e avança lentamente na direção dela para dar

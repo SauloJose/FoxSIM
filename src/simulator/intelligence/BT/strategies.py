@@ -29,10 +29,10 @@ PROFILE_BALANCED_MULT = 1.0
 PROFILE_DEFENSIVE_MULT = 0.8
 
 # --- PARÂMETROS DE RECUPERAÇÃO / ANTI-TRAVAMENTO (CORREÇÃO 1) ---
-TANGLE_MIN_DIST = 6.0        # Distância abaixo da qual consideramos colisão com outro robô
+TANGLE_MIN_DIST = 12.0        # Distância abaixo da qual consideramos colisão com outro robô
 TANGLE_BALL_IGNORE_DIST = 18.0  # Se a bola estiver mais perto que isso, não foge da disputa (limiar que ignora a recuperação)
 RECOVERY_INFLUENCE_RADIUS = 25.0  # Raio de influência do campo potencial de repulsão
-RECOVERY_ESCAPE_SPEED = 20.0      # Velocidade máxima ao fugir de uma colisão
+RECOVERY_ESCAPE_SPEED = 35.0      # Velocidade máxima ao fugir de uma colisão
 
 # --- PARÂMETROS DE HISTERESE DE PAPEL (CORREÇÃO 4) ---
 CLOSEST_TO_BALL_HYSTERESIS = 5.0
