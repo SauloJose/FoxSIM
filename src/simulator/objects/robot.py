@@ -3,7 +3,7 @@ import numpy as np
 import pymunk
 import math
 from ui.interface_config import *
-
+from simulator.intelligence.basicControl import *
 # =============================================================================
 # Controlador Lyapunov (integrado localmente)
 # =============================================================================
@@ -390,6 +390,9 @@ class Robot:
         v_l = np.clip(v_l, -max_speed, max_speed)
         v_r = np.clip(v_r, -max_speed, max_speed)
 
+    # Aplicar a edição e verificação de código num arquivo que exiba na interface
+    def goto_state(self, target_pos, target_angle, dt):
+        v_l, v_r = go_to_point(self, target_pos, target_angle, dt)
         return v_l, v_r
 
     @staticmethod
@@ -450,6 +453,20 @@ class Robot:
 
     def distance_to(self, x, y):
         return np.linalg.norm(self.position - np.array([x, y], dtype=float))
+
+    def _draw_(self, screen):
+        '''
+        Nova função de desenho para o robô, que desenha a imagem do robô na tela
+        :param screen: Superfície do pygame onde o robô será desenhado.
+        '''
+        # Converte coordenadas virtuais para coordenadas de tela
+
+        # rotaciona corretamente a imagem do robô
+
+        # Verifica se está selecionado pelo mouse 
+
+        # Desenha no backbuffer do screen 
+        pass 
 
     def draw(self, screen):
         """Desenha o robô na tela com rotação."""

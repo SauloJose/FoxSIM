@@ -2,6 +2,7 @@ import math
 import numpy as np
 from .bt_core import Node, Status
 from ui.interface_config import fieldC, MID_GOALAREA_A, GOALKEEPER, ATACKER1, ATACKER2
+from ..basicControl import go_to_point
 from ..errt import *
 
 def is_closest_field_robot(robot, ball, team, hysteresis=5.0):
