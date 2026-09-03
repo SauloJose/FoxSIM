@@ -8,8 +8,8 @@ from ui.interface_config import GOALKEEPER, ATACKER1, ATACKER2, MID_GOALAREA_E, 
 # =============================================================================
 GK_EMERGENCY_SPIN_DIST = 6.5 
 GK_EMERGENCY_SPIN_SPEED = 85.0 
-GK_INTERCEPT_DIST = 25.0 
-GK_MAX_OUT_DIST = 25.0
+GK_INTERCEPT_DIST = 30.0 
+GK_MAX_OUT_DIST = 35.0
 
 ATK_WALL_MARGIN = 4.5      
 ATK_WALL_SPIN_DIST = 7.0    

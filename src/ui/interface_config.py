@@ -166,7 +166,7 @@ GRID_COLOR          = (255, 0, 0)
 FPS = 100
 
 # Tempo da partida em segundos
-TIMER_PARTY = 60
+TIMER_PARTY = 10
 
 FIELD_MARGIN_TOP    = 20
 FIELD_MARGIN_BOTTOM = 20
