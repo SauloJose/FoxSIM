@@ -1,44 +1,40 @@
 import pygame
+import numpy as np
+import pymunk
 from ui.interface_config import *
-from simulator.objects.ball import Ball 
-from simulator.objects.robot import Robot 
-from simulator.objects.field import Field 
-from simulator.collision.collision import *
+from simulator.objects.ball import Ball
+from simulator.objects.robot import Robot
+from simulator.objects.field import Field
 
-# Dicionário de fontes da interface 
 class Interface:
     def __init__(self, screen):
-        # Nome da interface
         pygame.display.set_caption(f"FoxSIM v{VERSION} - Simulador de futebol de robôs - por: Saulo José")
 
         self.field_image = pygame.image.load("src/assets/field.png")
         self.field_image = pygame.transform.scale(self.field_image, (int(WINDOWS_FIELD_WIDTH_PX), int(WINDOWS_FIELD_HEIGHT_PX)))
 
-        #Setando ícone
-        icone = pygame.image.load("src/assets/logo_minus.png")  # use o caminho da sua imagem
+        icone = pygame.image.load("src/assets/logo_minus.png")
         pygame.display.set_icon(icone)
 
-        # === Carregamento de Recursos ===
         self.screen = screen
         self.start_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20, BUTTON_WIDTH, BUTTON_HEIGHT)
         self.reset_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
 
-        #Variáveis internas 
         self.draw_collision_objects = None
+        self.target_debug = False
         self.running = None
         self.is_game_paused = None
-        self.draw_grid_collision = None
+        self.target_debug_ids = set()
+        self.fps = 0.0
+        self.arbitrator_decision = None
 
-        # Ajusta a posição e altura da exibition_label com base nos botões
         top = self.start_button.top
         bottom = self.reset_button.bottom
         left = self.start_button.right + 10
-        width = BUTTON_WIDTH*1.3
+        width = BUTTON_WIDTH * 1.3
         height = bottom - top
-
         self.exibition_label = pygame.Rect(left, top, width, height)
 
-        # Fontes utilizadas na interface (incluindo algumas gamificadas)
         self.fonts = {
                 "Arial": pygame.font.SysFont("Arial", 30),
                 "Arial_small": pygame.font.SysFont("fixed", 11),
@@ -50,193 +46,313 @@ class Interface:
                 "Arcade_small": pygame.font.SysFont("Fixedsys", 25),
             }
 
-
-        # Placar do jogo 
-        self.score = [0, 0]  # [Team A, Team B]
-        self.draw_collision_objects = None
-        self.running = None
-        self.is_game_paused = None
+        self.score = [0, 0]
 
     def update_score(self, team):
-        if team == 1: #Time aliado
+        if team == 1:
             self.score[0] += 1
-        elif team == 2: #Time inimigo
+        elif team == 2:
             self.score[1] += 1
 
-    def get_states(self, draw_collision_objects, running, is_game_paused, draw_grid_collision):
+    def get_states(self, draw_collision_objects, target_debug, running,
+                   is_game_paused, target_debug_ids=None, fps=0.0,
+                   arbitrator_decision=None):
         self.draw_collision_objects = draw_collision_objects
+        self.target_debug = target_debug
         self.running = running
         self.is_game_paused = is_game_paused
-        self.draw_grid_collision = draw_grid_collision 
+        self.target_debug_ids = target_debug_ids or set()
+        self.fps = fps
+        self.arbitrator_decision = arbitrator_decision
 
-    def draw(self, time_left, screen, ball:Ball, robots:Robot, field:Field):
+    def _arbitrator_status(self):
+        """Retorna uma mensagem curta e sua cor para o estado da partida."""
+        decision_name = getattr(self.arbitrator_decision, "name", None)
+        messages = {
+            "ALLY_GOAL": "GOL A",
+            "ENEMY_GOAL": "GOL B",
+            "FINISH": "FIM DE JOGO",
+            "RESTART": "REINICIO",
+            "FOUL_ALLY": "FALTA A",
+            "FOUL_ENEMY": "FALTA B",
+            "PENALTY_ALLY": "PENALTI A",
+            "PENALTY_ENEMY": "PENALTI B",
+            "GK_AREA_VIOLATION_ALLY": "INVASAO A",
+            "GK_AREA_VIOLATION_ENEMY": "INVASAO B",
+            "THROW_IN_ALLY": "LATERAL A",
+            "THROW_IN_ENEMY": "LATERAL B",
+            "CORNER_ALLY": "ESCANTEIO A",
+            "CORNER_ENEMY": "ESCANTEIO B",
+            "GOALKICK_ALLY": "TIRO META A",
+            "GOALKICK_ENEMY": "TIRO META B",
+            "DROP_BALL": "BOLA AO CHAO",
+        }
+        infractions = {
+            "RESTART",
+            "FOUL_ALLY",
+            "FOUL_ENEMY",
+            "PENALTY_ALLY",
+            "PENALTY_ENEMY",
+            "GK_AREA_VIOLATION_ALLY",
+            "GK_AREA_VIOLATION_ENEMY",
+        }
+        message = messages.get(decision_name, "JOGO NORMAL")
+        color = (200, 0, 0) if decision_name in infractions else (0, 180, 0)
+        return message, color
+
+    def draw_robot_logs(self, screen, blue_team, red_team):
+        # A caixa de logs ficará à direita da caixa de exibição
+        left = self.exibition_label.right + 15
+        top = self.exibition_label.top
+
+        # Espaçamentos reduzidos para maior compactação
+        padding = 10
+        row_height = 30    # Altura de cada robô bem mais enxuta
+        img_offset_x = 30  # Distância da imagem ao texto
+        column_gap = 30    # Espaço horizontal entre as duas colunas
+        font_size = 11
+        max_robots = max(len(blue_team.robots), len(red_team.robots))
+        if max_robots == 0:
+            return
+
+        # Fonte dedicada e menor (tamanho 9) para esta área
+        font_log = pygame.font.SysFont("Arial",font_size)
+
+        # Função auxiliar para extrair o theta (ângulo)
+        def get_theta(robot):
+            if hasattr(robot, 'angle'):
+                return np.degrees(robot.angle)
+            elif hasattr(robot, 'direction'):
+                return np.degrees(np.arctan2(robot.direction[1], robot.direction[0]))
+            return 0.0
+
+        # --- 1. CÁLCULO DE LARGURAS DAS COLUNAS ---
+        max_blue_width = 0
+        for robot in blue_team.robots:
+            theta = get_theta(robot)
+            p_str = f"p: [{robot.x:.1f}, {robot.y:.1f}]"
+            d_str = f"d: [{theta:.1f}°]"
+            
+            w_p = font_log.size(p_str)[0]
+            w_d = font_log.size(d_str)[0]
+            max_w = max(w_p, w_d) + img_offset_x
+
+            if max_w > max_blue_width:
+                max_blue_width = max_w
+
+        max_red_width = 0
+        for robot in red_team.robots:
+            theta = get_theta(robot)
+            p_str = f"p: [{robot.x:.1f}, {robot.y:.1f}]"
+            d_str = f"d: [{theta:.1f}°]"
+            
+            w_p = font_log.size(p_str)[0]
+            w_d = font_log.size(d_str)[0]
+            max_w = max(w_p, w_d) + img_offset_x
+
+            if max_w > max_red_width:
+                max_red_width = max_w
+
+        # --- 2. DIMENSIONAMENTO DA CAIXA ---
+        total_width = padding + max_blue_width + column_gap + max_red_width + padding
+        total_height = padding + (max_robots * row_height) + padding
+
+        info_rect = pygame.Rect(left, top, total_width, total_height)
+        pygame.draw.rect(screen, (0, 0, 0), info_rect, width=1)
+
+        # --- 3. RENDERIZAÇÃO ---
+        col1_x = info_rect.left + padding
+        col2_x = col1_x + max_blue_width + column_gap
+        start_y = info_rect.top + padding
+
+        for i in range(max_robots):
+            y_pos = start_y + (i * row_height)
+
+            # --- Coluna Azul ---
+            if i < len(blue_team.robots):
+                robot = blue_team.robots[i]
+                theta = get_theta(robot)
+
+                if hasattr(robot, 'image') and robot.image:
+                    img_y = y_pos + (row_height // 2) - (robot.image.get_height() // 2)
+                    screen.blit(robot.image, (col1_x, img_y))
+
+                surf_d = font_log.render(f"d: [{theta:.1f}°]", True, (0, 0, 255))
+
+                # Linha 1 colada na linha 2 com apenas 10px de offset vertical
+                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (0, 0, 255))
+                screen.blit(surf_p, (col1_x + img_offset_x, y_pos + 1))
+                screen.blit(surf_d, (col1_x + img_offset_x, y_pos + 11))
+
+            # --- Coluna Vermelha ---
+            if i < len(red_team.robots):
+                robot = red_team.robots[i]
+                theta = get_theta(robot)
+
+                if hasattr(robot, 'image') and robot.image:
+                    img_y = y_pos + (row_height // 2) - (robot.image.get_height() // 2)
+                    screen.blit(robot.image, (col2_x, img_y))
+
+                surf_d = font_log.render(f"d: [{theta:.1f}°]", True, (255, 0, 0))
+
+                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (255, 0, 0))
+                screen.blit(surf_p, (col2_x + img_offset_x, y_pos + 1))
+                screen.blit(surf_d, (col2_x + img_offset_x, y_pos + 11))
+
+    def _draw_target_debug(self, screen, robots, target_debug_ids):
+        """Desenha target, velocidades e curva desejada dos robôs selecionados."""
+        for robot in robots:
+            if robot.id_robot not in (target_debug_ids or set()):
+                continue
+
+            robot_screen = virtual_to_screen(robot.position)
+            target_screen = virtual_to_screen(robot.target_position)
+            color = (0, 120, 255) if robot.team == BLUE_TEAM else (255, 80, 80)
+            pygame.draw.line(screen, color, robot_screen, target_screen, 2)
+            pygame.draw.circle(screen, color, target_screen, 7, 2)
+            pygame.draw.line(screen, color,
+                             (target_screen[0] - 5, target_screen[1]),
+                             (target_screen[0] + 5, target_screen[1]), 2)
+            pygame.draw.line(screen, color,
+                             (target_screen[0], target_screen[1] - 5),
+                             (target_screen[0], target_screen[1] + 5), 2)
+
+            # Orientação atual do robô.
+            self._draw_arrow(screen, (255, 0, 0), robot_screen,
+                             (robot.direction[0], -robot.direction[1]), 25.0)
+
+            # A velocidade desejada é uma linha simples, sem ponta de seta.
+            self._draw_velocity_line(screen, (255, 165, 0), robot_screen,
+                                      robot.desired_velocity)
+
+    def _draw_ball_velocity(self, screen, ball):
+        """Desenha a velocidade real da bola como uma reta laranja."""
+        ball_screen = virtual_to_screen(ball.position)
+        velocity = np.asarray(ball.velocity, dtype=float)
+        speed = np.linalg.norm(velocity)
+        if speed == 0:
+            return
+        self._draw_velocity_line(screen, (255, 165, 0), ball_screen, velocity)
+
+
+    @staticmethod
+    def _draw_arrow(screen, color, origin, direction, length):
+        direction = np.asarray(direction, dtype=float)
+        norm = np.linalg.norm(direction)
+        if norm == 0:
+            return
+        direction = direction / norm
+        end = np.asarray(origin, dtype=float) + direction * length
+        perpendicular = np.array([-direction[1], direction[0]])
+        pygame.draw.line(screen, color, origin, end, 2)
+        pygame.draw.polygon(screen, color, [
+            end,
+            end - direction * 7 + perpendicular * 4,
+            end - direction * 7 - perpendicular * 4,
+        ])
+
+    def _draw_velocity_line(self, screen, color, origin, vector):
+        vector = np.asarray(vector, dtype=float)
+        speed = np.linalg.norm(vector)
+        if speed == 0:
+            return
+        screen_vector = np.array([vector[0], -vector[1]])
+        direction = screen_vector / speed
+        length = min(50.0, speed)
+        end = np.asarray(origin, dtype=float) + direction * length
+        pygame.draw.line(screen, color, origin, end, 3)
+
+    def draw(self, time_left, screen, ball: Ball, robots: list, field: Field,
+             target_debug_ids=None):
         screen.fill((200, 200, 200))
 
         minutes = int(time_left // 60)
         seconds = int(time_left % 60)
 
         # Área de configuração
-        pygame.draw.rect(screen, (200, 200, 200), (0, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX, WINDOWS_FIELD_WIDTH_PX + SIDEBAR_WIDTH_PX, CONFIG_HEIGHT_PX))
+        pygame.draw.rect(screen, (200, 200, 200), (0, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX,
+                                                    WINDOWS_FIELD_WIDTH_PX + SIDEBAR_WIDTH_PX, CONFIG_HEIGHT_PX))
 
-        # Campo de jogo e robôs/bola primeiro
+        # Campo de jogo
         screen.blit(self.field_image, (0, SCOREBOARD_HEIGHT_PX))
 
-        #Desenhando objetos do jogo
+        # Desenha robôs e bola
         for robot in robots:
             robot.draw(screen)
         ball.draw(screen)
-        
+
+        if self.target_debug:
+            self._draw_target_debug(screen, robots, target_debug_ids)
+
+        if self.target_debug or self.draw_collision_objects:
+            self._draw_ball_velocity(screen, ball)
+
         # Desenho extra se ativado
         if self.draw_collision_objects:
-            #Desenhando a linha da direção da bola
-             # === Vetor de velocidade da bola (corrigido com escala e Y invertido) ===
-            max_speed = 100.0  # cm/s (ajuste conforme sua física)
-            max_arrow_length = 30  # pixels
+            # --- Desenho dos objetos de colisão (Pymunk) ---
+            # Bola: shape circular
+            if ball.shape:
+                center_screen = virtual_to_screen(ball.body.position)
+                radius_screen = ball.shape.radius / SCALE_PX_TO_CM
+                pygame.draw.circle(screen, (0, 255, 0), (int(center_screen[0]), int(center_screen[1])),
+                                   int(radius_screen), 2)
 
-            ball_speed = np.linalg.norm(ball.velocity)
-            if ball_speed > 0:
-                # Direção normalizada no sistema virtual
-                direction_virtual = ball.velocity / ball_speed
-
-                # Corrigindo direção para Pygame (inverte Y e ajusta escala)
-                direction_screen = np.array([direction_virtual[0], -direction_virtual[1]])
-
-                # Tamanho proporcional
-                length = min(ball_speed / max_speed * max_arrow_length, max_arrow_length)
-
-                # Posição da bola na tela
-                ball_screen_pos = virtual_to_screen(ball.position)
-                end_pos = (
-                    ball_screen_pos[0] + direction_screen[0] * length,
-                    ball_screen_pos[1] + direction_screen[1] * length
-                )
-
-                # Interpolação de cor: azul → vermelho
-                t = min(ball_speed / max_speed, 1.0)
-                r = int(255 * t)
-                g = 0
-                b = int(255 * (1 - t))
-                color = (r, g, b)
-
-                # Linha do vetor velocidade
-                pygame.draw.line(screen, color, ball_screen_pos, end_pos, 3)
-
-                # Cabeça da seta
-                head_length = 3
-                perp = np.array([-direction_screen[1], direction_screen[0]])
-                tip = np.array(end_pos)
-                left = tip - direction_screen * head_length + perp * 3
-                right = tip - direction_screen * head_length - perp * 3
-                pygame.draw.polygon(screen, color, [tip, left, right])
-
-            #Para os robôs
+            # Robôs: polígonos
             for robot in robots:
-                # Desenha o retângulo do objeto de colisão
-                corners = np.array([virtual_to_screen(corner) for corner in robot.collision_object.get_corners()])
-                pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in corners], 3)
+                if robot.shape:
+                    verts = robot.shape.get_vertices()
+                    # Aplica rotação e depois translada
+                    verts_global = [robot.body.position + v.rotated(robot.body.angle) for v in verts]
+                    verts_screen = [virtual_to_screen(v) for v in verts_global]
+                    pygame.draw.polygon(screen, (0, 255, 0), verts_screen, 2)
 
-                # Centro do robô na tela
-                xbot, ybot = virtual_to_screen([robot.x, robot.y])
+            # Campo: shapes estáticos (segmentos e círculos)
+            for shape in field.space.shapes:
+                if shape.body and shape.body.body_type == pymunk.Body.STATIC:
+                    if isinstance(shape, pymunk.Segment):
+                        p1 = virtual_to_screen(shape.a)
+                        p2 = virtual_to_screen(shape.b)
+                        pygame.draw.line(screen, (0, 255, 255), p1, p2, 2)
+                    elif isinstance(shape, pymunk.Circle):
+                        center_screen = virtual_to_screen(shape.body.position + shape.offset)
+                        radius_screen = shape.radius / SCALE_PX_TO_CM
+                        pygame.draw.circle(screen, (0, 255, 255), (int(center_screen[0]), int(center_screen[1])),
+                                           int(radius_screen), 2)
 
-                # Direção no sistema virtual → ajusta para Pygame (inverte Y e escala)
-                dir_virtual = robot.direction
-                dir_screen = np.array([dir_virtual[0], -dir_virtual[1]])  # escala de 3x
+            # Áreas de gol (RectHelper)
+            if hasattr(field, 'goal_area_ally'):
+                rect = field.goal_area_ally
+                corners = [(rect.x - rect.width/2, rect.y - rect.height/2),
+                           (rect.x + rect.width/2, rect.y - rect.height/2),
+                           (rect.x + rect.width/2, rect.y + rect.height/2),
+                           (rect.x - rect.width/2, rect.y + rect.height/2)]
+                corners_screen = [virtual_to_screen(c) for c in corners]
+                pygame.draw.polygon(screen, (0, 255, 0), corners_screen, 2)
 
-                # Comprimento da seta proporcional à velocidade (mínimo 10px, máximo 20px)
-                speed = np.linalg.norm(robot.velocity)  # em cm/s
-                max_speed = 100  # velocidade que representa o máximo comprimento (ajuste conforme o modelo)
+            if hasattr(field, 'goal_area_enemy'):
+                rect = field.goal_area_enemy
+                corners = [(rect.x - rect.width/2, rect.y - rect.height/2),
+                           (rect.x + rect.width/2, rect.y - rect.height/2),
+                           (rect.x + rect.width/2, rect.y + rect.height/2),
+                           (rect.x - rect.width/2, rect.y + rect.height/2)]
+                corners_screen = [virtual_to_screen(c) for c in corners]
+                pygame.draw.polygon(screen, (0, 255, 0), corners_screen, 2)
 
-                # Mapeia a velocidade para o intervalo [10, 20]
-                length = 25 + (min(speed, max_speed) / max_speed) * 10
-
-                # Vetor direção em coordenadas de tela (já está normalizado)
-                end_x = xbot + dir_screen[0] * length
-                end_y = ybot + dir_screen[1] * length
-                end_pos = (end_x, end_y)
-
-                # Cor da seta (laranja)
-                color = (255, 100, 0)
-
-                # Desenha a linha da direção
-                pygame.draw.line(screen, color, (xbot, ybot), end_pos, 2)
-
-                # Cabeça da seta    
-
-                head_length = 5
-                direction_norm = dir_screen / np.linalg.norm(dir_screen)
-                perp = np.array([-direction_norm[1], direction_norm[0]])  # perpendicular para fazer a ponta
-
-                tip = np.array(end_pos)
-                left = tip - direction_norm * head_length + perp * 3
-                right = tip - direction_norm * head_length - perp * 3
-
-                pygame.draw.polygon(screen, color, [tip, left, right])
-
-            # Desenhando os objetos de colisão para o campo
-            # Rect Util
-            #rect_util_screen = np.array([virtual_to_screen(corner) for corner in field.RectUtil.get_corners()])
-
-            # goal_area_ally
-            goal_area_ally_screen = np.array([virtual_to_screen(corner) for corner in field.goal_area_ally.get_corners()])
-
-            # goal_area_enemy
-            goal_area_enemy_screen = np.array([virtual_to_screen(corner) for corner in field.goal_area_enemy.get_corners()])
-
-            #Objeto de colisão da bola
-            ball_collision_center  = virtual_to_screen([ball.collision_object.x,ball.collision_object.y])
-            ball_collision_radius = ball.collision_object.radius / SCALE_PX_TO_CM
-            
-            for obj in field.collision_object.objects:
-                if isinstance(obj, CollisionRectangle):
-                    # Obtenha os vértices do retângulo e converta para coordenadas de tela
-                    vertices = [virtual_to_screen(v) for v in obj.get_corners()]
-                    pygame.draw.polygon(screen, (0, 255, 255), vertices, width=0)  # Preenchido
-                if isinstance(obj, CollisionCircle):
-                    obj_c = virtual_to_screen(obj.center)
-                    obj_r = obj.radius/SCALE_PX_TO_CM
-                    pygame.draw.circle(screen, (0, 255, 0), (int(obj_c[0]),int(obj_c[1])), radius=int(obj_r), width=2)
-
-
-
-            # Desenhar o campo 
-            #pygame.draw.polygon(screen, (255, 255, 0), [(int(c[0]), int(c[1])) for c in rect_util_screen], 3)
-            pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_ally_screen], 3)
-            pygame.draw.polygon(screen, (0, 255, 0), [(int(c[0]), int(c[1])) for c in goal_area_enemy_screen], 3)
-
-            pygame.draw.circle(screen, (0, 255, 0), (ball_collision_center[0],ball_collision_center[1]), ball_collision_radius, 1)
-            
-            #Verifica se desenha ou não o grid
-            if self.draw_grid_collision:
-                # Desenhando os grids do sistema de detecção
-                x_start, x_end = BALL_INIT_MIN_X, BALL_INIT_MAX_X
-                y_start, y_end = BALL_INIT_MIN_Y, BALL_INIT_MAX_Y 
-
-                for x in range(x_start, x_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
-                    pygame.draw.line(screen, GRID_COLOR, (x, y_start), (x, y_end), 1)
-                for y in range(y_start, y_end + 1, int(CELL_SIZE/SCALE_PX_TO_CM)):
-                    pygame.draw.line(screen, GRID_COLOR, (x_start, y), (x_end, y), 1)
-
-        # Interface (último plano por cima de tudo)
-
-        # Posiciona o placar acima do campo
+        # --- Interface (placar, temporizador, botões, label) ---
         blue_label = self.fonts["Timer_small"].render("Time A", True, (0, 0, 255))
         red_label = self.fonts["Timer_small"].render("Time B", True, (255, 0, 0))
-
-        # Placar numérico logo abaixo
         blue_score_surface = self.fonts["Timer"].render(str(self.score[0]), True, (0, 0, 255))
         red_score_surface = self.fonts["Timer"].render(str(self.score[1]), True, (255, 0, 0))
 
         blue_score_x = 60
         red_score_x = WINDOWS_FIELD_WIDTH_PX - 60
 
-
         screen.blit(blue_label, (blue_score_x - blue_label.get_width() // 2, 0))
         screen.blit(blue_score_surface, (blue_score_x - blue_score_surface.get_width() // 2, 15))
-
         screen.blit(red_label, (red_score_x - red_label.get_width() // 2, 0))
         screen.blit(red_score_surface, (red_score_x - red_score_surface.get_width() // 2, 15))
 
-        # Temporizador com fundo preto e fonte branca
+        # Temporizador
         time_surface = self.fonts["Timer"].render(f"{minutes:02}:{seconds:02}", True, (255, 255, 255))
         time_padding_x = 20
         time_padding_y = 2
@@ -251,22 +367,30 @@ class Interface:
         )
         pygame.draw.rect(screen, (0, 0, 0), time_bg_rect)
         screen.blit(time_surface, (time_bg_rect.centerx - time_surface.get_width() // 2,
-                                time_bg_rect.centery - time_surface.get_height() // 2))
-        
+                                   time_bg_rect.centery - time_surface.get_height() // 2))
+
         # Botões
         pygame.draw.rect(screen, (0, 255, 0), self.start_button)
         pygame.draw.rect(screen, (255, 0, 0), self.reset_button)
-        screen.blit(self.fonts["Buttons"].render("Iniciar", True, (0, 0, 0)), self.fonts["Buttons"].render("Iniciar", True, (0, 0, 0)).get_rect(center=self.start_button.center))
-        screen.blit(self.fonts["Buttons"].render("Resetar", True, (0, 0, 0)), self.fonts["Buttons"].render("Resetar", True, (0, 0, 0)).get_rect(center=self.reset_button.center))
+        screen.blit(self.fonts["Buttons"].render("Iniciar", True, (0, 0, 0)),
+                    self.fonts["Buttons"].render("Iniciar", True, (0, 0, 0)).get_rect(center=self.start_button.center))
+        screen.blit(self.fonts["Buttons"].render("Resetar", True, (0, 0, 0)),
+                    self.fonts["Buttons"].render("Resetar", True, (0, 0, 0)).get_rect(center=self.reset_button.center))
 
-        # Informações de status (label lateral)
+        # Label de status
         text = [
-            " CONFIG. DA EXIBIÇÃO ",
+            f" INFORMAÇÕES (FPS: {int(round(self.fps))}) ",
+            "DEBUG:",
+            "ARBITRO:",
             f"PAUSADO: {'SIM' if self.is_game_paused else 'NÃO'}",
             f"OBJ. COLISÃO: {'EXIBINDO' if self.draw_collision_objects else 'OCULTO'}",
-            f"GRADE : {'EXIBINDO' if (self.draw_grid_collision and self.draw_collision_objects) else 'OCULTO'}",
             f"RODANDO: {'SIM' if self.running else 'NÃO'}",
         ]
+        max_width = max(self.fonts["Arial_small"].size(line)[0] for line in text) + 20
+        total_height = len(text) * 20 + 20
+        self.exibition_label.width = max_width
+        self.exibition_label.height = total_height
+        y = self.exibition_label.top + 10
 
         # Calcula dinamicamente a largura e altura do label
         max_width = max(self.fonts["Arial_small"].size(line)[0] for line in text) + 20  # 10px de padding em cada lado
@@ -295,9 +419,30 @@ class Interface:
 
         # Renderiza o texto no label
         for i, line in enumerate(text):
+            if line == "ARBITRO:":
+                line_y = y + i * 20
+                label_surf = self.fonts["Arial_small"].render(line, True, default_color)
+                screen.blit(label_surf, (self.exibition_label.left + 10, line_y))
+                message, message_color = self._arbitrator_status()
+                status_x = self.exibition_label.left + 10 + label_surf.get_width() + 5
+                status_surf = self.fonts["Arial_small"].render(message, True, message_color)
+                screen.blit(status_surf, (status_x, line_y))
+                continue
+
+            if line == "DEBUG:":
+                line_y = y + i * 20
+                label_surf = self.fonts["Arial_small"].render(line, True, default_color)
+                screen.blit(label_surf, (self.exibition_label.left + 10, line_y))
+                status_x = self.exibition_label.left + 10 + label_surf.get_width() + 5
+                for robot_id, label in ((0, "G"), (1, "A1"), (2, "A2")):
+                    status_color = ok_color if self.target_debug and robot_id in self.target_debug_ids else no_color
+                    status_surf = self.fonts["Arial_small"].render(label, True, status_color)
+                    screen.blit(status_surf, (status_x, line_y))
+                    status_x += status_surf.get_width() + 8
+                continue
+
             parts = line.split(": ")
             if len(parts) < 2:
-                # Linha sem status (ex: título ou decorativa), renderiza como texto normal
                 line_surf = self.fonts["Arial_small"].render(line, True, default_color)
                 line_y = y + i * 20
                 screen.blit(line_surf, (self.exibition_label.left + 10, line_y))
