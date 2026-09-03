@@ -26,6 +26,7 @@ class Interface:
         self.is_game_paused = None
         self.target_debug_ids = set()
         self.fps = 0.0
+        self.arbitrator_decision = None
 
         top = self.start_button.top
         bottom = self.reset_button.bottom
@@ -54,13 +55,50 @@ class Interface:
             self.score[1] += 1
 
     def get_states(self, draw_collision_objects, target_debug, running,
-                   is_game_paused, target_debug_ids=None, fps=0.0):
+                   is_game_paused, target_debug_ids=None, fps=0.0,
+                   arbitrator_decision=None):
         self.draw_collision_objects = draw_collision_objects
         self.target_debug = target_debug
         self.running = running
         self.is_game_paused = is_game_paused
         self.target_debug_ids = target_debug_ids or set()
         self.fps = fps
+        self.arbitrator_decision = arbitrator_decision
+
+    def _arbitrator_status(self):
+        """Retorna uma mensagem curta e sua cor para o estado da partida."""
+        decision_name = getattr(self.arbitrator_decision, "name", None)
+        messages = {
+            "ALLY_GOAL": "GOL A",
+            "ENEMY_GOAL": "GOL B",
+            "FINISH": "FIM DE JOGO",
+            "RESTART": "REINICIO",
+            "FOUL_ALLY": "FALTA A",
+            "FOUL_ENEMY": "FALTA B",
+            "PENALTY_ALLY": "PENALTI A",
+            "PENALTY_ENEMY": "PENALTI B",
+            "GK_AREA_VIOLATION_ALLY": "INVASAO A",
+            "GK_AREA_VIOLATION_ENEMY": "INVASAO B",
+            "THROW_IN_ALLY": "LATERAL A",
+            "THROW_IN_ENEMY": "LATERAL B",
+            "CORNER_ALLY": "ESCANTEIO A",
+            "CORNER_ENEMY": "ESCANTEIO B",
+            "GOALKICK_ALLY": "TIRO META A",
+            "GOALKICK_ENEMY": "TIRO META B",
+            "DROP_BALL": "BOLA AO CHAO",
+        }
+        infractions = {
+            "RESTART",
+            "FOUL_ALLY",
+            "FOUL_ENEMY",
+            "PENALTY_ALLY",
+            "PENALTY_ENEMY",
+            "GK_AREA_VIOLATION_ALLY",
+            "GK_AREA_VIOLATION_ENEMY",
+        }
+        message = messages.get(decision_name, "JOGO NORMAL")
+        color = (200, 0, 0) if decision_name in infractions else (0, 180, 0)
+        return message, color
 
     def draw_robot_logs(self, screen, blue_team, red_team):
         # A caixa de logs ficará à direita da caixa de exibição
@@ -341,8 +379,9 @@ class Interface:
 
         # Label de status
         text = [
-            f" CONFIGURAÇÕES (FPS: {int(round(self.fps))}) ",
+            f" INFORMAÇÕES (FPS: {int(round(self.fps))}) ",
             "DEBUG:",
+            "ARBITRO:",
             f"PAUSADO: {'SIM' if self.is_game_paused else 'NÃO'}",
             f"OBJ. COLISÃO: {'EXIBINDO' if self.draw_collision_objects else 'OCULTO'}",
             f"RODANDO: {'SIM' if self.running else 'NÃO'}",
@@ -366,6 +405,16 @@ class Interface:
         }
 
         for i, line in enumerate(text):
+            if line == "ARBITRO:":
+                line_y = y + i * 20
+                label_surf = self.fonts["Arial_small"].render(line, True, default_color)
+                screen.blit(label_surf, (self.exibition_label.left + 10, line_y))
+                message, message_color = self._arbitrator_status()
+                status_x = self.exibition_label.left + 10 + label_surf.get_width() + 5
+                status_surf = self.fonts["Arial_small"].render(message, True, message_color)
+                screen.blit(status_surf, (status_x, line_y))
+                continue
+
             if line == "DEBUG:":
                 line_y = y + i * 20
                 label_surf = self.fonts["Arial_small"].render(line, True, default_color)

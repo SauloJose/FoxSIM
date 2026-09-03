@@ -7,7 +7,7 @@ from simulator.objects.team import Team, blue_team_positions, red_team_positions
 from simulator.objects.ball import Ball
 from simulator.objects.field import Field
 from simulator.objects.timer import Stopwatch
-from simulator.rules.rules import Arbitrator, Decisions
+from simulator.rules.rules import Arbitrator, Decisions, GameState
 from simulator.intelligence.BT.strategies import StrategyManager, TeamStrategy
 from ui.interface import Interface
 from ui.interface_config import *
@@ -73,6 +73,10 @@ class Simulation:
             self.timer,
         )
 
+    def set_arbitrator_enabled(self, enabled):
+        """Ativa ou desativa a arbitragem para testes e cenários de debug."""
+        self.arbitrator.set_enabled(enabled)
+
     def _create_strategies(self):
         blue_manager = StrategyManager(
             profile="aggressive",
@@ -97,6 +101,7 @@ class Simulation:
         self.draw_collision_objects = False
         self.target_debug = False
         self.target_debug_ids = set()
+        self.arbitrator_decision = None
         self.is_game_paused = False
         self.selected_robot = None
         self.running = True
@@ -110,6 +115,8 @@ class Simulation:
         self.blue_team.reset_positions()
         self.red_team.reset_positions()
         self.interface.score = [0, 0]
+        self.arbitrator_decision = None
+        self.arbitrator.reset_match()
 
     def handle_events(self):
         """Processa os eventos de janela, teclado e mouse do frame atual."""
@@ -133,9 +140,15 @@ class Simulation:
         elif event.key == pygame.K_p:
             self.is_game_paused = not self.is_game_paused
             if self.is_game_paused:
-                self.timer.pause()
+                if self.arbitrator.enabled:
+                    self.arbitrator.halt()
+                else:
+                    self.timer.pause()
             else:
-                self.timer.resume()
+                if self.arbitrator.enabled and self.game_started:
+                    self.arbitrator.game_on()
+                else:
+                    self.timer.resume()
         elif event.mod & pygame.KMOD_CTRL and event.key in (
                 pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4):
             if event.key == pygame.K_4:
@@ -165,7 +178,10 @@ class Simulation:
 
         if self.interface.start_button.collidepoint(x, y) and not self.is_game_paused:
             self.game_started = True
-            self.timer.start()
+            if self.arbitrator.enabled:
+                self.arbitrator.start_match()
+            else:
+                self.timer.start()
         elif self.interface.reset_button.collidepoint(x, y) and not self.is_game_paused:
             self.game_started = False
             self.reset()
@@ -207,7 +223,9 @@ class Simulation:
         if self.is_game_paused:
             return
 
-        if self.game_started:
+        if self.game_started and (
+            not self.arbitrator.enabled
+            or self.arbitrator.state == GameState.GAME_ON):
             self.frame_count += 1
             for bot in self.blue_team.robots:
                 self.blue_trees[bot.id_robot].tick(
@@ -226,18 +244,31 @@ class Simulation:
         self.ball.apply_damping(dt)
 
         if self.game_started:
-            self.handle_arbitrator_decision(self.arbitrator.evaluate())
+            self.handle_arbitrator_decision(self.arbitrator.evaluate(dt))
 
     def handle_arbitrator_decision(self, decision):
         """Ponto de extensão para decisões do árbitro e eventos da partida."""
+        if decision is not None:
+            self.arbitrator_decision = decision
+            self.arbitrator.apply_decision(decision)
         if decision == Decisions.FINISH:
             self.game_started = False
+        elif decision in (
+                Decisions.FOUL_ALLY,
+                Decisions.FOUL_ENEMY,
+                Decisions.PENALTY_ALLY,
+                Decisions.PENALTY_ENEMY,
+                Decisions.GK_AREA_VIOLATION_ALLY,
+                Decisions.GK_AREA_VIOLATION_ENEMY,
+                Decisions.RESTART):
+            self.arbitrator.stop()
 
     def render(self):
         """Desenha o frame atual e atualiza a janela."""
         self.interface.get_states(
             draw_collision_objects=self.draw_collision_objects,
             target_debug=self.target_debug,
+            arbitrator_decision=self.arbitrator_decision,
             running=self.game_started,
             is_game_paused=self.is_game_paused,
             target_debug_ids=self.target_debug_ids,

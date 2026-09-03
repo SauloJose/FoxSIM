@@ -164,7 +164,7 @@ As árvores são criadas por `StrategyManager`. O perfil (`aggressive`, `balance
 
 Cada robô mantém `target_position`, um único ponto atualizado, além de `target_velocity` e `target_angular_velocity`, que representam o comando desejado. A velocidade real vem de `robot.velocity`. Os nós de estratégia devem usar `robot.go_to_point(...)` para que seu target seja atualizado no debug.
 
-O árbitro está em `src/simulator/rules/rules.py`. `Arbitrator.evaluate()` é chamado a cada atualização e retorna um membro de `Decisions`. A lógica específica de gols, faltas, pênaltis, laterais, escanteios e reinícios deve ser implementada nessa classe. O método `Simulation.handle_arbitrator_decision()` é o ponto de extensão para reagir às decisões sem alterar o loop principal.
+O árbitro está em `src/simulator/rules/rules.py`. `Arbitrator.evaluate()` é chamado a cada atualização e retorna um membro de `Decisions` ou `None`. Ele controla os estados `HALT`, `STOP` e `GAME_ON`, identifica gols e fim de tempo e concentra os pontos de extensão para faltas, pênaltis, laterais, escanteios, bola presa, empurrões e robôs travados. Use `simulation.arbitrator.enabled = False` ou `simulation.set_arbitrator_enabled(False)` para testar situações sem a intervenção das regras. O método `Simulation.handle_arbitrator_decision()` é o ponto de extensão para reagir às decisões sem alterar o loop principal.
 
 ---
 
@@ -201,6 +201,17 @@ Os parâmetros do simulador podem ser ajustados no arquivo `interface_config.py`
    ```bash
    python src/main.py
    ```
+
+## 🧪 Testes Unitários
+
+Os testes ficam na pasta `tests/` e verificam a integridade dos estados do árbitro, dos reinícios, da construção das Behavior Trees, da ordem dos robôs, dos atalhos de debug e da renderização básica.
+
+Para executá-los na raiz do projeto:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m unittest discover -s tests -v
+```
 
 ---
 
