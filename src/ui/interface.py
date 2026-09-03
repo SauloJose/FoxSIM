@@ -21,9 +21,11 @@ class Interface:
         self.reset_button = pygame.Rect(50, WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + 20 + BUTTON_HEIGHT + BUTTON_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
 
         self.draw_collision_objects = None
+        self.target_debug = False
         self.running = None
         self.is_game_paused = None
-        self.draw_grid_collision = None
+        self.target_debug_ids = set()
+        self.fps = 0.0
 
         top = self.start_button.top
         bottom = self.reset_button.bottom
@@ -51,11 +53,14 @@ class Interface:
         elif team == 2:
             self.score[1] += 1
 
-    def get_states(self, draw_collision_objects, running, is_game_paused, draw_grid_collision):
+    def get_states(self, draw_collision_objects, target_debug, running,
+                   is_game_paused, target_debug_ids=None, fps=0.0):
         self.draw_collision_objects = draw_collision_objects
+        self.target_debug = target_debug
         self.running = running
         self.is_game_paused = is_game_paused
-        self.draw_grid_collision = draw_grid_collision
+        self.target_debug_ids = target_debug_ids or set()
+        self.fps = fps
 
     def draw_robot_logs(self, screen, blue_team, red_team):
         # A caixa de logs ficará à direita da caixa de exibição
@@ -134,10 +139,10 @@ class Interface:
                     img_y = y_pos + (row_height // 2) - (robot.image.get_height() // 2)
                     screen.blit(robot.image, (col1_x, img_y))
 
-                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (0, 0, 255))
                 surf_d = font_log.render(f"d: [{theta:.1f}°]", True, (0, 0, 255))
 
                 # Linha 1 colada na linha 2 com apenas 10px de offset vertical
+                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (0, 0, 255))
                 screen.blit(surf_p, (col1_x + img_offset_x, y_pos + 1))
                 screen.blit(surf_d, (col1_x + img_offset_x, y_pos + 11))
 
@@ -150,13 +155,77 @@ class Interface:
                     img_y = y_pos + (row_height // 2) - (robot.image.get_height() // 2)
                     screen.blit(robot.image, (col2_x, img_y))
 
-                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (255, 0, 0))
                 surf_d = font_log.render(f"d: [{theta:.1f}°]", True, (255, 0, 0))
 
+                surf_p = font_log.render(f"p: [{robot.x:.1f}, {robot.y:.1f}]", True, (255, 0, 0))
                 screen.blit(surf_p, (col2_x + img_offset_x, y_pos + 1))
                 screen.blit(surf_d, (col2_x + img_offset_x, y_pos + 11))
 
-    def draw(self, time_left, screen, ball: Ball, robots: list, field: Field):
+    def _draw_target_debug(self, screen, robots, target_debug_ids):
+        """Desenha target, velocidades e curva desejada dos robôs selecionados."""
+        for robot in robots:
+            if robot.id_robot not in (target_debug_ids or set()):
+                continue
+
+            robot_screen = virtual_to_screen(robot.position)
+            target_screen = virtual_to_screen(robot.target_position)
+            color = (0, 120, 255) if robot.team == BLUE_TEAM else (255, 80, 80)
+            pygame.draw.line(screen, color, robot_screen, target_screen, 2)
+            pygame.draw.circle(screen, color, target_screen, 7, 2)
+            pygame.draw.line(screen, color,
+                             (target_screen[0] - 5, target_screen[1]),
+                             (target_screen[0] + 5, target_screen[1]), 2)
+            pygame.draw.line(screen, color,
+                             (target_screen[0], target_screen[1] - 5),
+                             (target_screen[0], target_screen[1] + 5), 2)
+
+            # Orientação atual do robô.
+            self._draw_arrow(screen, (255, 0, 0), robot_screen,
+                             (robot.direction[0], -robot.direction[1]), 25.0)
+
+            # A velocidade desejada é uma linha simples, sem ponta de seta.
+            self._draw_velocity_line(screen, (255, 165, 0), robot_screen,
+                                      robot.desired_velocity)
+
+    def _draw_ball_velocity(self, screen, ball):
+        """Desenha a velocidade real da bola como uma reta laranja."""
+        ball_screen = virtual_to_screen(ball.position)
+        velocity = np.asarray(ball.velocity, dtype=float)
+        speed = np.linalg.norm(velocity)
+        if speed == 0:
+            return
+        self._draw_velocity_line(screen, (255, 165, 0), ball_screen, velocity)
+
+
+    @staticmethod
+    def _draw_arrow(screen, color, origin, direction, length):
+        direction = np.asarray(direction, dtype=float)
+        norm = np.linalg.norm(direction)
+        if norm == 0:
+            return
+        direction = direction / norm
+        end = np.asarray(origin, dtype=float) + direction * length
+        perpendicular = np.array([-direction[1], direction[0]])
+        pygame.draw.line(screen, color, origin, end, 2)
+        pygame.draw.polygon(screen, color, [
+            end,
+            end - direction * 7 + perpendicular * 4,
+            end - direction * 7 - perpendicular * 4,
+        ])
+
+    def _draw_velocity_line(self, screen, color, origin, vector):
+        vector = np.asarray(vector, dtype=float)
+        speed = np.linalg.norm(vector)
+        if speed == 0:
+            return
+        screen_vector = np.array([vector[0], -vector[1]])
+        direction = screen_vector / speed
+        length = min(50.0, speed)
+        end = np.asarray(origin, dtype=float) + direction * length
+        pygame.draw.line(screen, color, origin, end, 3)
+
+    def draw(self, time_left, screen, ball: Ball, robots: list, field: Field,
+             target_debug_ids=None):
         screen.fill((200, 200, 200))
 
         minutes = int(time_left // 60)
@@ -174,55 +243,14 @@ class Interface:
             robot.draw(screen)
         ball.draw(screen)
 
+        if self.target_debug:
+            self._draw_target_debug(screen, robots, target_debug_ids)
+
+        if self.target_debug or self.draw_collision_objects:
+            self._draw_ball_velocity(screen, ball)
+
         # Desenho extra se ativado
         if self.draw_collision_objects:
-            # --- Vetor de velocidade da bola ---
-            max_speed = 100.0
-            max_arrow_length = 30
-            ball_speed = np.linalg.norm(ball.velocity)
-            if ball_speed > 0:
-                direction_virtual = ball.velocity / ball_speed
-                direction_screen = np.array([direction_virtual[0], -direction_virtual[1]])
-                length = min(ball_speed / max_speed * max_arrow_length, max_arrow_length)
-                ball_screen_pos = virtual_to_screen(ball.position)
-                end_pos = (
-                    ball_screen_pos[0] + direction_screen[0] * length,
-                    ball_screen_pos[1] + direction_screen[1] * length
-                )
-                t = min(ball_speed / max_speed, 1.0)
-                r = int(255 * t)
-                g = 0
-                b = int(255 * (1 - t))
-                color = (r, g, b)
-                pygame.draw.line(screen, color, ball_screen_pos, end_pos, 3)
-                head_length = 3
-                perp = np.array([-direction_screen[1], direction_screen[0]])
-                tip = np.array(end_pos)
-                left = tip - direction_screen * head_length + perp * 3
-                right = tip - direction_screen * head_length - perp * 3
-                pygame.draw.polygon(screen, color, [tip, left, right])
-
-            # --- Vetores de direção dos robôs ---
-            for robot in robots:
-                xbot, ybot = virtual_to_screen([robot.x, robot.y])
-                dir_virtual = robot.direction
-                dir_screen = np.array([dir_virtual[0], -dir_virtual[1]])
-                speed = np.linalg.norm(robot.velocity)
-                max_speed = 100
-                length = 25 + (min(speed, max_speed) / max_speed) * 10
-                end_x = xbot + dir_screen[0] * length
-                end_y = ybot + dir_screen[1] * length
-                end_pos = (end_x, end_y)
-                color = (255, 100, 0)
-                pygame.draw.line(screen, color, (xbot, ybot), end_pos, 2)
-                head_length = 5
-                direction_norm = dir_screen / np.linalg.norm(dir_screen)
-                perp = np.array([-direction_norm[1], direction_norm[0]])
-                tip = np.array(end_pos)
-                left = tip - direction_norm * head_length + perp * 3
-                right = tip - direction_norm * head_length - perp * 3
-                pygame.draw.polygon(screen, color, [tip, left, right])
-
             # --- Desenho dos objetos de colisão (Pymunk) ---
             # Bola: shape circular
             if ball.shape:
@@ -272,15 +300,6 @@ class Interface:
                 corners_screen = [virtual_to_screen(c) for c in corners]
                 pygame.draw.polygon(screen, (0, 255, 0), corners_screen, 2)
 
-            # Grade de colisão
-            if self.draw_grid_collision:
-                x_start, x_end = BALL_INIT_MIN_X, BALL_INIT_MAX_X
-                y_start, y_end = BALL_INIT_MIN_Y, BALL_INIT_MAX_Y
-                for x in range(x_start, x_end + 1, int(CELL_SIZE / SCALE_PX_TO_CM)):
-                    pygame.draw.line(screen, GRID_COLOR, (x, y_start), (x, y_end), 1)
-                for y in range(y_start, y_end + 1, int(CELL_SIZE / SCALE_PX_TO_CM)):
-                    pygame.draw.line(screen, GRID_COLOR, (x_start, y), (x_end, y), 1)
-
         # --- Interface (placar, temporizador, botões, label) ---
         blue_label = self.fonts["Timer_small"].render("Time A", True, (0, 0, 255))
         red_label = self.fonts["Timer_small"].render("Time B", True, (255, 0, 0))
@@ -322,10 +341,10 @@ class Interface:
 
         # Label de status
         text = [
-            " CONFIG. DA EXIBIÇÃO ",
+            f" CONFIGURAÇÕES (FPS: {int(round(self.fps))}) ",
+            "DEBUG:",
             f"PAUSADO: {'SIM' if self.is_game_paused else 'NÃO'}",
             f"OBJ. COLISÃO: {'EXIBINDO' if self.draw_collision_objects else 'OCULTO'}",
-            f"GRADE : {'EXIBINDO' if (self.draw_grid_collision and self.draw_collision_objects) else 'OCULTO'}",
             f"RODANDO: {'SIM' if self.running else 'NÃO'}",
         ]
         max_width = max(self.fonts["Arial_small"].size(line)[0] for line in text) + 20
@@ -347,6 +366,18 @@ class Interface:
         }
 
         for i, line in enumerate(text):
+            if line == "DEBUG:":
+                line_y = y + i * 20
+                label_surf = self.fonts["Arial_small"].render(line, True, default_color)
+                screen.blit(label_surf, (self.exibition_label.left + 10, line_y))
+                status_x = self.exibition_label.left + 10 + label_surf.get_width() + 5
+                for robot_id, label in ((0, "G"), (1, "A1"), (2, "A2")):
+                    status_color = ok_color if self.target_debug and robot_id in self.target_debug_ids else no_color
+                    status_surf = self.fonts["Arial_small"].render(label, True, status_color)
+                    screen.blit(status_surf, (status_x, line_y))
+                    status_x += status_surf.get_width() + 8
+                continue
+
             parts = line.split(": ")
             if len(parts) < 2:
                 line_surf = self.fonts["Arial_small"].render(line, True, default_color)

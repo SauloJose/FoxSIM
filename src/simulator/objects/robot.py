@@ -96,6 +96,7 @@ class Robot:
         self.initial_image = image
         self.image = image
         self.type_object = ROBOT_OBJECT
+        self.target_position = np.array([x, y], dtype=float)
 
         # Dimensões do robô (cm)
         self.width = ROBOT_SIZE_CM
@@ -148,6 +149,7 @@ class Robot:
         # para resistir/reduzir essa força quando houver contato com outro
         # robô. Isso é o que garante que os robôs nunca se atravessem.
         self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.desired_velocity = np.array([0.0, 0.0], dtype=float)
         self.target_angular_velocity = 0.0
         # Ativado (por um único tick) via set_wheel_speeds(..., priority=True),
         # usado por manobras de "atuador dedicado" — ré de emergência e giros
@@ -360,14 +362,20 @@ class Robot:
                       mas pode ser incorporado futuramente).
         allow_reverse: se True, permite marcha à ré (caso o alvo esteja atrás).
         """
+        target_pos = np.asarray(target_pos, dtype=float)
+        self.target_position = target_pos.copy()
+
         # Se a distância for muito pequena, para o robô
         pos_error = target_pos - self.position
         distance = np.linalg.norm(pos_error)
         if distance < 0.4:
+            self.desired_velocity = np.array([0.0, 0.0], dtype=float)
             return 0.0, 0.0
 
         # Obter velocidades linear e angular do controlador Lyapunov
         v, w = self.lyapunov.compute(target_pos, self.position, self.angle)
+        target_direction = pos_error / distance
+        self.desired_velocity = target_direction * abs(v)
 
         # Se allow_reverse for True e o alvo estiver atrás, podemos inverter
         # a velocidade e ajustar o sinal do w (não implementado para simplicidade)
@@ -400,10 +408,12 @@ class Robot:
         self.body.velocity = (0.0, 0.0)
         self.body.angular_velocity = 0.0
         self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.desired_velocity = np.array([0.0, 0.0], dtype=float)
         self.target_angular_velocity = 0.0
         self.v_l = 0.0
         self.v_r = 0.0
         self.image = self.initial_image
+        self.target_position = np.array([self.initial_x, self.initial_y], dtype=float)
 
     def set_position(self, x, y):
         """Define posição e zera velocidades."""
@@ -411,7 +421,9 @@ class Robot:
         self.body.velocity = (0.0, 0.0)
         self.body.angular_velocity = 0.0
         self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.desired_velocity = np.array([0.0, 0.0], dtype=float)
         self.target_angular_velocity = 0.0
+        self.target_position = np.array([x, y], dtype=float)
         self.v_l = 0.0
         self.v_r = 0.0
 
@@ -424,6 +436,7 @@ class Robot:
         self.body.velocity = (0.0, 0.0)
         self.body.angular_velocity = 0.0
         self.target_velocity = np.array([0.0, 0.0], dtype=float)
+        self.desired_velocity = np.array([0.0, 0.0], dtype=float)
         self.target_angular_velocity = 0.0
         self.v_l = 0.0
         self.v_r = 0.0

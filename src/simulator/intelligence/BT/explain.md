@@ -1,10 +1,10 @@
-# 🤖 Sistema de Tomada de Decisão Baseado em Árvore de Comportamento (Behavior Tree) para Futebol de Robôs (VSSS)
+#  Sistema de Tomada de Decisão Baseado em Árvore de Comportamento (Behavior Tree) para Futebol de Robôs (VSSS)
 
 Este repositório contém a implementação completa e profissional da arquitetura de inteligência artificial e tomada de decisão para equipes de robôs da categoria **Very Small Size Soccer (VSSS)**. O sistema é estruturado em **Árvores de Comportamento (*Behavior Trees - BT*)**, integrando Campos Potenciais Artificiais (APF - *Artificial Potential Fields*), navegação reativa, planejamento de trajetória em tempo real (**ERRT** - *Execution Extended Random Tree*), controle proporcional de orientação e histerese temporal para atribuição de papéis.
 
 ---
 
-## 📋 Sumário
+##  Sumário
 1. [Visão Geral e Arquitetura](#-visão-geral-e-arquitetura)
 2. [Estrutura do Projeto e Módulos](#-estrutura-do-projeto-e-módulos)
 3. [Módulo Core: `bt_core.py`](#-módulo-core-bt_corepy)
@@ -16,7 +16,7 @@ Este repositório contém a implementação completa e profissional da arquitetu
 
 ---
 
-## 🎯 Visão Geral e Arquitetura
+##  Visão Geral e Arquitetura
 
 O sistema gerencia autonomamente múltiplos robôs no campo (Goleiro, Atacante Principal e Suporte/Segundo Atacante). A tomada de decisão ocorre periodicamente a cada passo de simulação/controle executando o método `tick(...)` na raiz da árvore atribuída a cada robô.
 
@@ -44,7 +44,7 @@ O sistema gerencia autonomamente múltiplos robôs no campo (Goleiro, Atacante P
 
 ---
 
-## 📁 Estrutura do Projeto e Módulos
+##  Estrutura do Projeto e Módulos
 
 ```text
 src/
@@ -58,7 +58,7 @@ src/
 
 ---
 
-## ⚙️ Módulo Core: `bt_core.py`
+##  Módulo Core: `bt_core.py`
 
 O arquivo `bt_core.py` define o arcabouço base de execução da Árvore de Comportamento.
 

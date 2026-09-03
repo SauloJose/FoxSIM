@@ -35,8 +35,8 @@ class IsClosestToBall(Node):
 
         # 2. Considera apenas os jogadores de linha (ATACKER1 e ATACKER2)
         field_robots = [
-            r for r in team 
-            if getattr(r, 'role', None) in [ATACKER1, ATACKER2] or getattr(r, 'role', None) != GOALKEEPER
+            r for r in team
+            if getattr(r, 'role', None) in [ATACKER1, ATACKER2]
         ]
 
         if not field_robots:
@@ -51,7 +51,7 @@ class IsClosestToBall(Node):
         best_id = best_candidate.id_robot
 
         # 5. Aplica histerese em relação a quem era o principal no tick anterior
-        team_key = tuple(sorted(distances.keys()))
+        team_key = (getattr(team[0], 'team', None), tuple(sorted(distances.keys())))
         last_id = IsClosestToBall._last_primary.get(team_key)
 
         if last_id is not None and last_id in distances and last_id != best_id:

@@ -1,7 +1,3 @@
-Aqui está o README atualizado com as novas informações sobre as futuras implementações:
-
----
-
 # ⚽ **FoxSIM - Simulador de Futebol de Robôs**
 
 Bem-vindo ao **FoxSIM**, um simulador de futebol de robôs 2D projetado para experimentação com física realista, controle autônomo e algoritmos de inteligência artificial. Este projeto é ideal para fins educacionais, pesquisa e desenvolvimento de estratégias para times de robôs em partidas simuladas.
@@ -22,10 +18,11 @@ O **FoxSIM** foi criado para:
 - **Robôs Autônomos**: Cada robô pode ser programado com papéis táticos (como atacante, defensor, goleiro).
 - **Interface com `Pygame`**: Permite interações via mouse e teclado, exibição do placar e debug visual.
 - **Configuração Personalizável**: Parâmetros como velocidade dos robôs, dimensões do campo e tempo podem ser modificados.
-- **Debug Visual**: Possibilidade de exibir objetos de colisão e grades para fins de depuração.
+- **Debug Visual**: Exibição das direções de velocidade e do target atual de cada robô.
 - **Controle de Partida**: Temporizador, pausa, reinício e controle de estados do jogo.
 - **Interação via Mouse**: Permite selecionar robôs, mover a bola e rotacionar robôs manualmente.
-- **Sistema de Regras**: Um árbitro virtual analisa o estado do jogo e decide quando a partida termina.
+- **Sistema de Regras**: Um árbitro virtual avalia gols, tempo, faltas e reinícios por meio de decisões extensíveis.
+- **Arquitetura Modular**: A classe `Simulation` concentra o ciclo do jogo, enquanto `main.py` apenas inicia a aplicação.
 
 ---
 ## 📸 **Galeria de Imagens**
@@ -37,10 +34,22 @@ Aqui você pode adicionar imagens e prints do simulador para torná-lo mais visu
 
 
 
-### **Debug Visual Ativado**
-O debug visual é acionado pressionando a tecla **"d"**, e para exibir a grade pressione a tecla em **"i"**.
+### **Debug de Estratégias**
+O debug de estratégia é acionado pressionando **D**. Ele exibe, para os robôs selecionados, a seta vermelha de orientação, o vetor ciano da velocidade real, a reta laranja da velocidade desejada e o target atual.
 
-![Debug Visual](src/assets/ExibindoColisoes.png)
+Os objetos geométricos de colisão são uma opção independente, alternada pela tecla **C**.
+
+Os targets podem ser alternados com **Ctrl+1**, **Ctrl+2** ou **Ctrl+3**. A ordem é `1 = goleiro`, `2 = atacante 1` e `3 = atacante 2`; **Ctrl+4** alterna todos. Cada atalho seleciona o robô correspondente nos dois times. O target e a linha azuis pertencem ao Time A e os vermelhos ao Time B.
+
+![Debug de targets e velocidades do FoxSIM](src/assets/FoxSIM_Debug_Targets.png)
+
+Na captura, o painel confirma quais jogadores estão em debug. A linha azul ou vermelha aponta para o target atual; a reta laranja representa a velocidade desejada do controlador e a seta vermelha representa a orientação do robô.
+
+### **Debug de Colisão**
+
+O atalho **C** exibe os limites geométricos usados pelo Pymunk. Ele pode ser ativado independentemente do debug de estratégias, permitindo analisar colisões sem desenhar os targets dos robôs.
+
+![Debug dos objetos de colisão do FoxSIM](src/assets/FoxSIM_Debug_Collision.png)
 
 ### **Selecionando robôs com o mouse**
 
@@ -137,6 +146,25 @@ FoxSIM/
   - Sistema de colisão baseado no **Separating Axis Theorem (SAT)**.
   - Estrutura de objetos para robôs, bola, campo e equipes.
   - Implementação de códigos para controle PID e inteligência artificial.
+
+## 🧩 Arquitetura da Simulação
+
+`src/main.py` é somente o ponto de entrada:
+
+```python
+from simulator.simulation import Simulation
+
+if __name__ == "__main__":
+    Simulation().run()
+```
+
+A classe `Simulation` oferece os métodos `handle_events()`, `update(dt)`, `render()`, `reset()`, `run()` e `shutdown()`. Para criar uma interface alternativa, herde de `Simulation` e sobrescreva os métodos necessários. Os componentes principais ficam disponíveis como atributos, incluindo `screen`, `space`, `interface`, `ball`, `blue_team`, `red_team`, `arbitrator` e as árvores de comportamento.
+
+As árvores são criadas por `StrategyManager`. O perfil (`aggressive`, `balanced` ou `defensive`) controla a agressividade, e uma `TeamStrategy` pode ser injetada no construtor para configurar os gols e outros parâmetros do time. A árvore do atacante é organizada em recuperação, ataque principal, escape da parede e suporte. A condição de atacante considera somente `ATACKER1` e `ATACKER2`; o goleiro possui uma árvore independente.
+
+Cada robô mantém `target_position`, um único ponto atualizado, além de `target_velocity` e `target_angular_velocity`, que representam o comando desejado. A velocidade real vem de `robot.velocity`. Os nós de estratégia devem usar `robot.go_to_point(...)` para que seu target seja atualizado no debug.
+
+O árbitro está em `src/simulator/rules/rules.py`. `Arbitrator.evaluate()` é chamado a cada atualização e retorna um membro de `Decisions`. A lógica específica de gols, faltas, pênaltis, laterais, escanteios e reinícios deve ser implementada nessa classe. O método `Simulation.handle_arbitrator_decision()` é o ponto de extensão para reagir às decisões sem alterar o loop principal.
 
 ---
 

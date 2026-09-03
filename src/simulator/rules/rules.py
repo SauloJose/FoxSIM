@@ -43,8 +43,12 @@ class Decisions(Enum):
 
 class Arbitrator:
     '''
-    Classe que representa o árbitro da partida, que irá garantir as regras
-    da partida.
+    Interface do árbitro da partida.
+
+    O simulador chama ``analyzer`` a cada frame. Este método concentra a
+    avaliação das regras e retorna uma decisão para o ciclo da partida.
+    Novas regras devem ser adicionadas nos métodos de avaliação/atendimento
+    desta classe, sem serem colocadas no loop principal da simulação.
     '''
     def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team,
                  interface: Interface, timer: Stopwatch):
@@ -83,6 +87,10 @@ class Arbitrator:
 
         # Decisão atual (usada internamente)
         self.current_decision = None
+
+    def evaluate(self):
+        """Nome explícito para avaliar a partida; mantido como API pública."""
+        return self.analyzer()
 
     def analyzer(self):
         """
