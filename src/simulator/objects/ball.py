@@ -2,7 +2,6 @@ import pygame
 import numpy as np
 import pymunk
 from ui.interface_config import *
-from simulator.intelligence.controll import PIDController  # se ainda usado, mas não é obrigatório
 
 class Ball:
     def __init__(self, x, y, field, space, radius=BALL_RADIUS_CM, color=BALL_COLOR, max_velocity=100.0):

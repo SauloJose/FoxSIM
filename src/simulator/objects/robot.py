@@ -3,7 +3,6 @@ import numpy as np
 import pymunk
 import math
 from ui.interface_config import *
-from simulator.intelligence.controll import PIDController
 
 # =============================================================================
 # Controlador Lyapunov (integrado localmente)
@@ -181,9 +180,9 @@ class Robot:
         self.kp = 2.0
         self.ki = 0.1
         self.kd = 0.2
-        self.pid_linear = PIDController(self.kp, self.ki, self.kd)
-        self.pid_angular = PIDController(self.kp, self.ki, self.kd)
-        self.pid_orientation = PIDController(self.kp, self.ki, self.kd)
+        #self.pid_linear = PIDController(self.kp, self.ki, self.kd)
+        #self.pid_angular = PIDController(self.kp, self.ki, self.kd)
+        #self.pid_orientation = PIDController(self.kp, self.ki, self.kd)
 
         # Estado de seleção (para interface)
         self._is_selected = False

@@ -9,6 +9,12 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 import pygame
 
 from simulator.simulation import Simulation
+from ui.interface_config import (
+    CONFIG_HEIGHT_PX,
+    SCOREBOARD_HEIGHT_PX,
+    WINDOWS_FIELD_HEIGHT_PX,
+    WINDOWS_FIELD_WIDTH_PX,
+)
 
 
 class SimulationTests(unittest.TestCase):
@@ -57,7 +63,11 @@ class SimulationTests(unittest.TestCase):
 
     def test_render_keeps_expected_window_size(self):
         self.simulation.render()
-        self.assertEqual(self.simulation.screen.get_size(), (645, 623))
+        expected_size = (
+            WINDOWS_FIELD_WIDTH_PX,
+            WINDOWS_FIELD_HEIGHT_PX + SCOREBOARD_HEIGHT_PX + CONFIG_HEIGHT_PX,
+        )
+        self.assertEqual(self.simulation.screen.get_size(), expected_size)
 
 
 if __name__ == "__main__":
