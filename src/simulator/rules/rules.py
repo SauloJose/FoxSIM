@@ -81,7 +81,8 @@ class Arbitrator:
     Novas regras devem ser adicionadas nos métodos de avaliação/atendimento
     desta classe, sem serem colocadas no loop principal da simulação.
     '''
-    def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team, interface: Interface, timer: Stopwatch):
+    def __init__(self, ball: Ball, field: Field, ally_bots: Team, enemy_bots: Team,
+                 interface: Interface, timer: Stopwatch, enabled=True):
         # Referências para objetos principais da simulação
         self.ball = ball
         self.field = field
